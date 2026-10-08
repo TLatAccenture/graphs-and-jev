@@ -19,6 +19,7 @@ readonly REGION="${REGION:-australia-southeast1}"
 readonly SERVICE="${SERVICE:-graphs-and-jev}"
 readonly ARTIFACT_REPOSITORY="${ARTIFACT_REPOSITORY:-graphs-and-jev}"
 readonly IMAGE="${IMAGE:-app}"
+readonly SOURCE_BUCKET="${SOURCE_BUCKET:-ninth-airship-386815-graphs-and-jev-build-source}"
 readonly BUILD_SERVICE_ACCOUNT="${BUILD_SERVICE_ACCOUNT:-graphs-and-jev-builder@${PROJECT_ID}.iam.gserviceaccount.com}"
 readonly RUNTIME_SERVICE_ACCOUNT="${RUNTIME_SERVICE_ACCOUNT:-graphs-and-jev-runner@${PROJECT_ID}.iam.gserviceaccount.com}"
 readonly EXPECTED_ACCOUNT="${EXPECTED_ACCOUNT:-anthony.lui@archegon.com}"
@@ -26,6 +27,7 @@ readonly DEPLOY_OUTPUT="${DEPLOY_OUTPUT:-${TMPDIR:-/tmp}/graphs-and-jev-deployme
 readonly PROJECT_RESOURCE="//cloudresourcemanager.googleapis.com/projects/${PROJECT_ID}"
 readonly REPOSITORY_RESOURCE="//artifactregistry.googleapis.com/projects/${PROJECT_ID}/locations/${REGION}/repositories/${ARTIFACT_REPOSITORY}"
 readonly RUNTIME_SA_RESOURCE="//iam.googleapis.com/projects/${PROJECT_ID}/serviceAccounts/${RUNTIME_SERVICE_ACCOUNT}"
+readonly SOURCE_BUCKET_RESOURCE="//storage.googleapis.com/projects/_/buckets/${SOURCE_BUCKET}"
 readonly MIN_INSTANCES="${MIN_INSTANCES:-0}"
 readonly MAX_INSTANCES="${MAX_INSTANCES:-2}"
 readonly CONCURRENCY="${CONCURRENCY:-20}"
@@ -49,6 +51,18 @@ require_permission() {
     --format='value(overallAccessState)')"
   [[ "$state" == "GRANTED" ]] || fail "$principal lacks $permission on $resource (state: ${state:-unknown})"
 }
+require_bucket_permission() {
+  local principal="$1" permission="$2" state
+  state="$(gcloud policy-intelligence troubleshoot-policy iam "$SOURCE_BUCKET_RESOURCE" \
+    --project="$PROJECT_ID" \
+    --principal-email="$principal" \
+    --permission="$permission" \
+    --resource-name="${SOURCE_BUCKET_RESOURCE}/objects/source-preflight" \
+    --resource-service=storage.googleapis.com \
+    --resource-type=storage.googleapis.com/Object \
+    --format='value(allowPolicyExplanation.allowAccessState)')"
+  [[ "$state" == "ALLOW_ACCESS_STATE_GRANTED" ]] || fail "$principal lacks $permission on gs://$SOURCE_BUCKET (state: ${state:-unknown})"
+}
 
 active_account="$(gcloud auth list --filter=status:ACTIVE --format='value(account)')"
 [[ "$active_account" == "$EXPECTED_ACCOUNT" ]] || fail "active account must be $EXPECTED_ACCOUNT (found ${active_account:-none})"
@@ -67,6 +81,7 @@ readonly required_apis=(
   policytroubleshooter.googleapis.com
   run.googleapis.com
   serviceusage.googleapis.com
+  storage.googleapis.com
 )
 enabled_apis="$(gcloud services list --enabled --project="$PROJECT_ID" --format='value(config.name)')"
 for api in "${required_apis[@]}"; do
@@ -79,13 +94,29 @@ repository_state="$(gcloud artifacts repositories describe "$ARTIFACT_REPOSITORY
 gcloud iam service-accounts describe "$BUILD_SERVICE_ACCOUNT" --project="$PROJECT_ID" --format='value(email)' | grep -Fxq "$BUILD_SERVICE_ACCOUNT" || fail "builder service account does not exist"
 gcloud iam service-accounts describe "$RUNTIME_SERVICE_ACCOUNT" --project="$PROJECT_ID" --format='value(email)' | grep -Fxq "$RUNTIME_SERVICE_ACCOUNT" || fail "runtime service account does not exist"
 
-# The builder only writes build logs, consumes enabled services, and pushes to this repository.
+bucket_json="$(gcloud storage buckets describe "gs://${SOURCE_BUCKET}" --project="$PROJECT_ID" --format=json)"
+python3 -c 'import json,sys
+bucket=json.load(sys.stdin)
+expected=sys.argv[1].upper()
+checks={
+    "location": bucket.get("location") == expected,
+    "regional location type": bucket.get("location_type") == "region",
+    "uniform bucket-level access": bucket.get("uniform_bucket_level_access") is True,
+    "public access prevention": bucket.get("public_access_prevention") == "enforced",
+}
+failed=[name for name, ok in checks.items() if not ok]
+if failed:
+    raise SystemExit("source bucket preflight failed: " + ", ".join(failed))' "$REGION" <<<"$bucket_json"
+
+# The builder only writes build logs, consumes enabled services, pushes the image, and reads staged source.
 require_permission "$BUILD_SERVICE_ACCOUNT" "$PROJECT_RESOURCE" logging.logEntries.create
 require_permission "$BUILD_SERVICE_ACCOUNT" "$PROJECT_RESOURCE" serviceusage.services.use
 require_permission "$BUILD_SERVICE_ACCOUNT" "$REPOSITORY_RESOURCE" artifactregistry.repositories.uploadArtifacts
+require_bucket_permission "$BUILD_SERVICE_ACCOUNT" storage.objects.get
 
 # The authenticated human submits and deploys, reads the resulting image/state, publishes IAM, and attaches the runtime identity.
 require_permission "$active_account" "$PROJECT_RESOURCE" cloudbuild.builds.create
+require_bucket_permission "$active_account" storage.objects.create
 require_permission "$active_account" "$REPOSITORY_RESOURCE" artifactregistry.dockerimages.get
 require_permission "$active_account" "$PROJECT_RESOURCE" run.services.create
 require_permission "$active_account" "$PROJECT_RESOURCE" run.services.update
@@ -113,6 +144,7 @@ gcloud builds submit . \
   --region="$REGION" \
   --service-account="$build_sa_resource" \
   --default-buckets-behavior=regional-user-owned-bucket \
+  --gcs-source-staging-dir="gs://${SOURCE_BUCKET}/source" \
   --tag="$image_tag"
 
 digest="$(gcloud artifacts docker images describe "$image_tag" \
@@ -148,7 +180,7 @@ trap 'rm -f "$service_json" "$revision_json" "$iam_json" "$tmp_output"' EXIT
 chmod 600 "$service_json" "$revision_json" "$iam_json" "$tmp_output"
 gcloud run services describe "$SERVICE" --project="$PROJECT_ID" --region="$REGION" --format=json >"$service_json"
 revision="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["status"]["latestCreatedRevisionName"])' "$service_json")"
-[[ "$revision" == "${SERVICE}-"*"-${revision_suffix}" ]] || fail "created revision $revision does not match commit suffix $revision_suffix"
+[[ "$revision" == "${SERVICE}-${revision_suffix}" ]] || fail "created revision $revision does not match commit suffix $revision_suffix"
 gcloud run revisions describe "$revision" --project="$PROJECT_ID" --region="$REGION" --format=json >"$revision_json"
 gcloud run services get-iam-policy "$SERVICE" --project="$PROJECT_ID" --region="$REGION" --format=json >"$iam_json"
 
