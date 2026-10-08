@@ -14,6 +14,7 @@ bash -n "$script"
 
 readonly_root_output="$(bash -c '
   readonly ROOT=/macos/system/root
+  readonly git_sha=hook-owned
   gcloud() {
     if [[ "$1 $2" == "auth list" ]]; then
       printf "%s\n" wrong@example.com
@@ -27,11 +28,14 @@ readonly_root_output="$(bash -c '
   source "$deploy_script"
 ' _ "$script" 2>&1 || true)"
 [[ "$readonly_root_output" == *'active account must be anthony.lui@archegon.com'* ]] || fail "readonly ROOT harness did not reach controlled account preflight: $readonly_root_output"
-[[ "$readonly_root_output" != *'ROOT: readonly variable'* ]] || fail 'deploy script assigns reserved ROOT'
+[[ "$readonly_root_output" != *'readonly variable'* ]] || fail 'deploy script collided with a readonly caller variable'
 
 contains 'set -euo pipefail' "$script"
-contains 'REPO_ROOT=' "$script"
-if rg -n '\bROOT\b' "$script"; then fail 'reserved ROOT reference remains'; fi
+contains 'GJ_REPO_ROOT=' "$script"
+if rg -n '\b(ROOT|git_sha)=' "$script"; then fail 'unprefixed collision-prone assignment remains'; fi
+if rg -n '^(readonly )?(REPO_ROOT|active_account|active_project|billing_enabled|enabled_apis|repository_name|repository_format|expected_repository_name|bucket_json|branch|revision_suffix|image_tag|build_sa_resource|digest|image_digest|service_json|revision_json|iam_json|tmp_output|revision)=' "$script"; then fail 'unprefixed internal assignment remains'; fi
+# shellcheck disable=SC2016
+contains 'readonly GJ_PROJECT_ID="${PROJECT_ID:-ninth-airship-386815}"' "$script"
 contains 'ninth-airship-386815' "$env_example"
 contains 'australia-southeast1' "$env_example"
 contains 'IMAGE=app' "$env_example"
@@ -43,9 +47,9 @@ contains 'storage.objects.get' "$script"
 contains 'allowPolicyExplanation.allowAccessState' "$script"
 contains 'ALLOW_ACCESS_STATE_GRANTED' "$script"
 # shellcheck disable=SC2016
-contains '--gcs-source-staging-dir="gs://${SOURCE_BUCKET}/source"' "$script"
+contains '--gcs-source-staging-dir="gs://${GJ_SOURCE_BUCKET}/source"' "$script"
 # shellcheck disable=SC2016
-contains '[[ "$revision" == "${SERVICE}-${revision_suffix}" ]]' "$script"
+contains '[[ "$GJ_revision" == "${GJ_SERVICE}-${GJ_revision_suffix}" ]]' "$script"
 contains '--default-buckets-behavior=regional-user-owned-bucket' "$script"
 contains 'gcloud beta billing projects describe' "$script"
 contains 'gcloud services list' "$script"
@@ -76,32 +80,32 @@ contains 'git status --porcelain' "$script"
 contains 'git merge-base --is-ancestor HEAD' "$script"
 contains 'gcloud builds submit' "$script"
 # shellcheck disable=SC2016
-contains '--service-account="$build_sa_resource"' "$script"
+contains '--service-account="$GJ_build_sa_resource"' "$script"
 contains 'gcloud artifacts docker images describe' "$script"
 # shellcheck disable=SC2016
-contains '${IMAGE}@${digest}' "$script"
+contains '${GJ_IMAGE}@${GJ_digest}' "$script"
 contains 'assert_effective_deployment' "$script"
 contains 'gcloud beta run deploy' "$script"
 contains '--no-traffic' "$script"
 contains '--allow-unauthenticated' "$script"
 # shellcheck disable=SC2016
-contains 'MIN_INSTANCES="${MIN_INSTANCES:-0}"' "$script"
+contains 'GJ_MIN_INSTANCES="${MIN_INSTANCES:-0}"' "$script"
 # shellcheck disable=SC2016
-contains 'MAX_INSTANCES="${MAX_INSTANCES:-2}"' "$script"
+contains 'GJ_MAX_INSTANCES="${MAX_INSTANCES:-2}"' "$script"
 # shellcheck disable=SC2016
-contains 'CONCURRENCY="${CONCURRENCY:-20}"' "$script"
+contains 'GJ_CONCURRENCY="${CONCURRENCY:-20}"' "$script"
 # shellcheck disable=SC2016
-contains 'CPU="${CPU:-1}"' "$script"
+contains 'GJ_CPU="${CPU:-1}"' "$script"
 # shellcheck disable=SC2016
-contains 'MEMORY="${MEMORY:-512Mi}"' "$script"
+contains 'GJ_MEMORY="${MEMORY:-512Mi}"' "$script"
 # shellcheck disable=SC2016
-contains 'TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-30}"' "$script"
+contains 'GJ_TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-30}"' "$script"
 # shellcheck disable=SC2016
-contains 'STARTUP_PATH="${STARTUP_PATH:-/api/ready}"' "$script"
+contains 'GJ_STARTUP_PATH="${STARTUP_PATH:-/api/ready}"' "$script"
 # shellcheck disable=SC2016
-contains 'LIVENESS_PATH="${LIVENESS_PATH:-/api/health}"' "$script"
+contains 'GJ_LIVENESS_PATH="${LIVENESS_PATH:-/api/health}"' "$script"
 # shellcheck disable=SC2016
-contains '--service-account="$RUNTIME_SERVICE_ACCOUNT"' "$script"
+contains '--service-account="$GJ_RUNTIME_SERVICE_ACCOUNT"' "$script"
 
 if rg -n '(:latest|--tag=latest)' "$script"; then
   fail 'deploy script must not use latest'
