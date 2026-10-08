@@ -2,12 +2,23 @@
 //! public pages and read them as a labelled graph. Citations are only URLs
 //! this request fetched.
 
-use std::time::{SystemTime, UNIX_EPOCH};
+use std::io::Read;
+use std::sync::OnceLock;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use fancy_regex::Regex;
+use reqwest::Url;
 use serde_json::{json, Value};
 
 use crate::request::re;
+
+const CONNECT_TIMEOUT: Duration = Duration::from_secs(2);
+const TOTAL_TIMEOUT: Duration = Duration::from_secs(8);
+const MAX_RESPONSE_BYTES: usize = 1_000_000;
+const MAX_PAGES: usize = 4;
+const MAX_RESULTS: usize = 3;
+const USER_AGENT: &str =
+    "GraphsAndJevResearch/0.1 (+https://github.com/TLatAccenture/graphs-and-jev)";
 
 #[derive(Clone)]
 pub struct Page {
@@ -41,21 +52,18 @@ impl ResearchError {
         }
     }
 
-    pub fn timeout(detail: impl Into<String>) -> Self {
+    pub fn timeout(_detail: impl Into<String>) -> Self {
         Self {
             class: "timeout",
-            detail: detail.into(),
+            detail: "Source retrieval timed out.".into(),
         }
     }
 
     fn from_reqwest(error: reqwest::Error) -> Self {
-        Self {
-            class: if error.is_timeout() {
-                "timeout"
-            } else {
-                "fetch"
-            },
-            detail: error.to_string(),
+        if error.is_timeout() {
+            Self::timeout(error.to_string())
+        } else {
+            Self::fetch("Source retrieval failed.")
         }
     }
 
@@ -94,7 +102,7 @@ pub fn run(request: &str, retrieve: &impl Retrieve) -> Result<Value, ResearchErr
             &[],
         ));
     }
-    let pages = retrieve.search(request)?;
+    let pages = bounded_pages(retrieve.search(request)?);
     if pages.is_empty() {
         return Ok(body(
             request,
@@ -343,29 +351,61 @@ fn body(
 
 pub struct Live;
 
+fn live_client() -> Result<&'static reqwest::blocking::Client, ResearchError> {
+    static CLIENT: OnceLock<Result<reqwest::blocking::Client, String>> = OnceLock::new();
+    CLIENT
+        .get_or_init(|| {
+            reqwest::blocking::Client::builder()
+                .connect_timeout(CONNECT_TIMEOUT)
+                .timeout(TOTAL_TIMEOUT)
+                .redirect(reqwest::redirect::Policy::custom(|attempt| {
+                    if attempt.previous().len() >= 5 {
+                        attempt.error("too many redirects")
+                    } else if attempt.url().scheme() == "https" {
+                        attempt.follow()
+                    } else {
+                        attempt.stop()
+                    }
+                }))
+                .https_only(true)
+                .user_agent(USER_AGENT)
+                .build()
+                .map_err(|error| error.to_string())
+        })
+        .as_ref()
+        .map_err(|_| ResearchError::fetch("Could not configure source retrieval."))
+}
+
 impl Retrieve for Live {
     fn search(&self, query: &str) -> Result<Vec<Page>, ResearchError> {
-        let client = reqwest::blocking::Client::builder()
-            .timeout(std::time::Duration::from_secs(8))
-            .user_agent("GraphJevResearch/0.1")
-            .build()
-            .map_err(ResearchError::from_reqwest)?;
+        let client = live_client()?;
         let mut pages = Vec::new();
         let mut failures = Vec::new();
-        match wikipedia(&client, query) {
+        match wikipedia(client, query) {
             Ok(found) => pages.extend(found),
             Err(error) => failures.push(error),
         }
-        match europe_pmc(&client, query) {
+        match europe_pmc(client, query) {
             Ok(found) => pages.extend(found),
             Err(error) => failures.push(error),
         }
         if pages.is_empty() && failures.len() == 2 {
             return Err(combine_failures(failures));
         }
-        pages.truncate(4);
-        Ok(pages)
+        Ok(bounded_pages(pages))
     }
+}
+
+fn valid_https(url: &str) -> bool {
+    Url::parse(url).is_ok_and(|url| url.scheme() == "https" && url.host_str().is_some())
+}
+
+fn bounded_pages(pages: Vec<Page>) -> Vec<Page> {
+    pages
+        .into_iter()
+        .filter(|page| valid_https(&page.url) && !page.title.trim().is_empty())
+        .take(MAX_PAGES)
+        .collect()
 }
 
 fn combine_failures(failures: Vec<ResearchError>) -> ResearchError {
@@ -426,23 +466,26 @@ fn europe_pmc(client: &reqwest::blocking::Client, query: &str) -> Result<Vec<Pag
         encode(query)
     );
     let found = get_json(client, &url)?;
-    let mut pages = Vec::new();
     let Some(results) = found["resultList"]["result"].as_array() else {
-        return Ok(pages);
+        return Ok(Vec::new());
     };
-    for row in results {
-        let title = row["title"].as_str().unwrap_or("").trim().to_string();
-        if title.is_empty() {
-            continue;
-        }
-        let url = citation_url(row);
-        if url.is_empty() {
-            continue;
-        }
-        let text = row["abstractText"].as_str().unwrap_or("").to_string();
-        pages.push(Page { url, title, text });
-    }
-    Ok(pages)
+    Ok(europe_pmc_pages(results))
+}
+
+fn europe_pmc_pages(results: &[Value]) -> Vec<Page> {
+    results
+        .iter()
+        .filter_map(|row| {
+            let title = row["title"].as_str()?.trim();
+            let url = citation_url(row);
+            (valid_https(&url) && !title.is_empty()).then(|| Page {
+                url,
+                title: title.to_string(),
+                text: row["abstractText"].as_str().unwrap_or("").to_string(),
+            })
+        })
+        .take(MAX_RESULTS)
+        .collect()
 }
 
 fn citation_url(row: &Value) -> String {
@@ -468,11 +511,24 @@ fn get_json(client: &reqwest::blocking::Client, url: &str) -> Result<Value, Rese
     if !response.status().is_success() {
         return Err(ResearchError::fetch(format!("HTTP {}", response.status())));
     }
-    let bytes = response.bytes().map_err(ResearchError::from_reqwest)?;
-    if bytes.len() > 1_000_000 {
+    let content_length = response.content_length();
+    let bytes = read_bounded(response, content_length)?;
+    parse_json(&bytes)
+}
+
+fn read_bounded(reader: impl Read, content_length: Option<u64>) -> Result<Vec<u8>, ResearchError> {
+    if content_length.is_some_and(|length| length > MAX_RESPONSE_BYTES as u64) {
         return Err(ResearchError::invalid("response too large"));
     }
-    parse_json(&bytes)
+    let mut bytes = Vec::new();
+    reader
+        .take(MAX_RESPONSE_BYTES as u64 + 1)
+        .read_to_end(&mut bytes)
+        .map_err(|error| ResearchError::fetch(error.to_string()))?;
+    if bytes.len() > MAX_RESPONSE_BYTES {
+        return Err(ResearchError::invalid("response too large"));
+    }
+    Ok(bytes)
 }
 
 fn parse_json(bytes: &[u8]) -> Result<Value, ResearchError> {
@@ -497,6 +553,7 @@ fn encode(text: &str) -> String {
 mod tests {
     use super::*;
     use std::cell::Cell;
+    use std::io::Cursor;
 
     struct Fixture {
         pages: Vec<Page>,
@@ -549,16 +606,22 @@ mod tests {
     }
 
     #[test]
-    fn dose_request_is_rejected_without_a_fetch() {
-        let fixture = Fixture {
-            calls: Cell::new(0),
-            fail: false,
-            pages: vec![],
-        };
-        let out = run("What dose of levodopa should I prescribe", &fixture).unwrap();
-        assert_eq!(out["outcome"], "reject");
-        assert!(out["citations"].as_array().unwrap().is_empty());
-        assert_eq!(fixture.calls.get(), 0);
+    fn clinical_requests_are_rejected_without_a_fetch() {
+        for request in [
+            "What dose of levodopa is appropriate?",
+            "Can you diagnose these tremors?",
+            "Please write a prescription for levodopa",
+        ] {
+            let fixture = Fixture {
+                calls: Cell::new(0),
+                fail: false,
+                pages: vec![],
+            };
+            let out = run(request, &fixture).unwrap();
+            assert_eq!(out["outcome"], "reject", "{request}");
+            assert!(out["citations"].as_array().unwrap().is_empty());
+            assert_eq!(fixture.calls.get(), 0, "{request}");
+        }
     }
 
     #[test]
@@ -621,6 +684,68 @@ mod tests {
 
         let invalid = parse_json(b"not-json").unwrap_err();
         assert_eq!(invalid.class(), "invalid");
+    }
+
+    #[test]
+    fn connect_read_and_total_timeouts_map_to_explicit_unavailable_failure() {
+        for error in [
+            ResearchError::timeout("connect timeout"),
+            ResearchError::from_reqwest(
+                reqwest::blocking::Client::builder()
+                    .timeout(Duration::from_millis(1))
+                    .build()
+                    .unwrap()
+                    .get(withholding_server())
+                    .send()
+                    .unwrap_err(),
+            ),
+            ResearchError::timeout("total timeout"),
+        ] {
+            assert_eq!(error.class(), "timeout");
+            assert_eq!(error.detail(), "Source retrieval timed out.");
+        }
+    }
+
+    #[test]
+    fn non_https_pages_are_rejected_before_citation_metadata_is_preserved() {
+        let fixture = Fixture {
+            calls: Cell::new(0),
+            fail: false,
+            pages: vec![Page {
+                url: "http://example.org/not-secure".into(),
+                title: "Untrusted title".into(),
+                text: "LRRK2 associated with Parkinson disease".into(),
+            }],
+        };
+        let out = run("What is associated with Parkinson disease?", &fixture).unwrap();
+        assert_eq!(out["outcome"], "no_data");
+        assert!(out["citations"].as_array().unwrap().is_empty());
+        assert!(out["graph"]["nodes"].as_array().unwrap().is_empty());
+    }
+
+    #[test]
+    fn retrieved_pages_and_source_results_are_bounded() {
+        let pages: Vec<Page> = (0..MAX_PAGES + 3)
+            .map(|n| Page {
+                url: format!("https://example.org/{n}"),
+                title: format!("Page {n}"),
+                text: "A general note that names no relationship.".into(),
+            })
+            .collect();
+        assert_eq!(bounded_pages(pages).len(), MAX_PAGES);
+
+        let rows: Vec<Value> = (0..MAX_RESULTS + 3)
+            .map(|n| json!({"title": format!("Result {n}"), "pmid": n.to_string()}))
+            .collect();
+        assert_eq!(europe_pmc_pages(&rows).len(), MAX_RESULTS);
+    }
+
+    #[test]
+    fn response_reader_stops_at_the_byte_limit() {
+        let bytes = vec![b' '; MAX_RESPONSE_BYTES + 1];
+        let error = read_bounded(Cursor::new(bytes), None).unwrap_err();
+        assert_eq!(error.class(), "invalid");
+        assert_eq!(error.detail(), "response too large");
     }
 
     #[test]
