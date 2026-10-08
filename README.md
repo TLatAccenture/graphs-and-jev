@@ -52,7 +52,7 @@ To run it directly:
 docker run --rm -p 8080:8080 -e PORT=8080 graphs-and-jev:test
 ```
 
-The image runs as a non-root user. `CATALOGUE_PATH` and `STATIC_DIR` default to the packaged catalogue and field guide; override them only when mounting replacements. Cloud Run should configure external startup and liveness probes for `/api/ready` and `/api/health`; the image deliberately contains no HTTP client, cloud SDK, or credentials.
+The distroless image runs as non-root UID 65532 and contains no shell. The smoke script inspects image metadata and exported files without executing a shell in the container, then exercises every API route. `CATALOGUE_PATH` and `STATIC_DIR` default to the packaged catalogue and field guide; override them only when mounting replacements. Cloud Run should configure external startup and liveness probes for `/api/ready` and `/api/health`; the image deliberately contains no HTTP client, cloud SDK, or credentials.
 
 ## Reuse
 
