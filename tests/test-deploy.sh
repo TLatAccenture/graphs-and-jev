@@ -12,7 +12,26 @@ contains() { rg -F --quiet -- "$1" "$2" || fail "$2 missing: $1"; }
 [[ -f "$env_example" ]] || fail "$env_example must exist"
 bash -n "$script"
 
+readonly_root_output="$(bash -c '
+  readonly ROOT=/macos/system/root
+  gcloud() {
+    if [[ "$1 $2" == "auth list" ]]; then
+      printf "%s\n" wrong@example.com
+      return 0
+    fi
+    return 99
+  }
+  export -f gcloud
+  deploy_script="$1"
+  set --
+  source "$deploy_script"
+' _ "$script" 2>&1 || true)"
+[[ "$readonly_root_output" == *'active account must be anthony.lui@archegon.com'* ]] || fail "readonly ROOT harness did not reach controlled account preflight: $readonly_root_output"
+[[ "$readonly_root_output" != *'ROOT: readonly variable'* ]] || fail 'deploy script assigns reserved ROOT'
+
 contains 'set -euo pipefail' "$script"
+contains 'REPO_ROOT=' "$script"
+if rg -n '\bROOT\b' "$script"; then fail 'reserved ROOT reference remains'; fi
 contains 'ninth-airship-386815' "$env_example"
 contains 'australia-southeast1' "$env_example"
 contains 'IMAGE=app' "$env_example"
