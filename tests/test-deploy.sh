@@ -31,9 +31,9 @@ contains '--default-buckets-behavior=regional-user-owned-bucket' "$script"
 contains 'gcloud beta billing projects describe' "$script"
 contains 'gcloud services list' "$script"
 contains 'gcloud artifacts repositories describe' "$script"
-contains "--format='value(name,format)'" "$script"
-# shellcheck disable=SC2016
-contains 'projects/${PROJECT_ID}/locations/${REGION}/repositories/${ARTIFACT_REPOSITORY} DOCKER' "$script"
+contains "--format='value(name)'" "$script"
+contains "--format='value(format)'" "$script"
+if rg -F --quiet "value(name,format)" "$script"; then fail 'combined repository output remains'; fi
 contains 'gcloud iam service-accounts describe' "$script"
 contains 'troubleshoot-policy iam' "$script"
 contains 'iam.serviceAccounts.actAs' "$script"
@@ -91,9 +91,11 @@ fi
 permission_fixture='{"accessTuple":{"permission":"run.services.update"},"allowPolicyExplanation":{"allowAccessState":"ALLOW_ACCESS_STATE_GRANTED","explainedPolicies":[]},"overallAccessState":"UNKNOWN_INFO"}'
 parsed_state="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["allowPolicyExplanation"]["allowAccessState"])' <<<"$permission_fixture")"
 [[ "$parsed_state" == "ALLOW_ACCESS_STATE_GRANTED" ]] || fail 'realistic granted IAM fixture did not parse'
-repository_fixture='projects/ninth-airship-386815/locations/australia-southeast1/repositories/graphs-and-jev DOCKER'
-IFS=$'\t' read -r repository_name repository_format <<<"$(tr ' ' '\t' <<<"$repository_fixture")"
+repository_name_fixture='projects/ninth-airship-386815/locations/australia-southeast1/repositories/graphs-and-jev'
+repository_format_fixture=$'DOCKER\t'
+repository_name="$(printf '%s\n' "$repository_name_fixture")"
+repository_format="$(printf '%s\n' "$repository_format_fixture")"
 [[ "$repository_name" == 'projects/ninth-airship-386815/locations/australia-southeast1/repositories/graphs-and-jev' ]] || fail 'realistic repository name did not parse'
-[[ "$repository_format" == 'DOCKER' ]] || fail 'realistic repository format did not parse'
+[[ "$repository_format" == $'DOCKER\t' ]] || fail 'realistic tab-bearing repository format did not parse'
 
 printf 'deploy static checks passed\n'

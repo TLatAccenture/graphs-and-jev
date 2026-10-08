@@ -87,10 +87,13 @@ for api in "${required_apis[@]}"; do
   grep -Fxq "$api" <<<"$enabled_apis" || fail "required API is not enabled: $api"
 done
 
-repository_state="$(gcloud artifacts repositories describe "$ARTIFACT_REPOSITORY" \
-  --project="$PROJECT_ID" --location="$REGION" --format='value(name,format)')"
-readonly expected_repository_state="projects/${PROJECT_ID}/locations/${REGION}/repositories/${ARTIFACT_REPOSITORY} DOCKER"
-[[ "$repository_state" == "$expected_repository_state" ]] || fail "Artifact Registry repository must be DOCKER in $REGION (found ${repository_state:-none})"
+repository_name="$(gcloud artifacts repositories describe "$ARTIFACT_REPOSITORY" \
+  --project="$PROJECT_ID" --location="$REGION" --format='value(name)')"
+repository_format="$(gcloud artifacts repositories describe "$ARTIFACT_REPOSITORY" \
+  --project="$PROJECT_ID" --location="$REGION" --format='value(format)')"
+readonly expected_repository_name="projects/${PROJECT_ID}/locations/${REGION}/repositories/${ARTIFACT_REPOSITORY}"
+[[ "$repository_name" == "$expected_repository_name" ]] || fail "Artifact Registry repository is not $expected_repository_name (found ${repository_name:-none})"
+[[ "$repository_format" == "DOCKER" ]] || fail "Artifact Registry repository must use DOCKER format (found ${repository_format:-none})"
 gcloud iam service-accounts describe "$BUILD_SERVICE_ACCOUNT" --project="$PROJECT_ID" --format='value(email)' | grep -Fxq "$BUILD_SERVICE_ACCOUNT" || fail "builder service account does not exist"
 gcloud iam service-accounts describe "$RUNTIME_SERVICE_ACCOUNT" --project="$PROJECT_ID" --format='value(email)' | grep -Fxq "$RUNTIME_SERVICE_ACCOUNT" || fail "runtime service account does not exist"
 
