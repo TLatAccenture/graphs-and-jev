@@ -3,7 +3,7 @@
 //! this request fetched.
 
 use std::io::Read;
-use std::sync::OnceLock;
+use std::sync::{mpsc, OnceLock};
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 
 use fancy_regex::Regex;
@@ -13,6 +13,7 @@ use serde_json::{json, Value};
 use crate::request::re;
 
 const CONNECT_TIMEOUT: Duration = Duration::from_secs(2);
+const READ_TIMEOUT: Duration = Duration::from_secs(3);
 const TOTAL_TIMEOUT: Duration = Duration::from_secs(8);
 const MAX_RESPONSE_BYTES: usize = 1_000_000;
 const MAX_PAGES: usize = 4;
@@ -516,19 +517,77 @@ fn get_json(client: &reqwest::blocking::Client, url: &str) -> Result<Value, Rese
     parse_json(&bytes)
 }
 
-fn read_bounded(reader: impl Read, content_length: Option<u64>) -> Result<Vec<u8>, ResearchError> {
+fn read_bounded(
+    reader: impl Read + Send + 'static,
+    content_length: Option<u64>,
+) -> Result<Vec<u8>, ResearchError> {
+    read_bounded_with_timeout(reader, content_length, READ_TIMEOUT)
+}
+
+fn read_bounded_with_timeout(
+    mut reader: impl Read + Send + 'static,
+    content_length: Option<u64>,
+    read_timeout: Duration,
+) -> Result<Vec<u8>, ResearchError> {
     if content_length.is_some_and(|length| length > MAX_RESPONSE_BYTES as u64) {
         return Err(ResearchError::invalid("response too large"));
     }
+    // ponytail: one reader thread per source response is bounded by the total timeout and
+    // route limiter; replace the blocking client with async streaming if concurrency grows.
+    let (sender, receiver) = mpsc::sync_channel(1);
+    std::thread::spawn(move || {
+        let mut total = 0;
+        loop {
+            let mut chunk = vec![0; 8 * 1024];
+            match reader.read(&mut chunk) {
+                Ok(0) => {
+                    let _ = sender.send(Ok(Vec::new()));
+                    return;
+                }
+                Ok(read) => {
+                    total += read;
+                    if total > MAX_RESPONSE_BYTES {
+                        let _ = sender.send(Err(ResearchError::invalid("response too large")));
+                        return;
+                    }
+                    chunk.truncate(read);
+                    if sender.send(Ok(chunk)).is_err() {
+                        return;
+                    }
+                }
+                Err(error) => {
+                    let _ = sender.send(Err(read_error(error)));
+                    return;
+                }
+            }
+        }
+    });
     let mut bytes = Vec::new();
-    reader
-        .take(MAX_RESPONSE_BYTES as u64 + 1)
-        .read_to_end(&mut bytes)
-        .map_err(|error| ResearchError::fetch(error.to_string()))?;
-    if bytes.len() > MAX_RESPONSE_BYTES {
-        return Err(ResearchError::invalid("response too large"));
+    loop {
+        match receiver.recv_timeout(read_timeout) {
+            Ok(Ok(chunk)) if chunk.is_empty() => return Ok(bytes),
+            Ok(Ok(chunk)) => bytes.extend(chunk),
+            Ok(Err(error)) => return Err(error),
+            Err(mpsc::RecvTimeoutError::Timeout) => {
+                return Err(ResearchError::timeout("response read timed out"));
+            }
+            Err(mpsc::RecvTimeoutError::Disconnected) => {
+                return Err(ResearchError::fetch("Source response could not be read."));
+            }
+        }
     }
-    Ok(bytes)
+}
+
+fn read_error(error: std::io::Error) -> ResearchError {
+    let timed_out = error.kind() == std::io::ErrorKind::TimedOut
+        || std::error::Error::source(&error)
+            .and_then(|source| source.downcast_ref::<reqwest::Error>())
+            .is_some_and(reqwest::Error::is_timeout);
+    if timed_out {
+        ResearchError::timeout(error.to_string())
+    } else {
+        ResearchError::fetch("Source response could not be read.")
+    }
 }
 
 fn parse_json(bytes: &[u8]) -> Result<Value, ResearchError> {
@@ -671,6 +730,53 @@ mod tests {
         format!("http://{address}")
     }
 
+    fn response_server(prefix: &'static [u8], delay: Duration) -> String {
+        use std::io::Write;
+
+        let listener = std::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).unwrap();
+        let address = listener.local_addr().unwrap();
+        std::thread::spawn(move || {
+            let (mut connection, _) = listener.accept().unwrap();
+            connection.write_all(prefix).unwrap();
+            connection.flush().unwrap();
+            std::thread::sleep(delay);
+        });
+        format!("http://{address}")
+    }
+
+    fn dripping_server() -> String {
+        use std::io::Write;
+
+        let listener = std::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).unwrap();
+        let address = listener.local_addr().unwrap();
+        std::thread::spawn(move || {
+            let (mut connection, _) = listener.accept().unwrap();
+            connection
+                .write_all(b"HTTP/1.1 200 OK\r\nContent-Length: 10\r\n\n")
+                .unwrap();
+            for _ in 0..10 {
+                connection.write_all(b"x").unwrap();
+                connection.flush().unwrap();
+                std::thread::sleep(Duration::from_millis(15));
+            }
+        });
+        format!("http://{address}")
+    }
+
+    fn test_client(connect: Duration, total: Duration) -> reqwest::blocking::Client {
+        reqwest::blocking::Client::builder()
+            .connect_timeout(connect)
+            .timeout(total)
+            .build()
+            .unwrap()
+    }
+
+    fn assert_timeout(error: reqwest::Error) {
+        let error = ResearchError::from_reqwest(error);
+        assert_eq!(error.class(), "timeout");
+        assert_eq!(error.detail(), "Source retrieval timed out.");
+    }
+
     #[test]
     fn transport_error_classes_are_typed() {
         let timeout = reqwest::blocking::Client::builder()
@@ -687,23 +793,31 @@ mod tests {
     }
 
     #[test]
-    fn connect_read_and_total_timeouts_map_to_explicit_unavailable_failure() {
-        for error in [
-            ResearchError::timeout("connect timeout"),
-            ResearchError::from_reqwest(
-                reqwest::blocking::Client::builder()
-                    .timeout(Duration::from_millis(1))
-                    .build()
-                    .unwrap()
-                    .get(withholding_server())
-                    .send()
-                    .unwrap_err(),
-            ),
-            ResearchError::timeout("total timeout"),
-        ] {
-            assert_eq!(error.class(), "timeout");
-            assert_eq!(error.detail(), "Source retrieval timed out.");
-        }
+    fn configured_read_timeout_classifies_a_stalled_body() {
+        let url = response_server(
+            b"HTTP/1.1 200 OK\r\nContent-Length: 2\r\n\na",
+            Duration::from_millis(100),
+        );
+        let response = test_client(Duration::from_secs(1), Duration::from_secs(1))
+            .get(url)
+            .send()
+            .unwrap();
+        let error =
+            read_bounded_with_timeout(response, Some(2), Duration::from_millis(10)).unwrap_err();
+        assert_eq!(error.class(), "timeout");
+        assert_eq!(error.detail(), "Source retrieval timed out.");
+    }
+
+    #[test]
+    fn configured_total_timeout_classifies_a_slow_response() {
+        let url = dripping_server();
+        let error = test_client(Duration::from_secs(1), Duration::from_millis(30))
+            .get(url)
+            .send()
+            .unwrap()
+            .bytes()
+            .unwrap_err();
+        assert_timeout(error);
     }
 
     #[test]

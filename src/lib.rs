@@ -328,11 +328,7 @@ async fn run_pipeline(State(app): State<Arc<App>>, Json(body): Json<PipelineIn>)
         let joined = tokio::task::spawn_blocking(move || research(&owned)).await;
         return match joined {
             Ok(Ok(v)) => decision_response(v),
-            Ok(Err(e)) => classified_error(
-                StatusCode::BAD_GATEWAY,
-                "Could not reach the web to retrieve sources.",
-                e.class(),
-            ),
+            Ok(Err(e)) => research_unavailable(e.class()),
             Err(_) => classified_error(
                 StatusCode::BAD_GATEWAY,
                 "Could not complete the retrieval task.",
@@ -350,6 +346,29 @@ async fn run_pipeline(State(app): State<Arc<App>>, Json(body): Json<PipelineIn>)
         Ok(v) => decision_response(v),
         Err(e) => error(StatusCode::UNPROCESSABLE_ENTITY, &e.0),
     }
+}
+
+fn research_unavailable(class: &'static str) -> Response {
+    let status = if class == "timeout" {
+        StatusCode::SERVICE_UNAVAILABLE
+    } else {
+        StatusCode::BAD_GATEWAY
+    };
+    with_log_metadata(
+        (
+            status,
+            Json(json!({
+                "outcome": "unavailable",
+                "error_class": class,
+                "message": "Research sources are temporarily unavailable.",
+                "citations": [],
+                "graph": {"nodes": [], "edges": []},
+            })),
+        )
+            .into_response(),
+        "unavailable",
+        class,
+    )
 }
 
 fn decision_response(value: Value) -> Response {

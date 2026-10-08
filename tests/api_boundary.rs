@@ -235,6 +235,38 @@ async fn middleware_rejections_have_meaningful_outcomes() {
 }
 
 #[tokio::test]
+async fn retrieval_timeout_returns_bounded_unavailable_body_and_typed_log() {
+    let (app, logs) = app_with_research(10, |_| {
+        Err(serve::research::ResearchError::timeout(
+            "internal timeout detail",
+        ))
+    });
+    let response = post(
+        app,
+        "/api/pipeline",
+        json!({"backend":"catalogue", "domain":"parkinsons", "request":"research question"}),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::SERVICE_UNAVAILABLE);
+    let body: Value =
+        serde_json::from_slice(&to_bytes(response.into_body(), 4_096).await.unwrap()).unwrap();
+    assert_eq!(body["outcome"], "unavailable");
+    assert_eq!(body["error_class"], "timeout");
+    assert_eq!(
+        body["message"],
+        "Research sources are temporarily unavailable."
+    );
+    assert!(body["citations"].as_array().unwrap().is_empty());
+    assert!(body["graph"]["nodes"].as_array().unwrap().is_empty());
+    assert!(body["graph"]["edges"].as_array().unwrap().is_empty());
+    assert!(serde_json::to_vec(&body).unwrap().len() < 1_024);
+    let captured = logs.lock().unwrap().join("\n");
+    assert!(captured.contains(r#""outcome":"unavailable""#));
+    assert!(captured.contains(r#""upstream_error_class":"timeout""#));
+    assert!(!captured.contains("internal timeout detail"));
+}
+
+#[tokio::test]
 async fn concrete_upstream_classes_reach_structured_logs() {
     for class in ["timeout", "fetch", "invalid"] {
         let message = match class {
@@ -256,7 +288,12 @@ async fn concrete_upstream_classes_reach_structured_logs() {
             json!({"backend":"catalogue", "domain":"parkinsons", "request":"research question"}),
         )
         .await;
-        assert_eq!(response.status(), StatusCode::BAD_GATEWAY);
+        let expected = if class == "timeout" {
+            StatusCode::SERVICE_UNAVAILABLE
+        } else {
+            StatusCode::BAD_GATEWAY
+        };
+        assert_eq!(response.status(), expected);
         let captured = logs.lock().unwrap().join("\n");
         assert!(captured.contains(&format!(r#""upstream_error_class":"{class}""#)));
         assert!(!captured.contains(message));
