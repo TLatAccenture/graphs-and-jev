@@ -8,7 +8,7 @@ classify_service_describe() {
     printf 'present\n'
     return 0
   fi
-  if [[ "$status" == 1 ]] && [[ ! -s "$stdout_file" ]] && grep -Fxq "ERROR: (gcloud.run.services.describe) Cannot find service [$service]" "$stderr_file"; then
+  if [[ "$status" == 1 ]] && ! grep -q '[^[:space:]]' "$stdout_file" && grep -Fxq "ERROR: (gcloud.run.services.describe) Cannot find service [$service]" "$stderr_file"; then
     printf 'absent\n'
     return 0
   fi

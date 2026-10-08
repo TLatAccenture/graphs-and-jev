@@ -198,9 +198,14 @@ classifier_dir="$(mktemp -d)"
 printf '%s' '{"metadata":{"name":"graphs-and-jev"}}' >"$classifier_dir/out"
 : >"$classifier_dir/err"
 [[ "$(classify_service_describe 0 graphs-and-jev "$classifier_dir/out" "$classifier_dir/err")" == present ]] || fail 'existing service not classified present'
-: >"$classifier_dir/out"
+printf '\n' >"$classifier_dir/out"
 printf '%s\n' 'ERROR: (gcloud.run.services.describe) Cannot find service [graphs-and-jev]' >"$classifier_dir/err"
-[[ "$(classify_service_describe 1 graphs-and-jev "$classifier_dir/out" "$classifier_dir/err")" == absent ]] || fail 'installed CLI not-found response not classified absent'
+[[ "$(classify_service_describe 1 graphs-and-jev "$classifier_dir/out" "$classifier_dir/err")" == absent ]] || fail 'newline-only stdout was not classified absent'
+printf 'not-empty\n' >"$classifier_dir/out"
+if classify_service_describe 1 graphs-and-jev "$classifier_dir/out" "$classifier_dir/err" >/dev/null 2>&1; then fail 'non-whitespace stdout was classified absent'; fi
+printf ' \t\n' >"$classifier_dir/out"
+[[ "$(classify_service_describe 1 graphs-and-jev "$classifier_dir/out" "$classifier_dir/err")" == absent ]] || fail 'whitespace-only stdout was not classified absent'
+: >"$classifier_dir/out"
 for code5_message in 'ERROR: (gcloud.run.services.describe) Cannot find service [graphs-and-jev]' NOT_FOUND PERMISSION_DENIED; do
   printf '%s
 ' "$code5_message" >"$classifier_dir/err"
