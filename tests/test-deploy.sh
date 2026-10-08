@@ -158,7 +158,7 @@ if rg -F --quiet 'cloudbilling.googleapis.com' "$script"; then fail 'billing API
 contains 'logging.googleapis.com' "$script"
 contains 'gcloud run revisions describe' "$script"
 contains 'gcloud run services get-iam-policy' "$script"
-contains 'sys.argv[15]' "$script"
+contains 'sys.argv[16]' "$script"
 contains 'json.load' "$script"
 # shellcheck disable=SC2016
 contains 'graphs-and-jev-builder@${PROJECT_ID}.iam.gserviceaccount.com' "$env_example"
@@ -178,6 +178,22 @@ contains 'gcloud artifacts docker images describe' "$script"
 contains '${gjd_IMAGE}@${gjd_digest}' "$script"
 contains 'assert_effective_deployment' "$script"
 contains 'gcloud beta run deploy' "$script"
+for service_exists in false true; do
+  deploy_args=(--no-allow-unauthenticated)
+  if [[ "$service_exists" == true ]]; then deploy_args=(--no-traffic --allow-unauthenticated); fi
+  if [[ "$service_exists" == false ]]; then
+    [[ " ${deploy_args[*]} " == *' --no-allow-unauthenticated '* && " ${deploy_args[*]} " != *' --no-traffic '* ]] || fail 'bootstrap command branch is not private/traffic-bearing'
+  else
+    [[ " ${deploy_args[*]} " == *' --no-traffic '* && " ${deploy_args[*]} " == *' --allow-unauthenticated '* ]] || fail 'existing-service command branch weakened'
+  fi
+done
+contains 'gjd_service_exists=false' "$script"
+contains '--no-allow-unauthenticated' "$script"
+contains 'bootstrap_private' "$script"
+contains 'expected_bootstrap' "$script"
+contains 'gjd_deploy_traffic_args=(--no-allow-unauthenticated)' "$script"
+contains 'gjd_deploy_traffic_args=(--no-traffic --allow-unauthenticated)' "$script"
+contains 'Validated private bootstrap revision' "$script"
 contains '--no-traffic' "$script"
 contains '--allow-unauthenticated' "$script"
 # shellcheck disable=SC2016
@@ -239,8 +255,20 @@ python3 -c "$validator" \
   "$validator_dir/service.json" "$validator_dir/revision.json" "$validator_dir/iam.json" \
   'australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' \
   'graphs-and-jev-runner@ninth-airship-386815.iam.gserviceaccount.com' 'graphs-and-jev-abc123' \
-  0 2 20 1 512Mi 30 /api/ready /api/health "$validator_dir/effective.json"
-python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); assert data["revision"] == "graphs-and-jev-abc123"; assert data["image_digest"].endswith("a" * 64)' "$validator_dir/effective.json"
+  0 2 20 1 512Mi 30 /api/ready /api/health false "$validator_dir/effective.json"
+python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); assert data["revision"] == "graphs-and-jev-abc123"; assert data["image_digest"].endswith("a" * 64); assert data["bootstrap_private"] is False' "$validator_dir/effective.json"
+cat >"$validator_dir/service-bootstrap.json" <<'JSON'
+{"metadata":{"name":"graphs-and-jev"},"status":{"url":"https://candidate.example.run.app","traffic":[{"revisionName":"graphs-and-jev-abc123","percent":100}]}}
+JSON
+cat >"$validator_dir/iam-private.json" <<'JSON'
+{"bindings":[]}
+JSON
+python3 -c "$validator" \
+  "$validator_dir/service-bootstrap.json" "$validator_dir/revision.json" "$validator_dir/iam-private.json" \
+  'australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' \
+  'graphs-and-jev-runner@ninth-airship-386815.iam.gserviceaccount.com' 'graphs-and-jev-abc123' \
+  0 2 20 1 512Mi 30 /api/ready /api/health true "$validator_dir/effective-bootstrap.json"
+python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); assert data["bootstrap_private"] is True; assert data["public_invocation"] is False; assert data["traffic"][0]["percent"] == 100; assert data["service_url"] == "https://candidate.example.run.app"' "$validator_dir/effective-bootstrap.json"
 if rg -n '\b(gjd_|GJ_)[A-Za-z_]*' <<<"$validator"; then fail 'shell namespace leaked into embedded Python'; fi
 trap - EXIT
 rm -rf "$validator_dir"

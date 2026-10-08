@@ -10,9 +10,9 @@ main() (
   local gjd_permission gjd_active_account gjd_active_project gjd_billing_enabled gjd_enabled_apis gjd_api
   local gjd_repository_name gjd_repository_format gjd_expected_repository_name
   local gjd_branch gjd_git_sha gjd_revision_suffix gjd_image_tag gjd_build_sa_resource gjd_digest
-  local gjd_image_digest gjd_service_json gjd_revision_json gjd_iam_json gjd_tmp_output gjd_revision
+  local gjd_image_digest gjd_service_exists gjd_service_json gjd_revision_json gjd_iam_json gjd_tmp_output gjd_revision
   local gjd_upload_files gjd_upload_count gjd_upload_bytes gjd_upload_file gjd_upload_unexpected
-  local -a gjd_required_apis
+  local -a gjd_required_apis gjd_deploy_traffic_args
 
   gjd_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
   cd "$gjd_REPO_ROOT"
@@ -195,13 +195,22 @@ if failed:
   [[ "$gjd_digest" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "Artifact Registry returned an invalid digest: $gjd_digest"
   gjd_image_digest="${gjd_REGION}-docker.pkg.dev/${gjd_PROJECT_ID}/${gjd_ARTIFACT_REPOSITORY}/${gjd_IMAGE}@${gjd_digest}"
 
+  gjd_service_exists=false
+  if gcloud run services describe "$gjd_SERVICE" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format='value(metadata.name)' >/dev/null 2>&1; then
+    gjd_service_exists=true
+  fi
+
+  gjd_deploy_traffic_args=(--no-allow-unauthenticated)
+  if [[ "$gjd_service_exists" == true ]]; then
+    gjd_deploy_traffic_args=(--no-traffic --allow-unauthenticated)
+  fi
+
   gcloud beta run deploy "$gjd_SERVICE" \
     --project="$gjd_PROJECT_ID" \
     --region="$gjd_REGION" \
     --image="$gjd_image_digest" \
     --revision-suffix="$gjd_revision_suffix" \
-    --no-traffic \
-    --allow-unauthenticated \
+    "${gjd_deploy_traffic_args[@]}" \
     --min-instances="$gjd_MIN_INSTANCES" \
     --max-instances="$gjd_MAX_INSTANCES" \
     --concurrency="$gjd_CONCURRENCY" \
@@ -227,7 +236,7 @@ if failed:
   gcloud run revisions describe "$gjd_revision" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json >"$gjd_revision_json"
   gcloud run services get-iam-policy "$gjd_SERVICE" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json >"$gjd_iam_json"
 
-  python3 - "$gjd_service_json" "$gjd_revision_json" "$gjd_iam_json" "$gjd_image_digest" "$gjd_RUNTIME_SERVICE_ACCOUNT" "$gjd_revision" "$gjd_MIN_INSTANCES" "$gjd_MAX_INSTANCES" "$gjd_CONCURRENCY" "$gjd_CPU" "$gjd_MEMORY" "$gjd_TIMEOUT_SECONDS" "$gjd_STARTUP_PATH" "$gjd_LIVENESS_PATH" "$gjd_tmp_output" <<'PY'
+  python3 - "$gjd_service_json" "$gjd_revision_json" "$gjd_iam_json" "$gjd_image_digest" "$gjd_RUNTIME_SERVICE_ACCOUNT" "$gjd_revision" "$gjd_MIN_INSTANCES" "$gjd_MAX_INSTANCES" "$gjd_CONCURRENCY" "$gjd_CPU" "$gjd_MEMORY" "$gjd_TIMEOUT_SECONDS" "$gjd_STARTUP_PATH" "$gjd_LIVENESS_PATH" "$([[ "$gjd_service_exists" == false ]] && printf true || printf false)" "$gjd_tmp_output" <<'PY'
 import json
 import sys
 
@@ -237,6 +246,7 @@ iam = json.load(open(sys.argv[3], encoding="utf-8"))
 expected_image, expected_sa, expected_revision = sys.argv[4:7]
 expected_min, expected_max, expected_concurrency, expected_cpu, expected_memory, expected_timeout = sys.argv[7:13]
 expected_startup, expected_liveness = sys.argv[13:15]
+expected_bootstrap = sys.argv[15].lower() == "true"
 metadata = revision["metadata"]
 spec = revision["spec"]
 container = spec["containers"][0]
@@ -263,6 +273,7 @@ actual = {
     "liveness_probe": container["livenessProbe"],
     "traffic": traffic,
     "public_invocation": public,
+    "bootstrap_private": expected_bootstrap,
 }
 
 def assert_effective_deployment(condition, message):
@@ -279,9 +290,14 @@ assert_effective_deployment(actual_cpu in {expected_cpu, f"{int(expected_cpu) * 
 assert_effective_deployment(actual["timeout_seconds"] == int(expected_timeout), "timeout")
 assert_effective_deployment(actual["startup_probe"].get("httpGet", {}).get("path") == expected_startup, "startup probe")
 assert_effective_deployment(actual["liveness_probe"].get("httpGet", {}).get("path") == expected_liveness, "liveness probe")
-assert_effective_deployment(not any(item.get("revisionName") == expected_revision and item.get("percent", 0) for item in traffic), "new revision has traffic")
-assert_effective_deployment(actual["public_invocation"], "public invocation IAM")
-with open(sys.argv[15], "w", encoding="utf-8") as output:
+if expected_bootstrap:
+    candidate_traffic = [item for item in traffic if item.get("revisionName") == expected_revision]
+    assert_effective_deployment(len(candidate_traffic) == 1 and candidate_traffic[0].get("percent") == 100, "bootstrap candidate traffic")
+    assert_effective_deployment(not actual["public_invocation"], "bootstrap service is public")
+else:
+    assert_effective_deployment(not any(item.get("revisionName") == expected_revision and item.get("percent", 0) for item in traffic), "new revision has traffic")
+    assert_effective_deployment(actual["public_invocation"], "public invocation IAM")
+with open(sys.argv[16], "w", encoding="utf-8") as output:
     json.dump(actual, output, indent=2, sort_keys=True)
     output.write("\n")
 PY
@@ -289,7 +305,11 @@ PY
   mv "$gjd_tmp_output" "$gjd_DEPLOY_OUTPUT"
   trap - EXIT
   rm -f "$gjd_service_json" "$gjd_revision_json" "$gjd_iam_json"
-  printf 'Validated revision %s at 0%% traffic\n' "$gjd_revision"
+  if [[ "$gjd_service_exists" == false ]]; then
+    printf 'Validated private bootstrap revision %s at 100%% traffic\n' "$gjd_revision"
+  else
+    printf 'Validated revision %s at 0%% traffic\n' "$gjd_revision"
+  fi
   printf 'Captured verified effective settings in %s\n' "$gjd_DEPLOY_OUTPUT"
 )
 
