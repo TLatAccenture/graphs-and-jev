@@ -68,7 +68,7 @@ if rg -F --quiet 'cloudbilling.googleapis.com' "$script"; then fail 'billing API
 contains 'logging.googleapis.com' "$script"
 contains 'gcloud run revisions describe' "$script"
 contains 'gcloud run services get-iam-policy' "$script"
-contains 'EFFECTIVE_SETTINGS_JSON' "$script"
+contains 'sys.argv[15]' "$script"
 contains 'json.load' "$script"
 # shellcheck disable=SC2016
 contains 'graphs-and-jev-builder@${PROJECT_ID}.iam.gserviceaccount.com' "$env_example"
@@ -120,5 +120,37 @@ repository_name="$(printf '%s\n' "$repository_name_fixture")"
 repository_format="$(printf '%s\n' "$repository_format_fixture")"
 [[ "$repository_name" == 'projects/ninth-airship-386815/locations/australia-southeast1/repositories/graphs-and-jev' ]] || fail 'realistic repository name did not parse'
 [[ "$repository_format" == $'DOCKER\t' ]] || fail 'realistic tab-bearing repository format did not parse'
+
+
+validator="$(python3 - "$script" <<'PYEXTRACT'
+import sys
+text = open(sys.argv[1], encoding="utf-8").read()
+marker = "python3 - \"$GJ_service_json\""
+start = text.index(marker)
+start = text.index("<<'PY'", start) + len("<<'PY'") + 1
+end = text.index("\nPY\n", start)
+print(text[start:end])
+PYEXTRACT
+)"
+validator_dir="$(mktemp -d)"
+trap 'rm -rf "$validator_dir"' EXIT
+cat >"$validator_dir/service.json" <<'JSON'
+{"metadata":{"name":"graphs-and-jev"},"status":{"url":"https://graphs-and-jev.example.run.app","traffic":[]}}
+JSON
+cat >"$validator_dir/revision.json" <<'JSON'
+{"metadata":{"name":"graphs-and-jev-abc123","annotations":{"autoscaling.knative.dev/minScale":"0","autoscaling.knative.dev/maxScale":"2"}},"spec":{"serviceAccountName":"graphs-and-jev-runner@ninth-airship-386815.iam.gserviceaccount.com","containerConcurrency":20,"timeoutSeconds":30,"containers":[{"image":"australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","resources":{"limits":{"cpu":"1","memory":"512Mi"}},"startupProbe":{"httpGet":{"path":"/api/ready"}},"livenessProbe":{"httpGet":{"path":"/api/health"}}}]}}
+JSON
+cat >"$validator_dir/iam.json" <<'JSON'
+{"bindings":[{"role":"roles/run.invoker","members":["allUsers"]}]}
+JSON
+python3 -c "$validator" \
+  "$validator_dir/service.json" "$validator_dir/revision.json" "$validator_dir/iam.json" \
+  'australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' \
+  'graphs-and-jev-runner@ninth-airship-386815.iam.gserviceaccount.com' 'graphs-and-jev-abc123' \
+  0 2 20 1 512Mi 30 /api/ready /api/health "$validator_dir/effective.json"
+python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); assert data["revision"] == "graphs-and-jev-abc123"; assert data["image_digest"].endswith("a" * 64)' "$validator_dir/effective.json"
+if rg -n '\bGJ_[A-Za-z_]*' <<<"$validator"; then fail 'shell namespace leaked into embedded Python'; fi
+trap - EXIT
+rm -rf "$validator_dir"
 
 printf 'deploy static checks passed\n'

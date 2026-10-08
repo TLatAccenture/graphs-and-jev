@@ -187,10 +187,8 @@ GJ_revision="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["
 gcloud run revisions describe "$GJ_revision" --project="$GJ_PROJECT_ID" --region="$GJ_REGION" --format=json >"$GJ_revision_json"
 gcloud run services get-iam-policy "$GJ_SERVICE" --project="$GJ_PROJECT_ID" --region="$GJ_REGION" --format=json >"$GJ_iam_json"
 
-export GJ_EFFECTIVE_SETTINGS_JSON="$GJ_tmp_output"
-python3 - "$GJ_service_json" "$GJ_revision_json" "$GJ_iam_json" "$GJ_image_digest" "$GJ_RUNTIME_SERVICE_ACCOUNT" "$GJ_revision" "$GJ_MIN_INSTANCES" "$GJ_MAX_INSTANCES" "$GJ_CONCURRENCY" "$GJ_CPU" "$GJ_MEMORY" "$GJ_TIMEOUT_SECONDS" "$GJ_STARTUP_PATH" "$GJ_LIVENESS_PATH" <<'PY'
+python3 - "$GJ_service_json" "$GJ_revision_json" "$GJ_iam_json" "$GJ_image_digest" "$GJ_RUNTIME_SERVICE_ACCOUNT" "$GJ_revision" "$GJ_MIN_INSTANCES" "$GJ_MAX_INSTANCES" "$GJ_CONCURRENCY" "$GJ_CPU" "$GJ_MEMORY" "$GJ_TIMEOUT_SECONDS" "$GJ_STARTUP_PATH" "$GJ_LIVENESS_PATH" "$GJ_tmp_output" <<'PY'
 import json
-import os
 import sys
 
 service = json.load(open(sys.argv[1], encoding="utf-8"))
@@ -200,7 +198,7 @@ expected_image, expected_sa, expected_revision = sys.argv[4:7]
 expected_min, expected_max, expected_concurrency, expected_cpu, expected_memory, expected_timeout = sys.argv[7:13]
 expected_startup, expected_liveness = sys.argv[13:15]
 metadata = revision["metadata"]
-spec = GJ_revision["spec"]
+spec = revision["spec"]
 container = spec["containers"][0]
 annotations = metadata.get("annotations", {})
 limits = container.get("resources", {}).get("limits", {})
@@ -243,7 +241,7 @@ assert_effective_deployment(actual["startup_probe"].get("httpGet", {}).get("path
 assert_effective_deployment(actual["liveness_probe"].get("httpGet", {}).get("path") == expected_liveness, "liveness probe")
 assert_effective_deployment(not any(item.get("revisionName") == expected_revision and item.get("percent", 0) for item in traffic), "new revision has traffic")
 assert_effective_deployment(actual["public_invocation"], "public invocation IAM")
-with open(os.environ["GJ_EFFECTIVE_SETTINGS_JSON"], "w", encoding="utf-8") as output:
+with open(sys.argv[15], "w", encoding="utf-8") as output:
     json.dump(actual, output, indent=2, sort_keys=True)
     output.write("\n")
 PY
