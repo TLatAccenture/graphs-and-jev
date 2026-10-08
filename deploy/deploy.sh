@@ -110,17 +110,17 @@ main() (
 
   gjd_bucket_json="$(gcloud storage buckets describe "gs://${gjd_SOURCE_BUCKET}" --project="$gjd_PROJECT_ID" --format=json)"
   python3 -c 'import json,sys
-  bucket=json.load(sys.stdin)
-  expected=sys.argv[1].upper()
-  checks={
-      "location": bucket.get("location") == expected,
-      "regional location type": bucket.get("location_type") == "region",
-      "uniform bucket-level access": bucket.get("uniform_bucket_level_access") is True,
-      "public access prevention": bucket.get("public_access_prevention") == "enforced",
-  }
-  failed=[name for name, ok in checks.items() if not ok]
-  if failed:
-      raise SystemExit("source bucket preflight failed: " + ", ".join(failed))' "$gjd_REGION" <<<"$gjd_bucket_json"
+bucket=json.load(sys.stdin)
+expected=sys.argv[1].upper()
+checks={
+    "location": bucket.get("location") == expected,
+    "regional location type": bucket.get("location_type") == "region",
+    "uniform bucket-level access": bucket.get("uniform_bucket_level_access") is True,
+    "public access prevention": bucket.get("public_access_prevention") == "enforced",
+}
+failed=[name for name, ok in checks.items() if not ok]
+if failed:
+    raise SystemExit("source bucket preflight failed: " + ", ".join(failed))' "$gjd_REGION" <<<"$gjd_bucket_json"
 
   # The builder only writes build logs, consumes enabled services, pushes the image, and reads staged source.
   require_permission "$gjd_BUILD_SERVICE_ACCOUNT" "$gjd_PROJECT_RESOURCE" logging.logEntries.create
@@ -145,13 +145,10 @@ main() (
   git merge-base --is-ancestor HEAD "origin/$gjd_branch" || fail "HEAD is not pushed to origin/$gjd_branch"
   [[ "$(git rev-parse HEAD)" == "$(git rev-parse "origin/$gjd_branch")" ]] || fail "HEAD must exactly match origin/$gjd_branch"
 
-  gjd_git_sha
-  gjd_revision_suffix
-  gjd_image_tag
-  gjd_build_sa_resource="projects/${gjd_PROJECT_ID}/serviceAccounts/${gjd_BUILD_SERVICE_ACCOUNT}"
   gjd_git_sha="$(git rev-parse HEAD)"
   gjd_revision_suffix="${gjd_git_sha:0:12}"
   gjd_image_tag="${gjd_REGION}-docker.pkg.dev/${gjd_PROJECT_ID}/${gjd_ARTIFACT_REPOSITORY}/${gjd_IMAGE}:${gjd_git_sha}"
+  gjd_build_sa_resource="projects/${gjd_PROJECT_ID}/serviceAccounts/${gjd_BUILD_SERVICE_ACCOUNT}"
 
   gcloud builds submit . \
     --project="$gjd_PROJECT_ID" \

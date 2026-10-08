@@ -33,6 +33,50 @@ reentry_output="$(bash -c '
 [[ "$(rg -c 'active account must be anthony.lui@archegon.com' <<<"$reentry_output")" == 2 ]] || fail "reentry harness did not reach controlled preflight twice: $reentry_output"
 [[ "$reentry_output" != *'readonly variable'* ]] || fail 'deploy script collided with a readonly caller variable'
 
+mock_dir="$(mktemp -d)"
+mock_log="$mock_dir/build-args"
+mkdir -p "$mock_dir/bin"
+cat >"$mock_dir/bin/gcloud" <<'MOCK'
+#!/usr/bin/env bash
+case "$*" in
+  "auth list"*) printf '%s\n' anthony.lui@archegon.com ;;
+  "config get-value project"*) printf '%s\n' ninth-airship-386815 ;;
+  "beta billing projects describe"*) printf '%s\n' True ;;
+  "services list"*) printf '%s\n' artifactregistry.googleapis.com cloudbuild.googleapis.com iam.googleapis.com logging.googleapis.com policytroubleshooter.googleapis.com run.googleapis.com serviceusage.googleapis.com storage.googleapis.com ;;
+  *"artifacts repositories describe"*"value(name)"*) printf '%s\n' projects/ninth-airship-386815/locations/australia-southeast1/repositories/graphs-and-jev ;;
+  *"artifacts repositories describe"*"value(format)"*) printf '%s\n' DOCKER ;;
+  *"iam service-accounts describe graphs-and-jev-builder"*) printf '%s\n' graphs-and-jev-builder@ninth-airship-386815.iam.gserviceaccount.com ;;
+  *"iam service-accounts describe graphs-and-jev-runner"*) printf '%s\n' graphs-and-jev-runner@ninth-airship-386815.iam.gserviceaccount.com ;;
+  "storage buckets describe"*) printf '%s\n' '{"location":"AUSTRALIA-SOUTHEAST1","location_type":"region","uniform_bucket_level_access":true,"public_access_prevention":"enforced"}' ;;
+  "policy-intelligence troubleshoot-policy iam"*) printf '%s\n' ALLOW_ACCESS_STATE_GRANTED ;;
+  "builds submit"*) printf '%s\n' "$*" >"$MOCK_BUILD_LOG"; exit 73 ;;
+  *) printf 'unexpected gcloud: %s\n' "$*" >&2; exit 72 ;;
+esac
+MOCK
+cat >"$mock_dir/bin/git" <<'MOCK'
+#!/usr/bin/env bash
+case "$*" in
+  "status --porcelain --untracked-files=normal") ;;
+  "diff-index --quiet HEAD --") ;;
+  "symbolic-ref --quiet --short HEAD") printf '%s\n' feature/cloud-run-rust ;;
+  "fetch --quiet origin feature/cloud-run-rust") ;;
+  "merge-base --is-ancestor HEAD origin/feature/cloud-run-rust") ;;
+  "rev-parse HEAD"|"rev-parse origin/feature/cloud-run-rust") printf '%s\n' 0123456789abcdef0123456789abcdef01234567 ;;
+  *) printf 'unexpected git: %s\n' "$*" >&2; exit 71 ;;
+esac
+MOCK
+chmod +x "$mock_dir/bin/gcloud" "$mock_dir/bin/git"
+set +e
+mock_output="$(PATH="$mock_dir/bin:$PATH" MOCK_BUILD_LOG="$mock_log" "$script" 2>&1)"
+mock_status=$?
+set -e
+[[ "$mock_status" == 73 ]] || fail "mock deployment exited $mock_status: $mock_output"
+[[ "$mock_output" != *'command not found'* ]] || fail "bare variable command executed: $mock_output"
+mock_build_args="$(cat "$mock_log")"
+[[ "$mock_build_args" == *'--tag=australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app:0123456789abcdef0123456789abcdef01234567'* ]] || fail "build tag missing full SHA: $mock_build_args"
+[[ "$mock_build_args" == *'--service-account=projects/ninth-airship-386815/serviceAccounts/graphs-and-jev-builder@ninth-airship-386815.iam.gserviceaccount.com'* ]] || fail "build service account missing: $mock_build_args"
+if rg -n '^  gjd_(git_sha|revision_suffix|image_tag)$' "$script"; then fail 'bare derived-variable command remains'; fi
+rm -rf "$mock_dir"
 
 contains 'set -euo pipefail' "$script"
 contains 'main() (' "$script"
