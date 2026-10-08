@@ -52,7 +52,7 @@ To run it directly:
 docker run --rm -p 8080:8080 -e PORT=8080 graphs-and-jev:test
 ```
 
-The distroless image runs as non-root UID 65532 and contains no shell. The smoke script inspects image metadata and exported files without executing a shell in the container, then exercises every API route. `CATALOGUE_PATH` and `STATIC_DIR` default to the packaged catalogue and field guide; override them only when mounting replacements. Cloud Run should configure external startup and liveness probes for `/api/ready` and `/api/health`; the image deliberately contains no HTTP client, cloud SDK, or credentials.
+The scratch image runs as non-root UID 65532 and contains only the static service binary, catalogue, and field-guide assets. The smoke script verifies the static x86-64 ELF, exact scratch rootfs allowlist, image UID, and every API route, including a non-clinical live LRRK2 research request. `CATALOGUE_PATH` and `STATIC_DIR` default to the packaged catalogue and field guide; override them only when mounting replacements. Cloud Run should configure external startup and liveness probes for `/api/ready` and `/api/health`; the image deliberately contains no HTTP client, cloud SDK, or credentials.
 
 ## Reuse
 
