@@ -26,8 +26,6 @@ The demonstrations run entirely in the browser with deterministic representative
 
 This is a personal open-source research and demonstration project by TLatAccenture. It is not an official Accenture or Google Cloud product. Product names and marks belong to their respective owners.
 
-The publication was extracted from the canonical [ArchegonDev/graphragapp](https://github.com/ArchegonDev/graphragapp) project into a focused static site.
-
 ## Run locally
 
 Because the site uses the GitHub Pages project path, serve its parent directory:
