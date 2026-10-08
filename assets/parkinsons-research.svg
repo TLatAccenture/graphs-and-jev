@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="t d">
+  <title id="t">Publications joined into an evidence network</title>
+  <desc id="d">Three retrieved publications on the left. Typed links connect the compound, the protein target and the condition named in them, and each link points back to its source.</desc>
+  <style>
+    .lab{font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.12em}
+    .t{font:600 13px system-ui,-apple-system,sans-serif;fill:#0a0a0a}
+    .ln{fill:#d6d3cc}
+  </style>
+  <rect width="640" height="400" fill="#f6f4ef"/>
+
+  <!-- Publications -->
+  <g>
+    <rect x="40" y="60" width="150" height="86" fill="#fff" stroke="#0a0a0a"/>
+    <rect x="52" y="74" width="90" height="6" fill="#0a0a0a"/>
+    <rect class="ln" x="52" y="90" width="124" height="4"/><rect class="ln" x="52" y="100" width="110" height="4"/><rect class="ln" x="52" y="110" width="118" height="4"/><rect class="ln" x="52" y="120" width="80" height="4"/>
+    <text class="lab" x="52" y="140" fill="#0067a5">DOI &#183; HTTPS</text>
+
+    <rect x="40" y="160" width="150" height="86" fill="#fff" stroke="#0a0a0a"/>
+    <rect x="52" y="174" width="104" height="6" fill="#0a0a0a"/>
+    <rect class="ln" x="52" y="190" width="124" height="4"/><rect class="ln" x="52" y="200" width="96" height="4"/><rect class="ln" x="52" y="210" width="118" height="4"/><rect class="ln" x="52" y="220" width="70" height="4"/>
+    <text class="lab" x="52" y="240" fill="#0067a5">EUROPE PMC</text>
+
+    <rect x="40" y="260" width="150" height="86" fill="#fff" stroke="#0a0a0a"/>
+    <rect x="52" y="274" width="80" height="6" fill="#0a0a0a"/>
+    <rect class="ln" x="52" y="290" width="124" height="4"/><rect class="ln" x="52" y="300" width="112" height="4"/><rect class="ln" x="52" y="310" width="100" height="4"/><rect class="ln" x="52" y="320" width="90" height="4"/>
+    <text class="lab" x="52" y="340" fill="#0067a5">WIKIPEDIA</text>
+  </g>
+
+  <!-- Source links -->
+  <g stroke="#0067a5" stroke-width="1" stroke-dasharray="3 4">
+    <line x1="190" y1="103" x2="300" y2="140"/>
+    <line x1="190" y1="203" x2="440" y2="140"/>
+    <line x1="190" y1="303" x2="440" y2="290"/>
+  </g>
+
+  <!-- Typed evidence graph -->
+  <g>
+    <line x1="300" y1="140" x2="440" y2="140" stroke="#0067a5" stroke-width="4"/>
+    <line x1="440" y1="140" x2="440" y2="290" stroke="#0067a5" stroke-width="4"/>
+    <line x1="300" y1="140" x2="330" y2="250" stroke="#bdbab3" stroke-width="2"/>
+    <circle cx="300" cy="140" r="16" fill="#A100FF"/>
+    <rect x="426" y="126" width="28" height="28" fill="#0067a5"/>
+    <polygon points="440,272 458,290 440,308 422,290" fill="#000"/>
+    <circle cx="330" cy="250" r="10" fill="#bdbab3"/>
+    <text class="t" x="268" y="112">Compound</text>
+    <text class="t" x="466" y="146">Protein target</text>
+    <text class="t" x="466" y="296">Condition</text>
+    <text class="lab" x="334" y="130" fill="#0067a5">TARGETS</text>
+    <text class="lab" x="450" y="222" fill="#0067a5">STUDIED IN</text>
+  </g>
+
+  <text class="lab" x="270" y="372" fill="#4a4a4a">RESEARCH RETRIEVAL &#183; NOT CLINICAL ADVICE</text>
+</svg>

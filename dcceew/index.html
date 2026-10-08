@@ -1,0 +1,500 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>DCCEEW catalogue discovery · Graphs + Jev</title>
+<meta name="description" content="How evidence reaches an AI system through RAG and MCP, how a graph connects it, and how Jev makes a bounded decision over an air-quality catalogue.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/graphs-and-jev/guide.css">
+</head>
+<body class="ctx">
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="in">
+    <a class="brand" href="/graphs-and-jev/">Graphs + Jev</a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/graphs-and-jev/#how-it-works">How it works</a>
+      <a href="/graphs-and-jev/#use-cases" aria-current="true">Use cases</a>
+      <a href="/graphs-and-jev/#technical-guide">Technical guide</a>
+      <a class="cta" href="#demo">Try the demo</a>
+    </nav>
+  </div>
+</header>
+<main id="main">
+
+<section class="page-hero" aria-labelledby="page-title">
+  <div class="wrap">
+    <div>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="/graphs-and-jev/">Graphs + Jev</a> / <a href="/graphs-and-jev/#use-cases">Use cases</a> / <span aria-current="page">DCCEEW catalogue discovery</span></nav>
+      <p class="eyebrow">Use case · Catalogue discovery</p>
+      <h1 id="page-title">Find the datasets that actually answer the question.</h1>
+      <p class="lede">A demonstration for the Department of Climate Change, Energy, the Environment and Water (DCCEEW). The evidence behind an answer is spread across documents, tables, catalogue records and reference data. First it has to be brought within reach. Then it has to be connected. Then someone, or something, has to decide whether it is enough to answer.</p>
+    </div>
+    <div class="page-art">
+      <img src="/graphs-and-jev/assets/dcceew-landscape.svg" width="640" height="400" alt="A landscape of monitoring stations under bands of atmosphere. A highlighted path links a pollutant to a place and then to the dataset that measures it.">
+    </div>
+  </div>
+</section>
+
+<section class="band band--tight band--paper" aria-label="The four layers on this page">
+  <div class="wrap">
+    <ol class="layers">
+      <li style="--c:var(--rag)"><a href="#reach"><b>Reach</b><span>RAG and MCP bring documents, records and live systems within reach.</span></a></li>
+      <li style="--c:var(--graph)"><a href="#connect"><b>Connect</b><span>The graph shows how pollutant, place, year and dataset fit together.</span></a></li>
+      <li style="--c:var(--jev)"><a href="#decide"><b>Decide</b><span>Jev answers, asks, refuses or hands the request to a person.</span></a></li>
+      <li style="--c:var(--answer)"><a href="#demo"><b>Show</b><span>Try it: every outcome comes back with its path and its datasets.</span></a></li>
+    </ol>
+  </div>
+</section>
+
+<!-- 01 · The gap -->
+<section class="band" id="gap" aria-labelledby="gap-title">
+  <div class="wrap">
+    <div class="split">
+      <div class="section-head" style="margin:0">
+        <p class="eyebrow">01 · The gap</p>
+        <h2 id="gap-title">The model can't see your catalogue.</h2>
+        <p>A language model knows a lot about air quality in general. It knows nothing about which datasets you hold, at what breakdown, from which publisher, or how current they are. One request shows how many kinds of evidence a good answer needs.</p>
+      </div>
+      <div>
+        <p class="ask"><small>The request</small>Annual PM2.5 by country, 2019 to 2024 — official sources only.</p>
+        <table class="needs">
+          <caption class="sr-only">Evidence the request needs, its shape, and where it usually lives</caption>
+          <thead><tr><th scope="col">What a good answer needs</th><th scope="col">Shape</th><th scope="col">Where it usually lives</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">What PM2.5 means, and which pollutant group it belongs to</th><td><span class="shape" style="color:var(--rag)">prose</span></td><td>Methodology documents</td></tr>
+            <tr><th scope="row">Which datasets hold PM2.5, for which countries and years</th><td><span class="shape" style="color:var(--mcp)">tables</span></td><td>Catalogue coverage tables</td></tr>
+            <tr><th scope="row">Who publishes each dataset, and when it was updated</th><td><span class="shape" style="color:var(--mcp)">records</span></td><td>Catalogue metadata</td></tr>
+            <tr><th scope="row">How countries roll up to continents, and years to ranges</th><td><span class="shape" style="color:var(--graph)">relationships</span></td><td>Reference hierarchies</td></tr>
+            <tr><th scope="row">Whether this person may see the source</th><td><span class="shape" style="color:var(--jev)">policy</span></td><td>Access rules</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 02 · Reach -->
+<section class="band band--paper" id="reach" aria-labelledby="reach-title">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">02 · Reach</p>
+      <h2 id="reach-title">Two ways to bring evidence within reach.</h2>
+      <p>Both end the same way: material added to the model's context window for this one request. Neither retrains the model. They differ in what they reach and who decides to reach for it.</p>
+    </div>
+
+    <div class="routes">
+      <div style="--c:var(--rag)">
+        <h3>RAG</h3>
+        <p class="kind">Retrieval-augmented generation · a technique</p>
+        <p>Index the documents ahead of time. When a request arrives, search the index and add the best-matching passages or images to the prompt.</p>
+        <dl>
+          <dt>Here, it suits</dt><dd>The methodology documents: what PM2.5 is and how it is measured.</dd>
+          <dt>Who decides</dt><dd>Usually your code, before the model starts.</dd>
+          <dt>Fresh as</dt><dd>The last time the index was rebuilt.</dd>
+        </dl>
+      </div>
+      <div style="--c:var(--mcp)">
+        <h3>MCP</h3>
+        <p class="kind">Model Context Protocol · an open standard</p>
+        <p>A standard way for an AI application to connect to servers that offer tools, resources and prompts. The model asks for a tool; the application makes the call and returns the result <a href="#c2">[2]</a>.</p>
+        <dl>
+          <dt>Here, it suits</dt><dd>The catalogue itself: query coverage, read metadata, fetch the current record.</dd>
+          <dt>Who decides</dt><dd>For tools, the model, while it works. The application can still ask a person first.</dd>
+          <dt>Fresh as</dt><dd>The system behind the server.</dd>
+        </dl>
+      </div>
+    </div>
+    <p class="joint"><strong>They combine.</strong> A <code>search_methodology</code> tool can be an MCP tool with a RAG index behind it. RAG is a way of finding things; MCP is a way of connecting to things.</p>
+
+    <h3 id="fit-title" class="fit-title">The shape of the data matters as much as where it lives.</h3>
+    <table class="fitgrid" aria-labelledby="fit-title">
+      <thead><tr><th scope="col">RAG</th><th scope="col"><span class="sr-only">Data shape</span></th><th scope="col">A well-built MCP tool</th></tr></thead>
+      <tbody>
+        <tr><td class="r" data-k="RAG"><span class="fit fit--strong">strong</span><br>What it was built for: chunk, embed, rank, cite the passage.</td><th scope="row">Text<small>methodologies, reports</small></th><td class="m" data-k="MCP"><span class="fit">good</span><br>A search tool returns passages — usually from a retrieval index behind the server.</td></tr>
+        <tr><td class="r" data-k="RAG"><span class="fit">good</span><br>Multimodal embeddings or captions make charts, maps and scans findable.</td><th scope="row">Images<small>maps, charts, scans</small></th><td class="m" data-k="MCP"><span class="fit">good</span><br>Can return the original image with its record; finding the right one still takes search.</td></tr>
+        <tr><td class="r" data-k="RAG"><span class="fit fit--weak">weak</span><br>Chunks cut rows from headers, embeddings blur numbers, and a handful of passages can't sum, filter or join.</td><th scope="row">Tables<small>coverage, measurements</small></th><td class="m" data-k="MCP"><span class="fit fit--strong">strong</span><br>The tool runs the query — exact filters, joins and totals — and returns only the rows needed.</td></tr>
+        <tr><td class="r" data-k="RAG"><span class="fit fit--weak">mixed</span><br>Flattening records to text loses field names: fine for "similar datasets", poor for "official, updated since 2024".</td><th scope="row">Records<small>metadata, JSON, logs</small></th><td class="m" data-k="MCP"><span class="fit fit--strong">strong</span><br>Reads fields by name, filters by value, and can return typed results checked against a schema <a href="#c2">[2]</a>.</td></tr>
+      </tbody>
+    </table>
+    <p class="annotation" style="margin-top:12px">Ratings are qualitative judgements from common practice, not benchmark scores.</p>
+
+    <ul class="limits" aria-label="Limits of MCP">
+      <li><strong>A connection, not a data engine.</strong>MCP's advantage comes from the server behind it. A server that returns a text dump is no better than a chunk.</li>
+      <li><strong>Only what's exposed.</strong>No aggregate tool, no total. Someone builds, secures and maintains each tool.</li>
+      <li><strong>Wrong queries still run.</strong>If the model writes the filter, a plausible mistake returns a confident, well-formatted wrong answer.</li>
+      <li><strong>Results fill the window.</strong>Large results must be filtered or aggregated on the server, or they crowd out everything else <a href="#c3">[3]</a>.</li>
+    </ul>
+
+    <p class="handoff">RAG and MCP bring evidence within reach. Neither checks that the pieces <em>fit together</em>, cover the whole request, or are enough to answer it.</p>
+  </div>
+</section>
+
+<!-- 03 · Before any request -->
+<section class="band" id="prepare" aria-labelledby="prepare-title">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">03 · Before any request</p>
+      <h2 id="prepare-title">Raw storage has to be sifted before either route works.</h2>
+      <p>Connect Amazon S3, Azure Blob Storage or Google Cloud Storage and you get millions of objects with no schema: PDFs beside CSV exports, JSON logs, scanned forms and maps. A bucket server can list and fetch objects, but a file name doesn't say what is inside or whether it matters. Embed everything and the CSVs are indexed as prose, noise and all.</p>
+    </div>
+    <p class="tag">Production pattern · not part of this demo</p>
+    <figure style="margin:0">
+      <div class="flow">
+        <div class="node-box">
+          <b>Object storage</b>
+          <strong>Buckets and containers</strong>
+          <p>S3, Blob Storage, Cloud Storage: PDFs, CSVs, JSON, logs, scans, maps</p>
+        </div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="node-box node-box--jev" style="--c:var(--jev)">
+          <b>Sift · bounded decisions</b>
+          <strong>A Jev-style decision engine</strong>
+          <ul><li>Is it relevant to this domain?</li><li>What shape is it?</li><li>May it be shown, and to whom?</li><li>Where should it go?</li></ul>
+          <p>Each call returns a confidence. Below the threshold, the answer is review.</p>
+        </div>
+        <div class="arrow" aria-hidden="true">→</div>
+        <div class="outlets">
+          <div class="node-box" style="--c:var(--rag)"><b>Text and images</b><strong>Index for RAG</strong></div>
+          <div class="node-box" style="--c:var(--mcp)"><b>Tables and records</b><strong>Queryable store behind MCP tools</strong></div>
+          <div class="node-box" style="--c:var(--graph)"><b>Links between them</b><strong>Graph: pollutant, place, dataset, publisher, permission</strong></div>
+          <div class="node-box node-box--review"><b>Unsure or sensitive</b><strong>Review queue, or skip</strong></div>
+        </div>
+      </div>
+      <figcaption class="annotation" style="margin-top:18px">Sifting is millions of narrow yes-or-no and pick-one calls, not open-ended reading, so it suits a decision engine better than a bigger model. This happens when data arrives, not when a question is asked. The demo below starts after this point: its catalogue graph is already built.</figcaption>
+    </figure>
+  </div>
+</section>
+
+<!-- 04 · Connect -->
+<section class="band band--paper" id="connect" aria-labelledby="connect-title">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">04 · Connect</p>
+      <h2 id="connect-title">Access isn't understanding. The graph shows how the pieces fit.</h2>
+      <p>Each route returns a fragment. The graph holds the relationships between fragments, so a coverage question can be checked instead of guessed.</p>
+    </div>
+    <div class="trio">
+      <div style="--c:var(--rag)"><b>RAG returns a passage</b><q>"PM2.5: fine particulate matter, 2.5 micrometres or less…"</q><p>True, but it says nothing about which datasets hold it.</p></div>
+      <div style="--c:var(--mcp)"><b>An MCP tool returns a record</b><q>European Air Emissions Reporting · official · updated 2025</q><p>Accurate, but it doesn't say whether it covers this request.</p></div>
+      <div style="--c:var(--graph)"><b>The graph adds the links</b><q>PM2.5 → by country, by year → held by this dataset → from this publisher</q><p>That's what turns two fragments into one answer.</p></div>
+    </div>
+
+    <div class="chain-wrap">
+      <h3>The worked request, as a path through the catalogue graph</h3>
+      <ol class="evidence-path" aria-label="Evidence path">
+        <li><span class="n">Request</span></li><li><span class="e">asks for</span></li>
+        <li><span class="n">PM2.5</span></li><li><span class="e">broken down by</span></li>
+        <li><span class="n">Country · Year</span></li><li><span class="e">covered by</span></li>
+        <li><span class="n">European Air Emissions Reporting</span></li><li><span class="e">published by</span></li>
+        <li><span class="n">Official publisher</span></li>
+      </ol>
+      <p class="annotation" style="margin:16px 0 0">Because coverage is stored as relationships, the graph can answer: does every requested country and year have a source? If no single dataset covers them, can two combine? Does a country-level source roll up to continents? The path above is what the demo returns for this request.</p>
+    </div>
+    <details class="inline">
+      <summary>Graph traversal is not the same as Microsoft GraphRAG</summary>
+      <p style="margin-top:10px">This demo follows explicit, typed links in a catalogue graph. Microsoft GraphRAG is a specific method: it extracts an entity graph from text, groups it into communities and summarises them, and improved some whole-corpus questions over a vector-RAG baseline <a href="#c4">[4]</a>. Both use graphs; they solve different problems.</p>
+    </details>
+  </div>
+</section>
+
+<!-- 05 · Decide -->
+<section class="band band--black" id="decide" aria-labelledby="decide-title">
+  <div class="wrap">
+    <div class="split">
+      <div class="section-head" style="margin:0">
+        <p class="eyebrow">05 · Decide</p>
+        <h2 id="decide-title">Connected evidence still needs a decision.</h2>
+        <p>Jev is the bounded decision layer. At each step it answers one narrow question from a fixed set of answers, with a confidence, and the pipeline acts only on answers that clear the threshold.</p>
+        <p>It isn't a retriever, a protocol or a database. It stores no facts. It decides what the agent may do with them.</p>
+      </div>
+      <div>
+        <ol class="asks">
+          <li><strong>Can this catalogue answer the request?</strong><span>answer · clarify · reject</span></li>
+          <li><strong>Which pollutants does it mean?</strong><span>yes or no for each graph candidate</span></li>
+          <li><strong>At what breakdown?</strong><span>one level per dimension</span></li>
+          <li><strong>Which valid option best fits the preference?</strong><span>a ranked fit, only among options the graph proved</span></li>
+          <li><strong>Is any of these too uncertain?</strong><span>below threshold → review</span></li>
+        </ol>
+        <ul class="outcomes" aria-label="The five possible outcomes">
+          <li>Answer</li><li>Clarify</li><li>Reject</li><li>Review</li><li>No data</li>
+        </ul>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- 06 · Try it -->
+<section class="band" id="demo" aria-labelledby="demo-title">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">06 · Try it</p>
+      <h2 id="demo-title">Ask the DCCEEW catalogue.</h2>
+      <p class="lede">This self-contained publication runs representative catalogue decisions in your browser. Start with an example, or write your own request.</p>
+    </div>
+
+    <div class="demo-grid">
+      <div>
+        <fieldset class="scenarios">
+          <legend>Start with an example</legend>
+          <button type="button" class="scenario" aria-pressed="false" data-q="Annual PM2.5 by country, 2019 to 2024" data-p="official sources only"><strong>Annual PM2.5 by country, 2019 to 2024 · official sources only</strong><span>The worked example. The graph checks coverage; Jev ranks the valid options.</span></button>
+          <button type="button" class="scenario" aria-pressed="false" data-q="Particulate matter by region" data-p="official sources only"><strong>Particulate matter by region, official sources only</strong><span>A pollutant group. The graph expands it into its members before discovery.</span></button>
+          <button type="button" class="scenario" aria-pressed="false" data-q="Emissions" data-p=""><strong>Emissions</strong><span>Too vague. Jev asks for a pollutant and a breakdown before any search runs.</span></button>
+          <button type="button" class="scenario" aria-pressed="false" data-q="Hourly ozone by street in 1990" data-p=""><strong>Hourly ozone by street in 1990</strong><span>Outside what the catalogue holds. Jev refuses before searching.</span></button>
+        </fieldset>
+
+        <form id="ask" class="demo" aria-describedby="status">
+          <div class="field">
+            <label for="request">Your request</label>
+            <p class="hint" id="request-hint">Name a pollutant and how you want it broken down, for example by country and year.</p>
+            <textarea id="request" name="request" maxlength="500" required aria-describedby="request-hint">Annual PM2.5 by country, 2019 to 2024</textarea>
+          </div>
+          <div class="field">
+            <label for="preference">Preference <span class="hint">(optional)</span></label>
+            <p class="hint" id="preference-hint">In plain words, what makes one dataset better than another for you? For example: official sources only.</p>
+            <input id="preference" name="preference" maxlength="300" aria-describedby="preference-hint" placeholder="official sources only" value="official sources only">
+          </div>
+          <div class="actions">
+            <button class="btn btn--purple" type="submit" id="submit">Ask Jev</button>
+          </div>
+          <p class="demo-status" id="status" aria-live="polite" data-state="idle">Loading the catalogue…</p>
+        </form>
+
+        <section class="result" id="result" aria-labelledby="result-heading" tabindex="-1" hidden>
+          <h3 class="outcome" id="result-heading"><span id="outcome"></span></h3>
+          <p class="answer" id="answer"></p>
+          <h3>Path through the pipeline</h3>
+          <ol class="evidence-path trail" id="trail" aria-label="Stages run, in order"></ol>
+          <h3>Why Jev decided this</h3>
+          <ul id="why"></ul>
+          <h3>Matched datasets</h3>
+          <ol id="datasets"></ol>
+          <details class="inline">
+            <summary>Technical details</summary>
+            <dl class="facts" id="tech"></dl>
+            <pre id="raw"></pre>
+          </details>
+        </section>
+      </div>
+
+      <aside aria-labelledby="read-title">
+        <h3 id="read-title">How to read the result</h3>
+        <dl class="facts">
+          <div><dt>Answer</dt><dd>The graph found datasets that hold the requested pollutants at the requested breakdown.</dd></div>
+          <div><dt>Clarify</dt><dd>The request is missing a detail Jev needs. It asks rather than guessing.</dd></div>
+          <div><dt>Reject</dt><dd>The catalogue cannot hold what was asked, so Jev stops before searching.</dd></div>
+          <div><dt>Review</dt><dd>A decision fell below the confidence threshold. A person should check it.</dd></div>
+          <div><dt>No data</dt><dd>The request was clear, but no combination of sources covers it.</dd></div>
+        </dl>
+        <p class="annotation"><strong style="color:var(--graph)">Graph</strong> stages find and check evidence. <strong style="color:var(--purple-mid)">Decision</strong> stages are Jev's bounded calls.</p>
+        <p class="boundary boundary--scope"><strong>Scope</strong>A demonstration catalogue of illustrative sources. The decision stages follow Jev's bounded-decision contract but are answered here by catalogue rules: no hosted model is called and request text is not logged.</p>
+        <p class="annotation" id="catalogue-summary"></p>
+      </aside>
+    </div>
+  </div>
+</section>
+
+<!-- Scope -->
+<section class="band band--paper" id="scope" aria-labelledby="scope-title">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">What this proves</p>
+      <h2 id="scope-title">What runs today, and what production adds.</h2>
+    </div>
+    <div class="now-next">
+      <section aria-labelledby="now-title">
+        <h3 id="now-title">Running in this demo</h3>
+        <ul>
+          <li>A catalogue graph of eight illustrative sources, held in memory.</li>
+          <li>Graph coverage checks, including combined sources and roll-ups.</li>
+          <li>Five bounded outcomes, with refusal and clarification before any search.</li>
+          <li>A traceable result: stages run, datasets matched, and why.</li>
+          <li>A self-contained browser demonstration deployable to any static host.</li>
+        </ul>
+      </section>
+      <section aria-labelledby="next-title">
+        <h3 id="next-title">Added in production</h3>
+        <ul>
+          <li>A RAG index over methodology documents, maps and charts.</li>
+          <li>MCP servers in front of the catalogue and source systems, with delegated, short-lived access.</li>
+          <li>Ingestion and sifting from object storage.</li>
+          <li>A persistent graph database instead of the in-memory graph.</li>
+          <li>A Jev model with calibrated thresholds, and a human review queue.</li>
+        </ul>
+      </section>
+    </div>
+
+    <details class="tech" style="margin-top:clamp(40px,6vw,64px)">
+      <summary>RAG and MCP: where each one fails<small>Failure modes paired by kind, for technical advisers.</small></summary>
+      <div class="body">
+        <table>
+          <thead><tr><th scope="col">Kind</th><th scope="col">RAG fails when…</th><th scope="col">MCP fails when…</th></tr></thead>
+          <tbody>
+            <tr><th scope="row">Finding</th><td>The right passage is never retrieved.</td><td>The model picks the wrong tool or passes bad arguments.</td></tr>
+            <tr><th scope="row">Attention</th><td>Too many chunks dilute the window; text in the middle of long prompts is used less well <a href="#c5">[5]</a>.</td><td>Long tool lists and big results crowd the window <a href="#c3">[3]</a>.</td></tr>
+            <tr><th scope="row">Freshness</th><td>The index lags the source documents.</td><td>The server reads a cache or a lagging copy.</td></tr>
+            <tr><th scope="row">Access</th><td>Chunks reach people who may not see the source.</td><td>Servers rely on long-lived keys instead of delegated access.</td></tr>
+            <tr><th scope="row">Blast radius</th><td>A wrong answer, stated confidently.</td><td>A tool with side effects runs on a bad decision.</td></tr>
+            <tr><th scope="row">Both</th><td colspan="2">Untrusted text in a document or a tool result can carry instructions. MCP adds one more route: tool descriptions are read by the model too.</td></tr>
+          </tbody>
+        </table>
+        <p class="annotation" style="margin-top:12px">Jev's place in this table: it cannot make retrieval find the right passage, but it can refuse to answer, ask for detail or send the case to a person when the evidence doesn't support an answer.</p>
+      </div>
+    </details>
+    <details class="tech" id="sources">
+      <summary>Sources<small>Links last checked 5 October 2026.</small></summary>
+      <div class="body">
+        <ol class="cites">
+          <li id="c1">Lewis, P. et al. "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks." NeurIPS, 2020. <a href="https://arxiv.org/abs/2005.11401">arxiv.org/abs/2005.11401</a></li>
+          <li id="c2">Model Context Protocol. Specification, revision 2026-07-28: <a href="https://modelcontextprotocol.io/specification/2026-07-28/server">server primitives</a> and <a href="https://modelcontextprotocol.io/specification/2026-07-28/server/tools">tools</a>.</li>
+          <li id="c3">Anthropic. "Code execution with MCP." 4 November 2025. <a href="https://www.anthropic.com/engineering/code-execution-with-mcp">anthropic.com</a> — token cost of tool definitions and results.</li>
+          <li id="c4">Edge, D. et al. "From Local to Global: A GraphRAG Approach to Query-Focused Summarization." 2024. <a href="https://arxiv.org/abs/2404.16130">arxiv.org/abs/2404.16130</a></li>
+          <li id="c5">Liu, N. F. et al. "Lost in the Middle: How Language Models Use Long Contexts." TACL 12, 2024. <a href="https://aclanthology.org/2024.tacl-1.9/">aclanthology.org/2024.tacl-1.9</a></li>
+          <li>The worked request, the catalogue and its sources are illustrative. The storage-sifting flow is an architecture pattern, not a feature of this demo.</li>
+        </ol>
+      </div>
+    </details>
+  </div>
+</section>
+
+</main>
+<footer class="site-footer">
+  <div class="wrap">
+    <p><a href="/graphs-and-jev/">Back to Graphs + Jev</a> · <a href="/graphs-and-jev/parkinsons/">Parkinson&rsquo;s research evidence</a> · <a href="/graphs-and-jev/little-bunnies/">Small-world context</a></p>
+  </div>
+</footer>
+
+<script src="/graphs-and-jev/demo-data.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const form = $("#ask"), statusEl = $("#status"), submit = $("#submit"), result = $("#result");
+const OUTCOME_LABEL = {
+  answer: "Answer",
+  clarify: "Clarify: more detail needed",
+  reject: "Reject: outside the catalogue",
+  review: "Review: pass to a person",
+  no_data: "No data",
+  error: "Service unavailable"
+};
+const OUTCOME_WHY = {
+  clarify: "Jev stopped before searching because the request leaves out something it needs.",
+  reject: "Jev stopped before searching: the catalogue holds 2015 to 2025, by region, country or continent, and by month or year.",
+  review: "A decision fell below the acceptance threshold, so the request goes to a person instead of being answered automatically.",
+  no_data: "The request was understood, but no source, alone or combined, covers it."
+};
+const STAGE = {
+  gate: {layer: "jev", label: "Decision", name: "Can it be answered?"},
+  enrich: {layer: "jev", label: "Graph + decision", name: "Which pollutants"},
+  query: {layer: "jev", label: "Decision", name: "Which breakdown"},
+  discover: {layer: "graph", label: "Graph", name: "Coverage check"},
+  rank: {layer: "jev", label: "Decision", name: "Fit to preference"},
+  explain: {layer: "show", label: "Result", name: "Explanation"}
+};
+
+function setStatus(text, state) { statusEl.textContent = text; statusEl.dataset.state = state; }
+function el(tag, text, cls) { const n = document.createElement(tag); if (text != null) n.textContent = text; if (cls) n.className = cls; return n; }
+function fill(list, items, emptyText) {
+  list.replaceChildren();
+  if (!items.length) { list.append(el("li", emptyText, "empty")); return; }
+  items.forEach(i => list.append(typeof i === "string" ? el("li", i) : i));
+}
+function fact(dl, term, value) {
+  const d = el("div"); d.append(el("dt", term), el("dd", value)); dl.append(d);
+}
+
+staticCatalogue().then(r => r.json()).then(cat => {
+  $("#catalogue-summary").textContent = cat.summary + " " + cat.sources.length + " sources.";
+  setStatus("Ready. The catalogue is loaded with " + cat.sources.length + " sources.", "idle");
+}).catch(() => setStatus("The catalogue did not load. The demo may still answer; try a request.", "error"));
+
+document.querySelectorAll("[data-q]").forEach(btn => btn.addEventListener("click", () => {
+  document.querySelectorAll("[data-q]").forEach(b => b.setAttribute("aria-pressed", b === btn ? "true" : "false"));
+  $("#request").value = btn.dataset.q;
+  $("#preference").value = btn.dataset.p;
+  form.requestSubmit();
+}));
+
+function datasetItem(sol) {
+  const li = el("li");
+  const names = (sol.sources || []).map(s => s.name).join(" + ");
+  li.append(el("strong", "Option " + sol.id + ": " + names));
+  const meta = (sol.sources || []).map(s => s.publisher + ", updated " + s.updated).join("; ");
+  li.append(el("div", meta + " · " + sol.cells + (sol.cells === 1 ? " cell" : " cells") + " covered", "annotation"));
+  if (sol.fit && sol.fit.legend) li.append(el("div", "Preference fit: " + sol.fit.legend[sol.fit.top], "annotation"));
+  (sol.notes || []).forEach(n => li.append(el("div", "Caution: " + n, "annotation")));
+  return li;
+}
+
+function trail(stages) {
+  const list = $("#trail");
+  list.replaceChildren();
+  (stages || []).forEach((s, i) => {
+    const meta = STAGE[s.stage] || {layer: "show", label: "Stage", name: s.title};
+    if (i) { const arrow = el("li"); arrow.setAttribute("aria-hidden", "true"); arrow.append(el("span", null, "e")); list.append(arrow); }
+    const li = el("li");
+    li.dataset.layer = meta.layer;
+    const box = el("span", null, "n");
+    box.append(el("small", meta.label), document.createTextNode(meta.name));
+    li.append(box);
+    list.append(li);
+  });
+  if (!list.children.length) list.append(el("li", "No stages ran.", "empty"));
+}
+
+function render(body) {
+  const outcome = OUTCOME_LABEL[body.outcome] ? body.outcome : "error";
+  result.dataset.outcome = outcome;
+  $("#outcome").textContent = OUTCOME_LABEL[outcome];
+  const lines = body.explanation && body.explanation.text ? body.explanation.text.split("\n").filter(Boolean) : [];
+  $("#answer").textContent = outcome === "answer" ? (lines[0] || "Matching datasets found.") : (body.message || body.detail || "No answer was returned.");
+  trail(body.stages);
+  const why = outcome === "answer" ? lines.slice(1) : [OUTCOME_WHY[outcome] || "The in-browser demonstration could not complete the request."];
+  fill($("#why"), why, "No explanation was returned.");
+  fill($("#datasets"), (body.solutions || []).map(datasetItem), outcome === "answer" ? "No datasets were returned." : "None. Jev returns datasets only when it can stand behind them.");
+  const tech = $("#tech");
+  tech.replaceChildren();
+  if (body.query) {
+    fact(tech, "Pollutants", (body.query.pollutants || []).join(", ") || "none");
+    fact(tech, "Breakdown", Object.entries(body.query.levels || {}).map(([k, v]) => k + ": " + v).join(", ") || "none");
+  }
+  if (body.stages) fact(tech, "Stages run", body.stages.map(s => s.title).join(" → "));
+  if (body.model) fact(tech, "Decided by", body.backend_label + " (" + body.model + "), " + body.residency);
+  if (body.totals) fact(tech, "Decisions", body.totals.decisions + " in " + body.totals.calls + " calls, " + body.totals.wall_ms + " ms");
+  $("#raw").textContent = JSON.stringify(body, null, 2);
+  result.hidden = false;
+  return OUTCOME_LABEL[outcome];
+}
+
+form.addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const request = $("#request").value.trim();
+  const preference = $("#preference").value.trim();
+  submit.disabled = true;
+  form.setAttribute("aria-busy", "true");
+  setStatus("Working: Jev is deciding how to handle the request…", "working");
+  try {
+    let res;
+    try {
+      res = await staticPipeline({request, preference: preference || null});
+    } catch (e) {
+      render({outcome: "error", detail: "The in-browser demonstration could not run. Reload the page, then try again."});
+      setStatus("The in-browser demonstration did not complete.", "error");
+      return;
+    }
+    let body;
+    try { body = await res.json(); }
+    catch (e) { body = {detail: "The in-browser demonstration returned an unexpected response (HTTP " + res.status + ")."}; }
+    if (!res.ok) body = {outcome: "error", detail: body.detail || "The in-browser demonstration returned HTTP " + res.status + "."};
+    const label = render(body);
+    setStatus(res.ok ? "Done. Outcome: " + label + "." : "The in-browser demonstration could not complete the request.", res.ok ? "done" : "error");
+  } finally {
+    submit.disabled = false;
+    form.removeAttribute("aria-busy");
+  }
+});
+</script>
+</body>
+</html>

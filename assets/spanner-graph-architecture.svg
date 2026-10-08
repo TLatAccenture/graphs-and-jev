@@ -1,0 +1,72 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 600" role="img" aria-labelledby="t d">
+  <title id="t">One copy of data, two views, one bounded decision</title>
+  <desc id="d">Spanner tables and SQL views hold one copy of the data. The same rows are exposed as a relational view queried with SQL and as a property graph queried with GQL. Combining both gives connected context, which Jev, this showcase&#8217;s decision layer, uses to answer, clarify, review or reject.</desc>
+  <style>
+    .lab{font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.12em;fill:#4a4a4a}
+    .blab{font:700 11px ui-monospace,Menlo,monospace;letter-spacing:.12em;fill:#1558b0}
+    .txt{font:600 15px system-ui,-apple-system,sans-serif;fill:#0a0a0a}
+    .wtxt{font:600 15px system-ui,-apple-system,sans-serif;fill:#fff}
+    .wsm{font:500 12px system-ui,-apple-system,sans-serif;fill:#d9e6fb}
+    .sm{font:500 12px system-ui,-apple-system,sans-serif;fill:#4a4a4a}
+    .grid{stroke:#9fb9e6;stroke-width:1}
+    .edge{stroke:#1a73e8;stroke-width:2}
+    .flow{stroke:#000;stroke-width:2;fill:none}
+  </style>
+  <rect width="480" height="600" fill="#fff"/>
+
+  <text class="lab" x="24" y="34">01  SHARED SPANNER DATA</text>
+  <rect x="24" y="46" width="432" height="72" fill="#000"/>
+  <rect x="24" y="46" width="6" height="72" fill="#1a73e8"/>
+  <text class="wtxt" x="46" y="76">Spanner tables and SQL views</text>
+  <text class="wsm" x="46" y="98">One copy of the data. No separate graph store.</text>
+
+  <path class="flow" d="M140 118 V150 M340 118 V150"/>
+  <text class="sm" x="166" y="140">same rows, two views</text>
+
+  <text class="blab" x="24" y="170">02  RELATIONAL VIEW</text>
+  <rect x="24" y="180" width="204" height="150" fill="#f6f4ef"/>
+  <rect x="40" y="196" width="172" height="84" fill="#fff" stroke="#1a73e8" stroke-width="1.5"/>
+  <rect x="40" y="196" width="172" height="21" fill="#e8f0fe"/>
+  <line class="grid" x1="40" y1="238" x2="212" y2="238"/>
+  <line class="grid" x1="40" y1="259" x2="212" y2="259"/>
+  <line class="grid" x1="97" y1="196" x2="97" y2="280"/>
+  <line class="grid" x1="155" y1="196" x2="155" y2="280"/>
+  <text class="txt" x="40" y="306">SQL</text>
+  <text class="sm" x="40" y="322">Tables, joins, aggregates</text>
+
+  <text class="blab" x="252" y="170">02  GRAPH VIEW</text>
+  <rect x="252" y="180" width="204" height="150" fill="#f6f4ef"/>
+  <line class="edge" x1="282" y1="252" x2="336" y2="208"/>
+  <line class="edge" x1="336" y1="208" x2="404" y2="226"/>
+  <line class="edge" x1="282" y1="252" x2="360" y2="270"/>
+  <line class="edge" x1="360" y1="270" x2="404" y2="226"/>
+  <line class="edge" x1="404" y1="226" x2="430" y2="268"/>
+  <circle cx="282" cy="252" r="10" fill="#1a73e8"/>
+  <circle cx="336" cy="208" r="10" fill="#fff" stroke="#1a73e8" stroke-width="3"/>
+  <circle cx="404" cy="226" r="10" fill="#1a73e8"/>
+  <circle cx="360" cy="270" r="10" fill="#fff" stroke="#1a73e8" stroke-width="3"/>
+  <circle cx="430" cy="268" r="7" fill="#fff" stroke="#1a73e8" stroke-width="3"/>
+  <text class="txt" x="268" y="306">GQL</text>
+  <text class="sm" x="268" y="322">Nodes, edges, paths</text>
+
+  <path class="flow" d="M126 330 V362 H354 V330 M240 362 V384"/>
+
+  <text class="lab" x="24" y="380">03  CONNECTED CONTEXT</text>
+  <rect x="24" y="390" width="432" height="72" fill="#e8f0fe"/>
+  <rect x="24" y="390" width="6" height="72" fill="#1a73e8"/>
+  <text class="txt" x="46" y="420">Facts and relationships together</text>
+  <text class="sm" x="46" y="442">GRAPH_TABLE returns graph matches to SQL</text>
+
+  <line x1="170" y1="462" x2="170" y2="494" stroke="#000" stroke-width="2"/>
+
+  <text class="lab" x="24" y="488">04  JEV DECISION</text>
+  <rect x="130" y="494" width="80" height="44" fill="#A100FF"/>
+  <text class="wtxt" x="152" y="522">Jev</text>
+  <g font-family="ui-monospace,Menlo,monospace" font-size="10" font-weight="700" letter-spacing=".08em">
+    <line x1="210" y1="506" x2="250" y2="506" stroke="#0b7a3b" stroke-width="3"/>
+    <text x="258" y="510" fill="#0b7a3b">ANSWER</text>
+    <line x1="210" y1="526" x2="250" y2="526" stroke="#d6d3cc" stroke-width="2"/>
+    <text x="258" y="530" fill="#6b6b6b">CLARIFY &#183; REVIEW &#183; REJECT</text>
+  </g>
+  <text class="sm" x="24" y="576">Jev is this showcase&#8217;s decision layer, not a Google Cloud product.</text>
+</svg>

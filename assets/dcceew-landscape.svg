@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 400" role="img" aria-labelledby="t d">
+  <title id="t">Environmental data layers</title>
+  <desc id="d">Stacked layers for atmosphere, land and monitoring stations. Lines join a pollutant, a place and a year to the datasets that hold them.</desc>
+  <style>
+    .lab{font:600 10px ui-monospace,Menlo,monospace;letter-spacing:.12em}
+    .contour{fill:none;stroke:#0a0a0a;stroke-width:1;opacity:.35}
+  </style>
+  <rect width="640" height="400" fill="#f6f4ef"/>
+
+  <!-- Atmosphere bands -->
+  <g opacity=".9">
+    <rect x="0" y="0" width="640" height="34" fill="#e3f1fa"/>
+    <rect x="0" y="34" width="640" height="30" fill="#cfe6f4"/>
+    <rect x="0" y="64" width="640" height="26" fill="#b8daee"/>
+  </g>
+  <text class="lab" x="24" y="24" fill="#0067a5">ATMOSPHERE &#183; CO2 &#183; PM2.5 &#183; NOX</text>
+
+  <!-- Land layer in perspective -->
+  <polygon points="40,180 600,150 620,330 20,360" fill="#fff" stroke="#0a0a0a" stroke-width="1.5"/>
+  <path class="contour" d="M60 300 C 160 250, 240 320, 340 270 S 520 240, 590 280"/>
+  <path class="contour" d="M70 265 C 170 220, 260 285, 350 240 S 520 210, 585 245"/>
+  <path class="contour" d="M80 232 C 180 195, 270 250, 360 210 S 520 185, 580 212"/>
+  <path class="contour" d="M90 205 C 190 175, 280 220, 370 185 S 520 165, 575 185"/>
+  <text class="lab" x="40" y="384" fill="#4a4a4a">REGION &#183; COUNTRY &#183; YEAR</text>
+
+  <!-- Monitoring stations -->
+  <g fill="#000">
+    <rect x="150" y="248" width="10" height="10"/>
+    <rect x="292" y="222" width="10" height="10"/>
+    <rect x="440" y="250" width="10" height="10"/>
+    <rect x="520" y="200" width="10" height="10"/>
+  </g>
+  <g stroke="#000" stroke-width="1">
+    <line x1="155" y1="248" x2="155" y2="152"/>
+    <line x1="297" y1="222" x2="297" y2="152"/>
+    <line x1="445" y1="250" x2="445" y2="152"/>
+    <line x1="525" y1="200" x2="525" y2="152"/>
+  </g>
+
+  <!-- Connected catalogue path -->
+  <g>
+    <line x1="155" y1="112" x2="297" y2="112" stroke="#0067a5" stroke-width="4"/>
+    <line x1="297" y1="112" x2="445" y2="112" stroke="#0067a5" stroke-width="4"/>
+    <line x1="445" y1="112" x2="525" y2="112" stroke="#bdbab3" stroke-width="2"/>
+    <circle cx="155" cy="112" r="11" fill="#0067a5"/>
+    <circle cx="297" cy="112" r="11" fill="#0067a5"/>
+    <circle cx="445" cy="112" r="11" fill="#A100FF"/>
+    <circle cx="525" cy="112" r="8" fill="#bdbab3"/>
+    <text class="lab" x="124" y="142" fill="#0a0a0a">POLLUTANT</text>
+    <text class="lab" x="270" y="142" fill="#0a0a0a">PLACE</text>
+    <text class="lab" x="420" y="142" fill="#A100FF">DATASET</text>
+  </g>
+</svg>

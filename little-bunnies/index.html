@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Small-world context: Little Bunnies · Graphs + Jev</title>
+<meta name="description" content="Why an agent rarely needs the whole graph: in a small-world network, two hops reach most connected context within a fixed budget.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/graphs-and-jev/guide.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="in">
+    <a class="brand" href="/graphs-and-jev/">Graphs + Jev</a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/graphs-and-jev/#how-it-works">How it works</a>
+      <a href="/graphs-and-jev/#use-cases" aria-current="true">Use cases</a>
+      <a href="/graphs-and-jev/#technical-guide">Technical guide</a>
+      <a class="cta" href="#demo">Try the demo</a>
+    </nav>
+  </div>
+</header>
+<main id="main">
+
+<section class="page-hero" aria-labelledby="page-title">
+  <div class="wrap">
+    <div>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="/graphs-and-jev/">Graphs + Jev</a> / <a href="/graphs-and-jev/#use-cases">Use cases</a> / <span aria-current="page">Small-world context</span></nav>
+      <p class="eyebrow">Experiment · Little Bunnies</p>
+      <h1 id="page-title">Two hops reach most of what matters.</h1>
+      <p class="lede">An agent rarely needs the whole graph. In a small-world network, a short neighbourhood around the question already holds most of the connected context, so the agent can stay inside a fixed budget without loading everything.</p>
+    </div>
+    <div class="page-art">
+      <img src="/graphs-and-jev/assets/small-world.svg" width="640" height="400" alt="A ring of 30 nodes, each joined to its nearest neighbours, with a few long shortcuts across the ring. From a purple start node, 5 nodes are one hop away and 8 more are two hops away.">
+    </div>
+  </div>
+</section>
+
+<section class="band band--tight band--paper" aria-label="Experiment summary">
+  <div class="wrap">
+    <dl class="brief">
+      <div><dt>Business question</dt><dd>How much of the graph does an agent need to load to answer well?</dd></div>
+      <div><dt>What this shows</dt><dd>A few long shortcuts make every node close to every other, so reach grows very quickly with each hop.</dd></div>
+      <div><dt>Graph contribution</dt><dd>Hop distance is a natural, explainable limit on what the agent reads.</dd></div>
+      <div><dt>Jev control</dt><dd>Jev works within a fixed state budget. Two hops fill about 70% of it.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="band" id="demo" aria-labelledby="demo-title">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Step through it</p>
+      <h2 id="demo-title">Watch the neighbourhood grow.</h2>
+      <p class="lede">Pick a hop depth to see how much of a 500-node small-world graph is reached from one starting node.</p>
+    </div>
+
+    <div class="hops" role="group" aria-labelledby="hops-label">
+      <strong id="hops-label">Hop depth</strong>
+      <button type="button" data-hop="1" aria-pressed="false">1</button>
+      <button type="button" data-hop="2" aria-pressed="true">2</button>
+      <button type="button" data-hop="3" aria-pressed="false">3</button>
+    </div>
+    <p class="demo-status" id="reachStatus" aria-live="polite" data-state="done">2 hops reach 373 of 500 nodes, 75% of the graph.</p>
+
+    <ol class="reach" aria-label="Nodes reached from the starting node">
+      <li data-hop="1">
+        <span class="hop">1 hop</span>
+        <span class="meter" aria-hidden="true"><span style="width:9%;--c:var(--evidence)"></span></span>
+        <span class="what"><strong>47 nodes, 9%.</strong> Only the immediate neighbours. Often too little to connect two facts.</span>
+      </li>
+      <li data-hop="2" aria-current="true">
+        <span class="hop">2 hops</span>
+        <span class="meter" aria-hidden="true"><span style="width:75%;--c:var(--purple)"></span></span>
+        <span class="what"><strong>373 nodes, 75%.</strong> Most of the graph, at about 22,380 tokens: roughly 70% of a 32,000-token budget.</span>
+      </li>
+      <li data-hop="3">
+        <span class="hop">3 hops</span>
+        <span class="meter" aria-hidden="true"><span style="width:100%;--c:var(--black)"></span></span>
+        <span class="what"><strong>499 nodes, 100%.</strong> Effectively everything. The neighbourhood no longer filters anything.</span>
+      </li>
+    </ol>
+    <p class="annotation">Average path length in this graph is 2.06 hops, which is why the jump from one hop to two is so large.</p>
+  </div>
+</section>
+
+<section class="band band--paper" aria-labelledby="method-title">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Methodology</p>
+      <h2 id="method-title">How these numbers were produced.</h2>
+    </div>
+    <details class="tech">
+      <summary><span>Model and parameters<small>A synthetic Watts–Strogatz graph, not a measurement of any real catalogue.</small></span></summary>
+      <div class="body">
+        <dl class="facts">
+          <div><dt>Model</dt><dd>Watts–Strogatz small-world ring</dd></div>
+          <div><dt>Nodes (N)</dt><dd>500</dd></div>
+          <div><dt>Neighbours (K)</dt><dd>25 on each side. NetworkX writes the same ring as k=50 because it counts both directions.</dd></div>
+          <div><dt>Rewiring probability</dt><dd>0.15, which rewired 1,912 edges</dd></div>
+          <div><dt>Random seed</dt><dd>1</dd></div>
+          <div><dt>Average path length</dt><dd>2.06 hops</dd></div>
+          <div><dt>Token estimate</dt><dd>Two hops cover 22,380 tokens, about 70% of a 32,000-token state budget</dd></div>
+        </dl>
+        <p class="annotation">The illustration at the top of the page is a smaller ring of 30 nodes drawn for legibility; the reach figures come from the 500-node graph.</p>
+      </div>
+    </details>
+    <details class="tech">
+      <summary><span>Sources<small>Where the model comes from.</small></span></summary>
+      <div class="body">
+        <ul>
+          <li><a href="https://doi.org/10.1038/30918">Watts, D. J. and Strogatz, S. H. Collective dynamics of “small-world” networks. Nature 393, 440–442 (1998)</a></li>
+          <li><a href="https://www.mathworks.com/help/matlab/math/build-watts-strogatz-small-world-graph-model.html">MathWorks. Build Watts–Strogatz Small World Graph Model</a></li>
+        </ul>
+      </div>
+    </details>
+  </div>
+</section>
+
+</main>
+<footer class="site-footer">
+  <div class="wrap">
+    <p><a href="/graphs-and-jev/">Back to Graphs + Jev</a> · <a href="/graphs-and-jev/dcceew/">DCCEEW catalogue discovery</a> · <a href="/graphs-and-jev/parkinsons/">Parkinson&rsquo;s research evidence</a></p>
+  </div>
+</footer>
+
+<script>
+const REACH = {
+  1: "1 hop reaches 47 of 500 nodes, 9% of the graph.",
+  2: "2 hops reach 373 of 500 nodes, 75% of the graph.",
+  3: "3 hops reach 499 of 500 nodes: effectively the whole graph."
+};
+const reachStatus = document.getElementById("reachStatus");
+document.querySelectorAll("button[data-hop]").forEach(btn => btn.addEventListener("click", () => {
+  const hop = btn.dataset.hop;
+  document.querySelectorAll("button[data-hop]").forEach(b => b.setAttribute("aria-pressed", b === btn ? "true" : "false"));
+  document.querySelectorAll(".reach li").forEach(li => {
+    if (li.dataset.hop === hop) li.setAttribute("aria-current", "true");
+    else li.removeAttribute("aria-current");
+  });
+  reachStatus.textContent = REACH[hop];
+}));
+</script>
+</body>
+</html>

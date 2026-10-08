@@ -1,0 +1,242 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Parkinson’s research evidence · Graphs + Jev</title>
+<meta name="description" content="Research retrieval over public sources: the graph keeps typed relationships with their citations, and Jev refuses clinical requests before any search runs.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/graphs-and-jev/guide.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="in">
+    <a class="brand" href="/graphs-and-jev/">Graphs + Jev</a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/graphs-and-jev/#how-it-works">How it works</a>
+      <a href="/graphs-and-jev/#use-cases" aria-current="true">Use cases</a>
+      <a href="/graphs-and-jev/#technical-guide">Technical guide</a>
+      <a class="cta" href="#demo">Try the demo</a>
+    </nav>
+  </div>
+</header>
+<main id="main">
+
+<section class="page-hero" aria-labelledby="page-title">
+  <div class="wrap">
+    <div>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="/graphs-and-jev/">Graphs + Jev</a> / <a href="/graphs-and-jev/#use-cases">Use cases</a> / <span aria-current="page">Parkinson’s research evidence</span></nav>
+      <p class="eyebrow">Use case · Research evidence</p>
+      <h1 id="page-title">Trace Parkinson’s research back to its source.</h1>
+      <p class="lede">A question about Parkinson’s research is checked against representative evidence drawn from published sources. The graph keeps each relationship a retrieved page states, typed and tied to its citation. Jev answers only when a page states a relationship, and refuses clinical requests before any search runs.</p>
+      <p class="boundary"><strong>Research retrieval, not clinical advice.</strong>This page does not diagnose, prescribe, or recommend a dose or treatment. Questions that ask for any of these are refused. Speak to a qualified clinician about care.</p>
+    </div>
+    <div class="page-art">
+      <img src="/graphs-and-jev/assets/parkinsons-research.svg" width="640" height="400" alt="Three publications linked by dashed citation lines to a compound, a protein target and a condition. A typed path runs from the compound to the target to the condition.">
+    </div>
+  </div>
+</section>
+
+<section class="band band--tight band--paper" aria-label="Use case summary">
+  <div class="wrap">
+    <dl class="brief">
+      <div><dt>Business question</dt><dd>What does published work state about this research question, and where does it say so?</dd></div>
+      <div><dt>Graph contribution</dt><dd>Turns retrieved pages into typed relationships, such as gene associates disease, each tied to the page that states it.</dd></div>
+      <div><dt>Jev control</dt><dd>Answers only from a stated relationship. Otherwise it asks for a narrower question, reports no data, or refuses.</dd></div>
+      <div><dt>Safety boundary</dt><dd>Dose, diagnosis and prescription requests are refused before retrieval. Nothing is fetched for them.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="band" id="demo" aria-labelledby="demo-title">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Static demonstration</p>
+      <h2 id="demo-title">Ask a Parkinson’s research question.</h2>
+      <p class="lede">This self-contained publication returns representative, cited research results in your browser. It does not perform live searches or provide clinical advice.</p>
+    </div>
+
+    <div class="demo-grid">
+      <div>
+        <fieldset class="scenarios">
+          <legend>Start with an example</legend>
+          <button type="button" class="scenario" aria-pressed="false" data-pd="LRRK2 associated with Parkinson's disease"><strong>Mechanism evidence</strong><span>“LRRK2 associated with Parkinson’s disease.” See a representative typed relationship linked to the publication that states it.</span></button>
+          <button type="button" class="scenario" aria-pressed="false" data-pd="What has been reported as approved for motor symptoms?"><strong>Reported regulatory status</strong><span>“What has been reported as approved for motor symptoms?” Jev answers only when the representative evidence states it; otherwise it asks for a narrower question.</span></button>
+          <button type="button" class="scenario" aria-pressed="false" data-pd="What dose of levodopa should I prescribe"><strong>Unsafe prescribing request</strong><span>“What dose of levodopa should I prescribe?” Expect a refusal before any search runs.</span></button>
+        </fieldset>
+
+        <form id="askPd" class="demo" aria-describedby="pdStatus">
+          <div class="field">
+            <label for="pdRequest">Your research question</label>
+            <p class="hint" id="pd-hint">Ask what published work states, for example which compounds target a protein. Do not include personal or health details about anyone.</p>
+            <textarea id="pdRequest" name="request" maxlength="500" required aria-describedby="pd-hint">LRRK2 associated with Parkinson's disease</textarea>
+          </div>
+          <div class="actions">
+            <button class="btn btn--purple" type="submit" id="pdSubmit">Search and decide</button>
+          </div>
+          <p class="demo-status" id="pdStatus" aria-live="polite" data-state="idle">Ready. Representative research evidence is loaded in this page.</p>
+        </form>
+
+        <section class="result" id="pdResult" aria-labelledby="pd-result-heading" tabindex="-1" hidden>
+          <h3 class="outcome" id="pd-result-heading"><span id="pdOutcome"></span></h3>
+          <p class="answer" id="pdAnswer"></p>
+          <p id="pdDetail"></p>
+          <h3>Evidence path</h3>
+          <div class="paths" id="pdPaths"></div>
+          <h3>Retrieved sources</h3>
+          <ol id="pdCitations"></ol>
+          <details class="inline">
+            <summary>Technical explanation</summary>
+            <dl class="facts" id="pdTech"></dl>
+            <pre id="pdRaw"></pre>
+          </details>
+        </section>
+      </div>
+
+      <aside aria-labelledby="read-title">
+        <h3 id="read-title">How to read the result</h3>
+        <dl class="facts">
+          <div><dt>Answer</dt><dd>A retrieved page states a typed relationship. The path shows it and links the page.</dd></div>
+          <div><dt>Clarify</dt><dd>Pages came back, but none stated a relationship Jev can stand behind. Try a narrower question.</dd></div>
+          <div><dt>Reject</dt><dd>The question asks for a dose, diagnosis or prescription. Nothing was searched.</dd></div>
+          <div><dt>No data</dt><dd>The search returned nothing to cite.</dd></div>
+        </dl>
+        <p class="boundary boundary--scope"><strong>How paths are found</strong>Relationships are extracted from titles and abstracts with simple patterns: targets, binds, associated with, approved for, studied in. Read the source before relying on any path. Citations are always HTTPS links to the pages this request retrieved.</p>
+      </aside>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer class="site-footer">
+  <div class="wrap">
+    <p><a href="/graphs-and-jev/">Back to Graphs + Jev</a> · <a href="/graphs-and-jev/dcceew/">DCCEEW catalogue discovery</a> · <a href="/graphs-and-jev/little-bunnies/">Small-world context</a></p>
+  </div>
+</footer>
+
+<script src="/graphs-and-jev/demo-data.js"></script>
+<script>
+const $ = s => document.querySelector(s);
+const pdForm = $("#askPd"), pdStatus = $("#pdStatus"), pdSubmit = $("#pdSubmit"), pdResult = $("#pdResult");
+const OUTCOME_LABEL = {
+  answer: "Answer: stated in a retrieved source",
+  clarify: "Clarify: no stated relationship",
+  reject: "Reject: outside research retrieval",
+  review: "Review: pass to a person",
+  no_data: "No data",
+  error: "Sources unavailable"
+};
+
+function httpsUrl(value) {
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" ? url.href : "";
+  } catch (e) {
+    return "";
+  }
+}
+function el(tag, text, cls) { const n = document.createElement(tag); if (text != null) n.textContent = text; if (cls) n.className = cls; return n; }
+function sourceLink(url, title) {
+  const href = httpsUrl(url);
+  if (!href) return null;
+  const a = el("a", title || href);
+  a.href = href;
+  a.target = "_blank";
+  a.rel = "noopener noreferrer";
+  return a;
+}
+function fact(dl, term, value) { const d = el("div"); d.append(el("dt", term), el("dd", value)); dl.append(d); }
+function setStatus(text, state) { pdStatus.textContent = text; pdStatus.dataset.state = state; }
+
+function pathItem(edge) {
+  const wrap = el("div");
+  const ol = el("ol", null, "evidence-path");
+  ol.setAttribute("aria-label", edge.from + " " + edge.ty.replace("_", " ") + " " + edge.to);
+  const node = (label, name) => { const li = el("li"); li.append(el("span", label + ": " + name, "n")); return li; };
+  const rel = el("li"); rel.append(el("span", edge.ty.replace("_", " "), "e"));
+  ol.append(node(edge.from_label, edge.from), rel, node(edge.to_label, edge.to));
+  wrap.append(ol);
+  const link = sourceLink(edge.url, edge.title);
+  if (link) { const p = el("p", "Stated in ", "annotation"); p.append(link); wrap.append(p); }
+  return wrap;
+}
+
+function render(body) {
+  const outcome = OUTCOME_LABEL[body.outcome] ? body.outcome : "error";
+  pdResult.dataset.outcome = outcome;
+  $("#pdOutcome").textContent = OUTCOME_LABEL[outcome];
+  const explanation = body.explanation && body.explanation.text ? body.explanation.text : "";
+  $("#pdAnswer").textContent = body.message || body.detail || "No answer was returned.";
+  $("#pdDetail").textContent = explanation;
+  $("#pdDetail").hidden = !explanation;
+
+  const edges = (body.graph && body.graph.edges) || [];
+  const paths = $("#pdPaths");
+  paths.replaceChildren();
+  const emptyPath = {reject: "None. Nothing was searched for this question.", error: "None. The request did not complete."};
+  const emptyCite = {reject: "None. No pages were retrieved.", error: "None. The request did not complete."};
+  if (edges.length) edges.forEach(e => paths.append(pathItem(e)));
+  else paths.append(el("p", emptyPath[outcome] || "None. No retrieved page stated a typed relationship.", "empty"));
+
+  const cites = $("#pdCitations");
+  cites.replaceChildren();
+  const links = (body.citations || []).map(c => sourceLink(c.url, c.title)).filter(Boolean);
+  if (links.length) links.forEach(a => { const li = el("li"); li.append(a); cites.append(li); });
+  else cites.append(el("li", emptyCite[outcome] || "No sources came back for this question.", "empty"));
+
+  const tech = $("#pdTech");
+  tech.replaceChildren();
+  if (body.model) fact(tech, "Decided by", body.backend_label + " (" + body.model + "), " + body.residency);
+  if (body.graph) fact(tech, "Graph", body.graph.nodes.length + " source nodes, " + edges.length + " typed edges");
+  const gate = body.stages && body.stages[0];
+  if (gate && gate.question && gate.question.criteria) {
+    fact(tech, "Gate rule", gate.question.criteria[body.outcome] || "");
+  }
+  $("#pdRaw").textContent = JSON.stringify(body, null, 2);
+  pdResult.hidden = false;
+  return {label: OUTCOME_LABEL[outcome], sources: links.length};
+}
+
+document.querySelectorAll("[data-pd]").forEach(btn => btn.addEventListener("click", () => {
+  document.querySelectorAll("[data-pd]").forEach(b => b.setAttribute("aria-pressed", b === btn ? "true" : "false"));
+  $("#pdRequest").value = btn.dataset.pd;
+  pdForm.requestSubmit();
+}));
+
+pdForm.addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  if (pdSubmit.disabled) return;
+  const request = $("#pdRequest").value.trim();
+  pdSubmit.disabled = true;
+  pdForm.setAttribute("aria-busy", "true");
+  setStatus("Checking the representative research evidence…", "working");
+  try {
+    let res;
+    try {
+      res = await staticPipeline({domain: "parkinsons", request});
+    } catch (e) {
+      render({outcome: "error", detail: "The in-browser demonstration could not run. Reload the page, then try again."});
+      setStatus("Unavailable: the in-browser demonstration did not complete.", "error");
+      return;
+    }
+    let body;
+    try { body = await res.json(); }
+    catch (e) { body = {detail: "The in-browser demonstration returned an unexpected response (HTTP " + res.status + ")."}; }
+    if (!res.ok) {
+      render({outcome: "error", detail: body.detail || "The in-browser demonstration returned HTTP " + res.status + "."});
+      setStatus("Unavailable: " + (res.status === 502 ? "the representative evidence could not be loaded." : "the in-browser demonstration could not complete the request."), "error");
+      return;
+    }
+    const r = render(body);
+    setStatus("Done. Outcome: " + r.label + ". " + r.sources + (r.sources === 1 ? " source" : " sources") + " retrieved.", "done");
+  } finally {
+    pdSubmit.disabled = false;
+    pdForm.removeAttribute("aria-busy");
+  }
+});
+</script>
+</body>
+</html>

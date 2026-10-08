@@ -1,0 +1,681 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Graphs + Jev: connected evidence, bounded decisions</title>
+<meta name="description" content="How graphs keep connected evidence and Jev decides whether an agent may answer, ask, refuse or escalate.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/graphs-and-jev/guide.css">
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header">
+  <div class="in">
+    <a class="brand" href="/graphs-and-jev/">Graphs + Jev</a>
+    <nav class="site-nav" aria-label="Primary">
+      <a href="/graphs-and-jev/#how-it-works">How it works</a>
+      <a href="/graphs-and-jev/#use-cases">Use cases</a>
+      <a href="/graphs-and-jev/#technical-guide">Technical guide</a>
+      <a class="cta" href="/graphs-and-jev/#example">Try the demo</a>
+    </nav>
+  </div>
+</header>
+<main id="main">
+
+<section class="hero" aria-labelledby="hero-title">
+  <div class="wrap">
+    <div>
+      <span class="eyebrow">Graphs + Jev</span>
+      <h1 id="hero-title">Turn connected evidence into <em>bounded decisions.</em></h1>
+      <p class="lede">Graphs keep the relationships between facts. Jev decides, from that evidence, whether an agent may answer, must ask, must refuse, or must hand the question to a person.</p>
+      <div class="actions">
+        <a class="btn" href="#how-it-works">See how it works</a>
+        <a class="btn btn--ghost" href="#use-cases">Explore a use case</a>
+      </div>
+    </div>
+    <figure class="hero-art" style="margin:0">
+      <img src="/graphs-and-jev/assets/evidence-path.svg" width="480" height="540" alt="A question passes through connected facts. A two-hop path from John Doe to ACME is highlighted, Jev chooses Answer, and the answer returns with its path and sources.">
+    </figure>
+  </div>
+</section>
+
+<section id="how-it-works" class="band band--paper" aria-labelledby="how-title">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">The concept in 60 seconds</span>
+      <h2 id="how-title">Three steps from a question to a decision you can check.</h2>
+      <p>Before any of this, the evidence has to be within reach. RAG retrieves indexed documents; MCP connects an AI application to governed tools and live systems. Both put material in front of the model, but neither shows how the pieces relate or whether they are enough to answer. That is where graphs and Jev come in. <a href="/graphs-and-jev/dcceew/#reach">See all four layers in the DCCEEW story</a>.</p>
+    </div>
+    <ol class="steps">
+      <li>
+        <h3>Connect the evidence</h3>
+        <p class="q">Which facts actually bear on this question?</p>
+        <p>The graph starts at the people, places or things the question names and follows their relationships a short distance. It returns connected facts, not passages that merely sound similar.</p>
+      </li>
+      <li>
+        <h3>Control the decision</h3>
+        <p class="q">Is that evidence enough to act on?</p>
+        <p>Jev checks the evidence against typed rules. It answers only when the evidence supports one. Otherwise it asks a clarifying question, refuses, reports no data, or passes the case to a person.</p>
+      </li>
+      <li>
+        <h3>Show the reasoning</h3>
+        <p class="q">Why should anyone trust the result?</p>
+        <p>Every outcome comes back with the short path and the sources behind it, so a reviewer can see exactly which facts led to the decision.</p>
+      </li>
+    </ol>
+    <dl class="defs" style="margin-top:clamp(40px,6vw,72px)">
+      <div><dt>RAG</dt><dd>Retrieval-augmented generation: search an index of documents and add the best passages to the model's prompt. A technique for finding things.</dd></div>
+      <div><dt>MCP</dt><dd>Model Context Protocol: an open standard for connecting an AI application to tools, resources and live systems. A way of connecting to things.</dd></div>
+      <div><dt>Graph</dt><dd>Facts (nodes) and the typed relationships between them (edges), such as <em>John Doe leads Solar Farm Alpha</em>.</dd></div>
+      <div><dt>Graph database</dt><dd>The store that holds a graph and answers questions by following relationships. Neo4j and Google Cloud Spanner Graph are examples. These demonstrations keep a small graph in memory instead.</dd></div>
+      <div><dt>Jev</dt><dd>The typed decision layer. It decides what an agent may do with the evidence. It is not the database and does not store facts.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section id="example" class="band" aria-labelledby="example-title">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Guided example</span>
+      <h2 id="example-title">Follow one question through the graph.</h2>
+      <p>Choose a question. The graph highlights the facts that connect it, and the result shows what Jev decides and why. This runs in your browser on a twelve-fact sample graph; no model or database is called.</p>
+    </div>
+    <div class="guided">
+      <div>
+        <fieldset class="scenarios">
+          <legend>Choose a question</legend>
+          <button type="button" class="scenario" data-scenario="leads" aria-pressed="false"><strong>Who leads ACME's renewable projects?</strong><span>A two-hop answer that no single fact states.</span></button>
+          <button type="button" class="scenario" data-scenario="outage" aria-pressed="false"><strong>Which customers did Outage 14 affect?</strong><span>One incident traced to every customer it reached.</span></button>
+          <button type="button" class="scenario" data-scenario="terminate" aria-pressed="false"><strong>Can we terminate Supplier X's contract?</strong><span>Jev hands the case to a person when facts are missing.</span></button>
+        </fieldset>
+        <p class="demo-status" id="exampleStatus" aria-live="polite" data-state="ready">Choose a question to see its evidence path.</p>
+        <div class="result" id="exampleResult" hidden>
+          <p class="outcome" id="exampleOutcome"></p>
+          <p class="answer" id="exampleAnswer"></p>
+          <h3>Evidence path</h3>
+          <div class="paths" id="examplePath"></div>
+          <h3>Why Jev decided this</h3>
+          <p id="exampleWhy" style="margin:0"></p>
+        </div>
+      </div>
+      <div>
+        <div class="graph-stage">
+          <svg id="heroGraph" viewBox="0 0 360 350" role="group" aria-label="Sample knowledge graph. Nodes on the evidence path are blue. Select a node to explore from it."></svg>
+        </div>
+        <div class="hops" role="group" aria-labelledby="hopsLabel">
+          <strong id="hopsLabel">Hop depth</strong>
+          <button type="button" data-hop="1" aria-pressed="false">1</button><button type="button" data-hop="2" aria-pressed="true">2</button><button type="button" data-hop="3" aria-pressed="false">3</button>
+        </div>
+        <p class="annotation" style="margin-top:12px">A hop is one relationship. Each extra hop reaches more connected facts and uses more of the agent's context. Numbers on the nodes show how many hops away they are.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="use-cases" class="band band--paper" aria-labelledby="uses-title">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Use cases</span>
+      <h2 id="uses-title">Three demonstrations of the same pattern.</h2>
+      <p>Each one asks a real question, builds or reads a graph, and lets Jev decide what to return. Two use deterministic representative evidence in the browser; the third explains why short graph neighbourhoods are enough.</p>
+    </div>
+
+    <article class="feature" aria-labelledby="uc-dcceew">
+      <div class="feature-art"><img src="/graphs-and-jev/assets/dcceew-landscape.svg" width="640" height="400" alt=""></div>
+      <div>
+        <span class="label">DCCEEW catalogue discovery</span>
+        <h3 id="uc-dcceew">Department of Climate Change, Energy, the Environment and Water (DCCEEW)</h3>
+        <dl class="facts">
+          <div><dt>Business question</dt><dd>Which official datasets answer this emissions request?</dd></div>
+          <div><dt>What the graph adds</dt><dd>Links pollutants, places, years and breakdowns to the datasets that hold them.</dd></div>
+          <div><dt>What Jev controls</dt><dd>Answers only when a dataset covers the request; otherwise it asks, rejects or reports no data.</dd></div>
+          <div><dt>The full story</dt><dd>How RAG and MCP bring evidence within reach, and where graphs and Jev take over.</dd></div>
+        </dl>
+        <a class="btn" href="/graphs-and-jev/dcceew/">Open the DCCEEW story and demo</a>
+      </div>
+    </article>
+
+    <article class="feature" aria-labelledby="uc-pd">
+      <div class="feature-art"><img src="/graphs-and-jev/assets/parkinsons-research.svg" width="640" height="400" alt=""></div>
+      <div>
+        <span class="label">Parkinson&rsquo;s research evidence</span>
+        <h3 id="uc-pd">Parkinson&rsquo;s research evidence</h3>
+        <dl class="facts">
+          <div><dt>Business question</dt><dd>What has published research reported about this mechanism or compound?</dd></div>
+          <div><dt>What the graph adds</dt><dd>Turns retrieved publications into typed links between compounds, targets and conditions, each pointing back to its source.</dd></div>
+          <div><dt>What Jev controls</dt><dd>Refuses diagnosis, prescribing and dosing before any search, and asks for clarification when sources do not state a relationship.</dd></div>
+        </dl>
+        <a class="btn" href="/graphs-and-jev/parkinsons/">Open the Parkinson&rsquo;s demo</a>
+      </div>
+    </article>
+
+    <article class="feature" aria-labelledby="uc-sw">
+      <div class="feature-art"><img src="/graphs-and-jev/assets/small-world.svg" width="640" height="400" alt=""></div>
+      <div>
+        <span class="label">Small-world context</span>
+        <h3 id="uc-sw">Little Bunnies: why two hops are usually enough</h3>
+        <dl class="facts">
+          <div><dt>Business question</dt><dd>How much connected context does an agent need before it can decide?</dd></div>
+          <div><dt>What the graph adds</dt><dd>Short paths. In a small-world network, a few hops reach most of the graph.</dd></div>
+          <div><dt>What Jev controls</dt><dd>Keeps the decision state inside a fixed token budget, so context stays bounded.</dd></div>
+        </dl>
+        <a class="btn" href="/graphs-and-jev/little-bunnies/">Open Little Bunnies</a>
+      </div>
+    </article>
+  </div>
+</section>
+
+<section id="trust" class="band band--black" aria-labelledby="trust-title">
+  <div class="wrap split">
+    <div>
+      <span class="eyebrow">Trust and deployment</span>
+      <h2 id="trust-title">Built to show its working, and to say no.</h2>
+    </div>
+    <div>
+      <ul class="proof">
+        <li><strong>Traceable</strong>Every outcome returns the path and the sources behind it.</li>
+        <li><strong>Bounded outcomes</strong>Answer, clarify, reject, review or no data. Nothing in between.</li>
+        <li><strong>Refusal before retrieval</strong>Requests outside scope, such as a medication dose, stop before any search runs.</li>
+        <li><strong>Portable publication</strong>Static files with no cloud SDK or server dependency. The same publication runs on GitHub Pages or any static host.</li>
+        <li><strong>No runtime egress</strong>No hosted model, API, analytics or live research search is called. External source links open only when you choose them.</li>
+        <li><strong>No raw personal data</strong>The demonstration graphs hold no personal data, and the static publication does not log request text.</li>
+      </ul>
+      <p class="annotation" style="margin-top:28px">Scope: the browser demonstrations use deterministic catalogue rules and an in-memory graph. They are not a production graph database, and the Parkinson&rsquo;s page is not clinical decision support.</p>
+    </div>
+  </div>
+</section>
+
+<section id="technical-guide" class="band" aria-labelledby="tech-title">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Technical guide</span>
+      <h2 id="tech-title">For technical advisers: engines, labs and queries.</h2>
+      <p>Graph database grades and costs, runnable retrieval and decision labs, the same query in five dialects, and local-run commands. Covers Neo4j, FalkorDB, Memgraph, Amazon Neptune, Spanner Graph, PuppyGraph, Microsoft Fabric Graph, MongoDB Atlas, Azure Cosmos DB and Kuzu.</p>
+    </div>
+
+    <article id="spanner-graph-spotlight" class="spotlight" aria-labelledby="spanner-title">
+      <div class="spotlight-main">
+        <div class="spotlight-copy">
+          <span class="eyebrow">GCP event spotlight</span>
+          <p class="spotlight-product"><img src="/graphs-and-jev/assets/engine-logos/google-cloud-spanner.svg" alt="" width="32" height="32">Google Cloud Spanner Graph</p>
+          <h3 id="spanner-title">One database. Relational and graph views.</h3>
+          <p class="spotlight-lede">Spanner Graph maps Spanner tables or SQL views into a property graph without creating a separate copy of the data. Teams can use GQL for graph patterns, SQL for relational work, and combine both when a decision needs connected and tabular context.</p>
+          <ul class="spotlight-claims">
+            <li>Google Cloud describes it as multi-model: a property graph schema is defined declaratively over existing tables or views. It needs the Enterprise or Enterprise Plus edition.</li>
+            <li>Graph queries use an ISO GQL-compatible interface.</li>
+            <li>GoogleSQL can read graph matches through <code>GRAPH_TABLE</code>, so graph and relational results meet in one query.</li>
+            <li>The graph inherits Spanner&rsquo;s scale, availability and strong consistency.</li>
+          </ul>
+          <p class="annotation">Capabilities are summarised from Google Cloud documentation. The grades and scores below are this site&rsquo;s independent judgement; this spotlight does not change them.</p>
+          <ul class="spotlight-links" aria-label="Google Cloud documentation">
+            <li><a href="https://cloud.google.com/spanner/docs/graph/overview">Spanner Graph overview</a></li>
+            <li><a href="https://cloud.google.com/spanner/docs/graph/schema-overview">Graph schema overview</a></li>
+            <li><a href="https://cloud.google.com/spanner/docs/graph/queries-overview">Graph queries overview</a></li>
+            <li><a href="https://cloud.google.com/spanner/pricing">Spanner pricing</a></li>
+            <li><a href="https://cloud.google.com/discover/what-is-a-graph-database">What is a graph database?</a></li>
+          </ul>
+        </div>
+        <figure class="spotlight-art">
+          <img src="/graphs-and-jev/assets/spanner-graph-architecture.svg" width="480" height="600" loading="lazy" alt="Diagram: Spanner tables and SQL views hold one copy of the data, exposed both as a relational view queried with SQL and as a property graph queried with GQL. Together they give connected context to Jev, which answers, clarifies, sends for review or rejects.">
+        </figure>
+      </div>
+      <div class="spotlight-fit">
+        <section aria-labelledby="spanner-fit">
+          <h4 id="spanner-fit">Strong fit</h4>
+          <ul>
+            <li>Operational data already lives in Spanner.</li>
+            <li>The application needs relational and relationship queries over the same data.</li>
+            <li>Strong consistency and managed multi-region operation matter.</li>
+            <li>The organisation prefers a managed Google Cloud database platform.</li>
+            <li>Graph context should stay next to transactional facts, not in a separately synchronised store.</li>
+          </ul>
+        </section>
+        <section aria-labelledby="spanner-care">
+          <h4 id="spanner-care">Consider carefully</h4>
+          <ul>
+            <li>It is a Google Cloud service, not a portable or embedded database.</li>
+            <li>Cost and capacity follow the Spanner operating model.</li>
+            <li>Validate schema mapping, query shape, latency and traversal depth with representative data.</li>
+            <li>Test the GQL features and graph algorithms you need; do not assume parity with graph-native products.</li>
+            <li>A dedicated graph store may still suit some graph-first workloads better.</li>
+          </ul>
+        </section>
+      </div>
+    </article>
+
+    <details class="tech" open>
+      <summary><span>Engine grades and scores<small>Each engine graded against the job it is built for.</small></span></summary>
+      <div class="body">
+        <p>An embedded library and a clustered service do different jobs. Weights: traversal depth 30%, operations 25%, total cost 20%, vendor viability 15%, fit for decision-model state 10%.</p>
+        <div class="controls" role="group" aria-label="Choose job">
+  <button id="jobShared" aria-pressed="true">Shared production service</button>
+  <button id="jobEmbed">Embedded or per-session memory</button>
+</div>
+<div class="legend">
+  <span style="--c:var(--native)">Native graph store</span>
+  <span style="--c:var(--over)">Graph over existing data</span>
+  <span style="--c:var(--doc)">Document store with graph features</span>
+  <span style="--c:var(--embed)">Embedded</span>
+</div>
+<div class="panel chart" id="gradeChart"></div>
+        <h3 style="margin:32px 0 8px">Scores by criterion</h3>
+        <p>Scores are out of 5 and are judgement, not measurement. PuppyGraph's depth score rests on vendor figures that have not been independently verified.</p>
+        <div class="panel scroll"><table class="heat" id="heat"></table></div>
+      </div>
+    </details>
+
+    <details class="tech">
+      <summary><span>Entry production cost<small>Approximate monthly list prices in USD, as at 25 September 2026; Spanner Graph checked 2 October 2026.</small></span></summary>
+      <div class="body">
+        <p>The paler bar shows a range. Duplication and sync costs for native stores are not included, and are often the larger number.</p>
+        <div class="panel chart" id="costChart"></div>
+      </div>
+    </details>
+
+    <details class="tech">
+      <summary><span>Browser labs<small>Hybrid text against graph retrieval, token budgets, and calibrated thresholds.</small></span></summary>
+      <div class="body">
+        <p>Each lab runs in your browser on the same sample graph as the guided example. Change the settings, or open the code, edit it and run your version.</p>
+        <div class="panel lab" id="labA">
+  <h3>Lab 1: hybrid text retrieval against graph retrieval</h3>
+  <p class="note">The text baseline is what most teams already run: BM25 over each node's text, fused with dense similarity from a small embedding model (all-MiniLM-L6-v2) by reciprocal rank fusion. Dense similarities are precomputed for the questions in the list; for a question you type yourself, the text side falls back to BM25 alone. Graph retrieval starts at the entities named in the question and follows relationships.</p>
+  <div class="params">
+    <label style="flex:1 1 100%">Question <input id="aQ" style="width:100%;font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink)" value="What is John Doe's role in ACME's renewable energy projects?" list="aQList"></label>
+    <datalist id="aQList"><option value="What is John Doe's role in ACME's renewable energy projects?"></option><option value="Which customers were affected by Outage 14?"></option><option value="Which clause governs the supplier of Wind Project Beta?"></option><option value="What does the 2025 strategic plan cover?"></option></datalist>
+    <label>Hops <input id="aK" type="number" min="1" max="4" value="2" style="width:64px"></label>
+    <button class="primary" data-run="A">Run</button>
+  </div>
+  <details><summary>View and edit the code</summary><textarea id="aCode" spellcheck="false"></textarea>
+    <div class="controls"><button data-runedit="A">Run edited code</button><button data-reset="A">Reset code</button></div></details>
+  <div class="out" id="aOut"></div>
+</div>
+
+<div class="panel lab" id="labB">
+  <h3>Lab 2: fit the best context into a token budget</h3>
+  <p class="note">Personalised PageRank ranks nodes by how central they are to a starting entity, then the highest-ranked text is packed into the budget. Jev takes about 64,000 tokens a request, of which about 32,000 for the state and the longest question; this example graph is tiny, so the budget is scaled down.</p>
+  <div class="params">
+    <label>Start at <select id="bSeed"></select></label>
+    <label>Budget <input id="bBudget" type="range" min="20" max="200" step="5" value="70"> <strong id="bBudgetV">70</strong> tokens</label>
+    <button class="primary" data-run="B">Run</button>
+  </div>
+  <details><summary>View and edit the code</summary><textarea id="bCode" spellcheck="false"></textarea>
+    <div class="controls"><button data-runedit="B">Run edited code</button><button data-reset="B">Reset code</button></div></details>
+  <div class="out" id="bOut"></div>
+</div>
+
+<div class="panel lab" id="labC">
+  <h3>Lab 3: calibrated decisions with per-action thresholds</h3>
+  <p class="note">A simulation of the decision loop described in the paper. No model is called. Each case gets a stated confidence; the case is decided automatically if confidence clears that action's threshold, otherwise it is escalated at a cost of 1. Raise overconfidence to see what happens when stated probabilities stop matching reality.</p>
+  <div class="params">
+    <label>Overconfidence <input id="cOver" type="range" min="0" max="0.6" step="0.05" value="0"> <strong id="cOverV">0.00</strong></label>
+    <label>Approve payment threshold <input id="cT0" type="number" min="0.5" max="1" step="0.01" value="0.97" style="width:80px"></label>
+    <label>Route ticket threshold <input id="cT1" type="number" min="0.5" max="1" step="0.01" value="0.70" style="width:80px"></label>
+    <label>Flag for review threshold <input id="cT2" type="number" min="0.5" max="1" step="0.01" value="0.80" style="width:80px"></label>
+    <button class="primary" data-run="C">Run</button>
+  </div>
+  <details><summary>View and edit the code</summary><textarea id="cCode" spellcheck="false"></textarea>
+    <div class="controls"><button data-runedit="C">Run edited code</button><button data-reset="C">Reset code</button></div></details>
+  <div class="out" id="cOut"></div>
+</div>
+      </div>
+    </details>
+
+    <details class="tech">
+      <summary><span>One question, five dialects<small>Which projects does John Doe lead, and who owns them?</small></span></summary>
+      <div class="body">
+        <div class="tabs" id="snipTabs" role="tablist"></div>
+<div class="snip"><pre><code id="snipCode"></code></pre><button class="copy" id="snipCopy">Copy</button></div>
+<p class="note" id="snipNote"></p>
+      </div>
+    </details>
+
+    <details class="tech">
+      <summary><span>Run it on your laptop<small>Local options for the engines that have them.</small></span></summary>
+      <div class="body">
+        <p>Neptune, Spanner Graph and Fabric graph are cloud-only.</p>
+        <div class="runlist" id="runList"></div>
+      </div>
+    </details>
+
+    <div style="margin-top:clamp(40px,6vw,64px)">
+      <h3>Sources and caveats</h3>
+      <p class="annotation">Prices are vendor list prices checked on 25 September 2026 and change often; confirm with each vendor's calculator before quoting to a client. Memgraph was checked on 30 September 2026. Spanner Graph was checked on 2 October 2026: Enterprise edition in us-central1 is $0.41 per replica hour, three replicas per regional node, so $1.23 per node hour; over 730 hours that is about $90 for 100 processing units and $898 for one node, before storage, backups and network. Performance claims for PuppyGraph, FalkorDB and Jev are vendor-reported. Kuzu was archived in October 2025; the forks named here are community-maintained. Grades are the author's judgement against the stated weights.</p>
+      <p class="annotation">Vendor pages: <a href="https://neo4j.com/pricing/">Neo4j</a>, <a href="https://www.falkordb.com/plans/">FalkorDB</a>, <a href="https://memgraph.com/pricing">Memgraph</a> (<a href="https://github.com/memgraph/memgraph/blob/master/licenses/BSL.txt">Community licence</a>: BSL 1.1, production use for internal purposes, no database-as-a-service; each version becomes Apache 2.0 on the change date in its licence, at most four years after its release), <a href="https://aws.amazon.com/neptune/pricing/">Neptune</a>, <a href="https://cloud.google.com/spanner/pricing">Spanner pricing</a> (capabilities: <a href="https://cloud.google.com/spanner/docs/graph/overview">Spanner Graph overview</a>, <a href="https://cloud.google.com/spanner/docs/graph/queries-overview">graph queries</a>, <a href="https://cloud.google.com/discover/what-is-a-graph-database">what is a graph database</a>), <a href="https://www.puppygraph.com/pricing">PuppyGraph</a>, <a href="https://learn.microsoft.com/en-us/fabric/graph/overview">Fabric graph</a>, <a href="https://www.mongodb.com/pricing">MongoDB</a>, <a href="https://www.puppygraph.com/blog/what-is-kuzudb">Kuzu status</a>.</p>
+    </div>
+  </div>
+</section>
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>The explain-it-by-building-it style follows Tivadar Danka&rsquo;s newsletter <a href="https://thepalindrome.org/">The Palindrome</a>. The animations, code, graphics and figures on these pages are original.</p>
+  </div>
+</footer>
+
+<script>
+/* ---------- Example graph shared by the hero and the labs ---------- */
+const G = {
+  nodes: [
+    {id:"john",label:"John Doe",type:"Person",x:55,y:55,text:"John Doe is a programme director based in Sydney."},
+    {id:"solar",label:"Solar Farm Alpha",type:"Project",x:180,y:35,text:"Solar Farm Alpha is a 120 MW site commissioned in 2024."},
+    {id:"acme",label:"ACME",type:"Company",x:305,y:60,text:"ACME is an infrastructure company."},
+    {id:"wind",label:"Wind Project Beta",type:"Project",x:180,y:140,text:"Wind Project Beta is an offshore site in planning."},
+    {id:"renew",label:"Renewable energy",type:"Theme",x:305,y:165,text:"Renewable energy is a strategic theme."},
+    {id:"plan",label:"2025 strategic plan",type:"Document",x:300,y:265,text:"The 2025 strategic plan sets targets for renewable energy growth."},
+    {id:"supplier",label:"Supplier X",type:"Company",x:55,y:165,text:"Supplier X manufactures turbine components."},
+    {id:"clause",label:"Clause 7.2",type:"Clause",x:45,y:255,text:"Clause 7.2 allows termination after two missed deliveries."},
+    {id:"api",label:"Grid API",type:"Service",x:180,y:245,text:"Grid API publishes live output data."},
+    {id:"outage",label:"Outage 14",type:"Incident",x:100,y:325,text:"Outage 14 took the Grid API offline for six hours."},
+    {id:"custy",label:"Customer Y",type:"Company",x:220,y:325,text:"Customer Y buys output data."},
+    {id:"custz",label:"Customer Z",type:"Company",x:320,y:325,text:"Customer Z buys output data."}
+  ],
+  edges: [
+    ["john","LEADS","solar"],["john","ADVISES","wind"],["acme","OWNS","solar"],["acme","OWNS","wind"],
+    ["solar","PART_OF","renew"],["wind","PART_OF","renew"],["plan","COVERS","renew"],["acme","AUTHORED","plan"],
+    ["supplier","SUPPLIES","wind"],["clause","GOVERNS","supplier"],["wind","DEPENDS_ON","api"],
+    ["outage","AFFECTED","api"],["api","SERVES","custy"],["api","SERVES","custz"]
+  ],
+  node(id){return this.nodes.find(n=>n.id===id)},
+  neighbours(id){const out=[];for(const [a,r,b] of this.edges){if(a===id)out.push({id:b,rel:r,dir:"out"});if(b===id)out.push({id:a,rel:r,dir:"in"});}return out},
+  tokens(n){return Math.ceil(n.text.split(/\s+/).length*1.3)}
+};
+const TYPE_COL={Person:"var(--purple)",Company:"var(--black)",Project:"var(--purple-mid)",Theme:"var(--purple-deep)",Document:"#7a7a7a",Clause:"#7a7a7a",Service:"var(--purple-mid)",Incident:"var(--reject)"};
+
+function bfs(start,k){const d={[start]:0};let f=[start];for(let h=1;h<=k;h++){const nx=[];for(const id of f)for(const n of G.neighbours(id))if(d[n.id]===undefined){d[n.id]=h;nx.push(n.id)}f=nx}return d}
+
+/* ---------- Guided example ---------- */
+const SCENARIOS={
+  leads:{q:"Who leads ACME's renewable projects?",start:"john",hops:2,
+    path:[["john","LEADS","solar"],["acme","OWNS","solar"]],
+    outcome:"answer",answer:"John Doe leads Solar Farm Alpha, which ACME owns.",
+    why:"Two relationships connect the person to the company. No single fact says this; the edges do."},
+  outage:{q:"Which customers did Outage 14 affect?",start:"outage",hops:2,
+    path:[["outage","AFFECTED","api"],["api","SERVES","custy"],["api","SERVES","custz"]],
+    outcome:"answer",answer:"Customer Y and Customer Z. Both buy data from the Grid API, which Outage 14 took offline for six hours.",
+    why:"The outage touches the service, and the service serves the customers. Two hops reach both."},
+  terminate:{q:"Can we terminate Supplier X's contract?",start:"supplier",hops:1,
+    path:[["clause","GOVERNS","supplier"]],
+    outcome:"review",answer:"Clause 7.2 allows termination after two missed deliveries, but the graph holds no delivery record for Supplier X.",
+    why:"The rule is in the graph; the facts it depends on are not. Jev passes this to a person instead of guessing."}
+};
+const OUTCOME_LABEL={answer:"Answer",clarify:"Clarify: ask the user",review:"Review: pass to a person",reject:"Reject",no_data:"No data"};
+let heroSel="john",heroHop=2,active=null;
+const SVGNS="http://www.w3.org/2000/svg";
+function el(t,a,p){const e=document.createElementNS(SVGNS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
+const exampleStatus=document.getElementById("exampleStatus");
+function reachText(){const n=Object.keys(bfs(heroSel,heroHop)).length-1;return `${n} connected fact${n===1?"":"s"} within ${heroHop} hop${heroHop>1?"s":""}`}
+function drawHero(){
+  const svg=document.getElementById("heroGraph");svg.replaceChildren();
+  const d=bfs(heroSel,heroHop);
+  const onPath=new Set(active?active.path.map(e=>e.join("|")):[]);
+  const pathNodes=new Set(active?active.path.flatMap(([a,,b])=>[a,b]):[]);
+  for(const [a,r,b] of G.edges){const A=G.node(a),B=G.node(b);
+    const lit=onPath.has([a,r,b].join("|"));
+    const g=el("g",{class:"edge"+(lit?" path":"")+((d[a]!==undefined&&d[b]!==undefined)||lit?"":" dim")},svg);
+    el("line",{x1:A.x,y1:A.y,x2:B.x,y2:B.y},g);
+    const t=el("text",{x:(A.x+B.x)/2,y:(A.y+B.y)/2-3,"text-anchor":"middle"},g);t.textContent=r.toLowerCase();}
+  for(const n of G.nodes){const on=d[n.id]!==undefined||pathNodes.has(n.id);
+    const g=el("g",{class:"node"+(on?"":" dim"),tabindex:0,role:"button","data-id":n.id,"aria-label":n.label+(pathNodes.has(n.id)?", on the evidence path":"")},svg);
+    el("circle",{cx:n.x,cy:n.y,r:n.id===heroSel?13:10,fill:pathNodes.has(n.id)?"var(--evidence)":TYPE_COL[n.type]},g);
+    if(d[n.id]>0){const b=el("text",{x:n.x,y:n.y+3,"text-anchor":"middle",class:"hopbadge"},g);b.textContent=d[n.id]}
+    const t=el("text",{x:n.x,y:n.y+22,"text-anchor":"middle"},g);t.textContent=n.label;
+    const pick=()=>{heroSel=n.id;active=null;markScenario(null);drawHero();
+      document.getElementById("exampleResult").hidden=true;
+      svg.querySelector(`[data-id="${n.id}"]`).focus();
+      exampleStatus.dataset.state="ready";exampleStatus.textContent=`Exploring from ${n.label}: ${reachText()}. Choose a question to see a decision.`};
+    g.addEventListener("click",pick);g.addEventListener("keydown",e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();pick()}});}
+}
+function markScenario(key){document.querySelectorAll("[data-scenario]").forEach(b=>b.setAttribute("aria-pressed",b.dataset.scenario===key?"true":"false"))}
+function setHop(h){heroHop=h;document.querySelectorAll("[data-hop]").forEach(x=>x.setAttribute("aria-pressed",+x.dataset.hop===h?"true":"false"))}
+function node(label){const li=document.createElement("li");const s=document.createElement("span");s.className="n";s.textContent=label;li.append(s);return li}
+function rel(name){const li=document.createElement("li");const s=document.createElement("span");s.className="e";s.textContent=name.toLowerCase().replace(/_/g," ");li.append(s);return li}
+function renderScenario(s){
+  const box=document.getElementById("exampleResult");box.hidden=false;box.dataset.outcome=s.outcome;
+  document.getElementById("exampleOutcome").textContent=OUTCOME_LABEL[s.outcome];
+  document.getElementById("exampleAnswer").textContent=s.answer;
+  const paths=document.getElementById("examplePath");paths.replaceChildren();
+  for(const [a,r,b] of s.path){const ol=document.createElement("ol");ol.className="evidence-path";ol.append(node(G.node(a).label),rel(r),node(G.node(b).label));paths.append(ol)}
+  document.getElementById("exampleWhy").textContent=s.why;
+}
+function choose(key){const s=SCENARIOS[key];active=s;heroSel=s.start;setHop(s.hops);markScenario(key);drawHero();renderScenario(s);
+  exampleStatus.dataset.state="done";
+  exampleStatus.textContent=`${s.q} The path reaches ${reachText()}. Outcome: ${OUTCOME_LABEL[s.outcome]}.`}
+document.querySelectorAll("[data-scenario]").forEach(b=>b.addEventListener("click",()=>choose(b.dataset.scenario)));
+document.querySelectorAll("[data-hop]").forEach(b=>b.addEventListener("click",()=>{setHop(+b.dataset.hop);drawHero();
+  exampleStatus.textContent=`Hop depth ${heroHop}: ${reachText()} from ${G.node(heroSel).label}.`+(active&&heroHop<active.hops?" The evidence path needs more hops than this, so Jev would not answer.":"")}));
+choose("leads");
+
+/* ---------- Engine data ---------- */
+const GV={"A":4,"A-":3.7,"B+":3.3,"B":3,"B-":2.7,"C+":2.3,"C":2,"C-":1.7,"D":1,"F":0};
+const E=[
+ {n:"Neo4j",logo:"/graphs-and-jev/assets/engine-logos/neo4j.svg",initials:"N4",cat:"native",shared:"A-",embed:null,d:5,o:5,c:2,v:5,cost:4670,note:"Business Critical, 32 GB"},
+ {n:"FalkorDB",logo:"/graphs-and-jev/assets/engine-logos/falkordb.png",initials:"FK",cat:"native",shared:"B+",embed:"B",d:4,o:3,c:4,v:3,cost:350,note:"Pro, 8 GB with HA"},
+ {n:"Memgraph",logo:"/graphs-and-jev/assets/engine-logos/memgraph.svg",initials:"MG",cat:"native",shared:"B",embed:null,d:4,o:3,c:3,v:3,cost:null,note:"Community free for internal use (BSL); Enterprise on request; Cloud priced by calculator"},
+ {n:"Neptune",displayName:"Amazon Neptune",logo:null,initials:"AN",cat:"native",shared:"B",embed:null,d:3,o:5,c:3,v:5,cost:460,note:"Two db.r6g.large, before storage and I/O"},
+ {n:"Spanner Graph",displayName:"Google Cloud Spanner Graph",logo:"/graphs-and-jev/assets/engine-logos/google-cloud-spanner.svg",initials:"SG",cat:"over",shared:"B",embed:null,d:3,o:5,c:3,v:5,cost:90,hi:898,note:"Enterprise edition, us-central1, 100 processing units to 1 node; compute only"},
+ {n:"PuppyGraph",logo:"/graphs-and-jev/assets/engine-logos/puppygraph.svg",initials:"PG",cat:"over",shared:"B",prov:true,embed:null,d:4,o:3,c:4,v:3,cost:null,note:"Priced on server CPU and memory; quote only"},
+ {n:"Fabric graph",displayName:"Microsoft Fabric Graph",logo:"/graphs-and-jev/assets/engine-logos/microsoft-fabric.svg",initials:"FG",cat:"over",shared:"C+",embed:null,d:3,o:3,c:3,v:4,cost:1300,note:"Always on, pay-as-you-go estimate"},
+ {n:"MongoDB Atlas",logo:"/graphs-and-jev/assets/engine-logos/mongodb.svg",initials:"MA",cat:"doc",shared:"C",embed:null,d:2,o:5,c:4,v:5,cost:394,note:"M30 cluster"},
+ {n:"Cosmos DB Gremlin",displayName:"Azure Cosmos DB for Apache Gremlin",logo:"/graphs-and-jev/assets/engine-logos/azure-cosmos-db.svg",initials:"CD",cat:"doc",shared:"D",embed:null,d:2,o:4,c:2,v:2,cost:null,note:"Throughput-based; depends on load"},
+ {n:"Kuzu forks",logo:null,initials:"KF",cat:"embed",shared:null,embed:"B-",d:4,o:1,c:5,v:2,cost:0,note:"Open source; your own compute"},
+ {n:"Kuzu 0.11.3",logo:null,initials:"KZ",cat:"embed",shared:null,embed:"C",d:4,o:1,c:5,v:0,cost:0,note:"Archived; pin only for existing use"}
+];
+const CV=c=>`var(--${c})`;
+/* Engine label: a verified local mark when available, otherwise a blank alignment slot, plus the visible product name. Only trusted static data from E reaches this markup. */
+document.addEventListener("error",ev=>{if(ev.target.matches?.(".emark img"))ev.target.remove()},true);
+function engineLabel(e,pill){
+  const name=e.displayName||e.n;
+  const mark=`<span class="emark" data-initials="${e.initials}" aria-hidden="true">${e.logo?`<img src="${e.logo}" alt="" width="60" height="22" loading="lazy" decoding="async">`:""}</span>`;
+  const label=pill?`<span class="pill" style="--c:${CV(e.cat)}">${name}</span>`:`<span class="ename">${name}</span>`;
+  return `<span class="elabel${e.logo?'':' elabel--text'}">${mark}<span class="etext">${label}</span></span>`;
+}
+
+/* ---------- Grade chart ---------- */
+let job="shared";
+function drawGrades(){
+  const rows=E.filter(e=>e[job]);
+  let h='<div class="bars">';
+  for(const e of rows){const w=GV[e[job]]/4*72;
+    h+=`<div class="blab">${engineLabel(e)}</div><div class="track"><div class="bar" style="--c:${CV(e.cat)};width:${Math.max(w,1)}%"></div><span class="val">${e[job]}${e.prov?" (prov.)":""}</span></div>`}
+  document.getElementById("gradeChart").innerHTML=h+'</div><p class="note" style="margin:10px 0 0">Scale runs from F to A.</p>';
+}
+document.getElementById("jobShared").onclick=e=>{job="shared";e.target.setAttribute("aria-pressed",true);document.getElementById("jobEmbed").setAttribute("aria-pressed",false);drawGrades()};
+document.getElementById("jobEmbed").onclick=e=>{job="embed";e.target.setAttribute("aria-pressed",true);document.getElementById("jobShared").setAttribute("aria-pressed",false);drawGrades()};
+drawGrades();
+
+/* ---------- Heat table ---------- */
+(function(){
+  const shade=v=>`color-mix(in srgb, var(--native) ${20+v*16}%, var(--paper))`;
+  let h=`<thead><tr><th>Engine</th><th>Depth</th><th>Ops</th><th>Cost</th><th>Viability</th><th>Grade</th></tr></thead><tbody>`;
+  for(const e of E){h+=`<tr><td>${engineLabel(e,true)}</td>`;
+    for(const k of ["d","o","c","v"]){const v=e[k];h+=`<td class="num" style="background:${shade(v)};color:${v>=3?"#fff":"var(--ink)"}">${v}</td>`}
+    h+=`<td>${e.shared?e.shared+(e.prov?" (prov.)":"")+" shared":""}${e.shared&&e.embed?", ":""}${e.embed?e.embed+" embedded":""}</td></tr>`}
+  document.getElementById("heat").innerHTML=h+"</tbody>";
+})();
+
+/* ---------- Cost chart ---------- */
+(function(){
+  const rows=[...E].sort((a,b)=>((b.hi||b.cost)??-1)-((a.hi||a.cost)??-1)),max=5000,pct=v=>v/max*70;
+  const fmt=v=>"$"+v.toLocaleString("en-GB");
+  let h='<div class="bars">';
+  for(const e of rows){h+=`<div class="blab">${engineLabel(e)}</div><div class="track">`;
+    if(e.cost===null)h+=`<span class="val soft">${e.note}</span>`;
+    else if(e.cost===0)h+=`<span class="val soft">$0 licence, own compute</span>`;
+    else{h+=`<div class="bar" style="--c:${CV(e.cat)};width:${pct(e.cost)}%"></div>`;
+      if(e.hi)h+=`<div class="rng" style="--c:${CV(e.cat)};width:${pct(e.hi-e.cost)}%"></div>`;
+      h+=`<span class="val">${e.hi?fmt(e.cost)+" to "+fmt(e.hi):fmt(e.cost)}</span>`}
+    h+='</div>'}
+  document.getElementById("costChart").innerHTML=h+'</div><p class="note" style="margin:10px 0 0">USD per month. Bars scaled to $5,000.</p>';
+})();
+
+/* ---------- Labs ---------- */
+// Cosine similarity of each node's text to the preset questions (all-MiniLM-L6-v2), precomputed.
+const DENSE={"What is John Doe's role in ACME's renewable energy projects?":{"john":0.565,"solar":0.308,"acme":0.559,"wind":0.28,"renew":0.551,"plan":0.387,"supplier":0.281,"clause":0.01,"api":0.036,"outage":0.042,"custy":0.089,"custz":0.075},"Which customers were affected by Outage 14?":{"john":-0.026,"solar":0.159,"acme":0.136,"wind":0.055,"renew":-0.024,"plan":-0.01,"supplier":0.148,"clause":0.324,"api":0.104,"outage":0.578,"custy":0.327,"custz":0.341},"Which clause governs the supplier of Wind Project Beta?":{"john":0.139,"solar":0.334,"acme":0.229,"wind":0.613,"renew":0.317,"plan":0.309,"supplier":0.458,"clause":0.207,"api":0.047,"outage":0.115,"custy":0.115,"custz":0.127},"What does the 2025 strategic plan cover?":{"john":0.087,"solar":0.251,"acme":0.189,"wind":0.357,"renew":0.431,"plan":0.718,"supplier":0.123,"clause":0.114,"api":-0.019,"outage":-0.01,"custy":0.145,"custz":0.162}};
+function labA(G, question, hops){
+  // Hybrid text retrieval: BM25 over each node's text, fused with dense similarity by
+  // reciprocal rank fusion (1 / (60 + rank) from each ranking). DENSE holds similarities from
+  // all-MiniLM-L6-v2 for the preset questions; for any other question only BM25 is used.
+  const stop=new Set(["what","is","the","in","of","and","a","s","which","by","does","were","was","to"]);
+  const tok=s=>(s.toLowerCase().replace(/'s\b/g,"").match(/[a-z0-9]+/g)||[]).filter(w=>!stop.has(w));
+  const docs=G.nodes.map(n=>tok(n.text)),q=tok(question),N=docs.length;
+  const avg=docs.reduce((s,d)=>s+d.length,0)/N,df=w=>docs.filter(d=>d.includes(w)).length;
+  const bm25=docs.map(d=>q.reduce((s,w)=>{const tf=d.filter(x=>x===w).length;if(!tf)return s;
+    const idf=Math.log(1+(N-df(w)+0.5)/(df(w)+0.5));return s+idf*tf*2.5/(tf+1.5*(0.25+0.75*d.length/avg))},0));
+  const dense=DENSE[question]||null;
+  const ranks=sc=>{const r={};sc.map((s,i)=>[s,i]).filter(x=>x[0]>0).sort((a,b)=>b[0]-a[0]).forEach(([,i],k)=>r[i]=k+1);return r};
+  const rb=ranks(bm25),rd=dense?ranks(G.nodes.map(n=>dense[n.id]||0)):{};
+  const text=G.nodes.map((n,i)=>({n,s:(rb[i]?1/(60+rb[i]):0)+(rd[i]?1/(60+rd[i]):0)})).filter(x=>x.s>0)
+    .sort((a,b)=>b.s-a.s).slice(0,5).map(x=>`${x.n.label}: ${x.n.text}`);
+
+  // Graph retrieval: start at entities named in the question, follow edges
+  const seeds=G.nodes.filter(n=>question.toLowerCase().includes(n.label.toLowerCase())).map(n=>n.id);
+  const paths=[];const seen=new Set(seeds);
+  let frontier=seeds.map(id=>({id,prev:null,path:G.node(id).label}));
+  for(let h=0;h<hops;h++){const next=[];
+    for(const f of frontier)for(const nb of G.neighbours(f.id)){
+      if(nb.id===f.prev)continue;
+      const step=nb.dir==="out"?` -${nb.rel}-> `:` <-${nb.rel}- `;
+      const p=f.path+step+G.node(nb.id).label;paths.push(p);
+      if(!seen.has(nb.id)){seen.add(nb.id);next.push({id:nb.id,prev:f.id,path:p})}}
+    frontier=next}
+  return {seeds:seeds.map(id=>G.node(id).label),text,hybrid:!!dense,paths:[...new Set(paths)]};
+}
+function labB(G, seed, budget){
+  // Personalised PageRank from the seed node, then pack text into the budget
+  const ids=G.nodes.map(n=>n.id),damp=0.85;let r=Object.fromEntries(ids.map(i=>[i,i===seed?1:0]));
+  for(let it=0;it<40;it++){const nr=Object.fromEntries(ids.map(i=>[i,i===seed?1-damp:0]));
+    for(const i of ids){const nb=G.neighbours(i);for(const n of nb)nr[n.id]+=damp*r[i]/nb.length}r=nr}
+  const ranked=ids.map(i=>({node:G.node(i),score:r[i],tokens:G.tokens(G.node(i))})).sort((a,b)=>b.score-a.score);
+  let used=0;for(const x of ranked){x.included=used+x.tokens<=budget;if(x.included)used+=x.tokens}
+  return {ranked,used,budget};
+}
+function labC(thresholds, overconfidence, cases=3000, seed=42){
+  // Seeded random numbers so runs are repeatable
+  let s=seed;const rnd=()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
+  const actions=[{name:"Approve payment",errorCost:50},{name:"Route ticket",errorCost:2},{name:"Flag for review",errorCost:5}];
+  const escalationCost=1;
+  const stats=actions.map(a=>({...a,n:0,auto:0,wrong:0,cost:0}));let autoAllCost=0;
+  for(let i=0;i<cases;i++){
+    const k=Math.floor(rnd()*3),st=stats[k];st.n++;
+    const stated=0.5+0.5*rnd();                         // what the model says
+    const real=stated-overconfidence*(stated-0.5);        // what is actually true
+    const correct=rnd()<real;
+    if(!correct)autoAllCost+=st.errorCost;
+    if(stated>=thresholds[k]){st.auto++;if(!correct){st.wrong++;st.cost+=st.errorCost}}
+    else st.cost+=escalationCost;}
+  const total=stats.reduce((t,x)=>t+x.cost,0);
+  return {stats,total,escalateAll:cases*escalationCost,autoAll:autoAllCost};
+}
+
+const DEFAULT={A:labA.toString(),B:labB.toString(),C:labC.toString()};
+const FN={A:labA,B:labB,C:labC};
+["A","B","C"].forEach(k=>document.getElementById(k.toLowerCase()+"Code").value=DEFAULT[k]);
+
+const esc=s=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
+function renderA(r){
+  document.getElementById("aOut").innerHTML=
+   `<strong>${r.hybrid?"Hybrid text retrieval (BM25 and dense)":"BM25 text retrieval"}</strong> returned its top ${r.text.length} fragment${r.text.length===1?"":"s"}:`+r.text.map(x=>`<span class="path">${esc(x)}</span>`).join("")+
+   `<p class="note" style="margin-top:8px">These are the fragments that look most like the question. None states a relationship that spans two facts, such as who leads a project another company owns; that lives in the edges, not in any one text.</p>`+
+   `<strong>Graph retrieval</strong> from ${esc(r.seeds.join(", ")||"no named entities")} found ${r.paths.length} paths:`+r.paths.map(x=>`<span class="path">${esc(x)}</span>`).join("");
+}
+function renderB(r){
+  let h=`<p><strong>${r.used}</strong> of ${r.budget} tokens used.</p><div class="scroll"><table><tr><th>Rank</th><th>Node</th><th>Score</th><th>Tokens</th><th>In context</th></tr>`;
+  r.ranked.forEach((x,i)=>h+=`<tr><td>${i+1}</td><td>${esc(x.node.label)}</td><td>${x.score.toFixed(3)}</td><td>${x.tokens}</td><td>${x.included?"Yes":"No"}</td></tr>`);
+  document.getElementById("bOut").innerHTML=h+"</table></div>";
+}
+function renderC(r){
+  let h=`<div class="scroll"><table><tr><th>Action</th><th>Cost of error</th><th>Decided automatically</th><th>Error rate when automatic</th><th>Cost</th></tr>`;
+  for(const s of r.stats)h+=`<tr><td>${s.name}</td><td>${s.errorCost}</td><td>${(s.auto/s.n*100).toFixed(0)}%</td><td>${s.auto?(s.wrong/s.auto*100).toFixed(1):"0.0"}%</td><td>${s.cost.toLocaleString("en-GB")}</td></tr>`;
+  h+=`</table></div><p style="margin-top:8px">Total cost with thresholds: <strong>${r.total.toLocaleString("en-GB")}</strong>. Escalate everything: ${r.escalateAll.toLocaleString("en-GB")}. Decide everything automatically: ${r.autoAll.toLocaleString("en-GB")}.</p>`;
+  document.getElementById("cOut").innerHTML=h;
+}
+function params(k){
+  if(k==="A")return [G,document.getElementById("aQ").value,Math.min(4,Math.max(1,+document.getElementById("aK").value||2))];
+  if(k==="B")return [G,document.getElementById("bSeed").value,+document.getElementById("bBudget").value];
+  return [[+cT0.value,+cT1.value,+cT2.value],+cOver.value];
+}
+const RENDER={A:renderA,B:renderB,C:renderC};
+function run(k,fn){const out=document.getElementById(k.toLowerCase()+"Out");
+  try{RENDER[k](fn(...params(k)))}catch(e){out.innerHTML=`<span class="err">Your code threw an error: ${esc(e.message)}. Fix it and run again, or reset the code.</span>`}}
+document.querySelectorAll("[data-run]").forEach(b=>b.onclick=()=>run(b.dataset.run,FN[b.dataset.run]));
+document.querySelectorAll("[data-reset]").forEach(b=>b.onclick=()=>{const k=b.dataset.reset;document.getElementById(k.toLowerCase()+"Code").value=DEFAULT[k];run(k,FN[k])});
+document.querySelectorAll("[data-runedit]").forEach(b=>b.onclick=()=>{const k=b.dataset.runedit,out=document.getElementById(k.toLowerCase()+"Out");
+  let fn;try{fn=new Function("return ("+document.getElementById(k.toLowerCase()+"Code").value+")")()}
+  catch(e){out.innerHTML=e instanceof EvalError?`<span class="err">This page's security settings block running edited code. Copy the code into your browser console or a Node.js file to experiment.</span>`:`<span class="err">Your code has a syntax error: ${esc(e.message)}</span>`;return}
+  run(k,fn)});
+
+const bSeed=document.getElementById("bSeed");G.nodes.forEach(n=>bSeed.add(new Option(n.label,n.id,n.id==="wind",n.id==="wind")));
+const bBudget=document.getElementById("bBudget");bBudget.oninput=()=>{document.getElementById("bBudgetV").textContent=bBudget.value;run("B",FN.B)};
+bSeed.onchange=()=>run("B",FN.B);
+const cOver=document.getElementById("cOver"),cT0=document.getElementById("cT0"),cT1=document.getElementById("cT1"),cT2=document.getElementById("cT2");
+cOver.oninput=()=>{document.getElementById("cOverV").textContent=(+cOver.value).toFixed(2);run("C",FN.C)};
+[cT0,cT1,cT2].forEach(i=>i.onchange=()=>run("C",FN.C));
+run("A",FN.A);run("B",FN.B);run("C",FN.C);
+
+/* ---------- Snippets ---------- */
+const SNIPS=[
+ {t:"Cypher",who:"Neo4j, FalkorDB, Memgraph, Kuzu, Neptune (openCypher), PuppyGraph",c:`MATCH (p:Person {name: 'John Doe'})-[:LEADS]->(proj:Project)<-[:OWNS]-(c:Company)
+RETURN p.name, proj.name, c.name;`},
+ {t:"Gremlin",who:"Neptune, Cosmos DB, PuppyGraph",c:`g.V().has('Person', 'name', 'John Doe')
+  .out('LEADS').as('project')
+  .in('OWNS').as('owner')
+  .select('project', 'owner').by('name')`},
+ {t:"GQL",who:"Spanner Graph needs the GRAPH line. Fabric graph runs against the graph you have open.",c:`GRAPH ProjectGraph
+MATCH (p:Person {name: 'John Doe'})-[:LEADS]->(proj:Project)<-[:OWNS]-(c:Company)
+RETURN p.name AS person, proj.name AS project, c.name AS owner`},
+ {t:"MongoDB",who:"MongoDB Atlas. Keep maxDepth low; $graphLookup has a 100 MB memory limit per stage.",c:`db.entities.aggregate([
+  { $match: { name: "John Doe" } },
+  { $graphLookup: {
+      from: "entities",
+      startWith: "$links",
+      connectFromField: "links",
+      connectToField: "_id",
+      maxDepth: 1,
+      depthField: "hops",
+      as: "network"
+  } }
+])`},
+ {t:"Kuzu (Python)",who:"Embedded. Runs in memory with no server. Works the same on the community forks.",c:`import kuzu
+
+db = kuzu.Database(":memory:")
+conn = kuzu.Connection(db)
+
+conn.execute("CREATE NODE TABLE Person(name STRING PRIMARY KEY)")
+conn.execute("CREATE NODE TABLE Project(name STRING PRIMARY KEY)")
+conn.execute("CREATE REL TABLE LEADS(FROM Person TO Project)")
+conn.execute("CREATE (:Person {name: 'John Doe'})")
+conn.execute("CREATE (:Project {name: 'Solar Farm Alpha'})")
+conn.execute("""
+  MATCH (p:Person {name: 'John Doe'}), (x:Project {name: 'Solar Farm Alpha'})
+  CREATE (p)-[:LEADS]->(x)
+""")
+
+r = conn.execute("MATCH (p:Person)-[:LEADS]->(x:Project) RETURN p.name, x.name")
+while r.has_next():
+    print(r.get_next())`}
+];
+const tabs=document.getElementById("snipTabs");let cur=0;
+function showSnip(i){cur=i;document.getElementById("snipCode").textContent=SNIPS[i].c;document.getElementById("snipNote").textContent=SNIPS[i].who;
+  [...tabs.children].forEach((b,j)=>{b.setAttribute("aria-pressed",j===i);b.setAttribute("aria-selected",j===i)})}
+SNIPS.forEach((s,i)=>{const b=document.createElement("button");b.textContent=s.t;b.setAttribute("role","tab");b.onclick=()=>showSnip(i);tabs.appendChild(b)});
+showSnip(0);
+async function copyText(text,btn){try{await navigator.clipboard.writeText(text);btn.textContent="Copied"}catch(e){btn.textContent="Select and copy"}setTimeout(()=>btn.textContent="Copy",1600)}
+document.getElementById("snipCopy").onclick=e=>copyText(SNIPS[cur].c,e.target);
+
+/* ---------- Local runs ---------- */
+const RUNS=[
+ {n:"Neo4j",cat:"native",c:"docker run -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/change-me neo4j:5",note:"Browser UI on localhost:7474."},
+ {n:"FalkorDB",cat:"native",c:"docker run -p 6379:6379 -p 3000:3000 -it --rm falkordb/falkordb:latest",note:"Browser UI on localhost:3000."},
+ {n:"Memgraph",cat:"native",c:"docker run -p 7687:7687 -p 7444:7444 --name memgraph memgraph/memgraph-mage",note:"Includes the MAGE algorithms. The Memgraph Lab UI is a separate image: docker run -d -p 3000:3000 --name lab memgraph/lab. On Mac and Windows add -e QUICK_CONNECT_MG_HOST=host.docker.internal."},
+ {n:"MongoDB",cat:"doc",c:"docker run -p 27017:27017 mongo:8",note:"Local server; Atlas Vector Search needs Atlas or the Atlas CLI local deployment."},
+ {n:"Kuzu",cat:"embed",c:"pip install kuzu==0.11.3",note:"Final upstream release. Use a community fork for anything you will keep."},
+ {n:"PuppyGraph",cat:"over",c:"docker run -p 8081:8081 -p 8182:8182 -p 7687:7687 -d --name puppy --rm puppygraph/puppygraph:stable",note:"Free Developer edition, single node. Check docs.puppygraph.com for the current image tag."}
+];
+document.getElementById("runList").innerHTML=RUNS.map((r,i)=>`<div><span class="pill" style="--c:${CV(r.cat)}">${r.n}</span><div class="snip" style="margin-top:6px"><pre><code>${esc(r.c)}</code></pre><button class="copy" data-copyrun="${i}">Copy</button></div><p class="note" style="margin-top:4px">${r.note}</p></div>`).join("");
+document.querySelectorAll("[data-copyrun]").forEach(b=>b.onclick=()=>copyText(RUNS[+b.dataset.copyrun].c,b));
+</script>
+</body>
+</html>
