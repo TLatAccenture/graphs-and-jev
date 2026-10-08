@@ -229,7 +229,7 @@ if failed:
 
   gjd_deploy_traffic_args=(--no-allow-unauthenticated)
   if [[ "$gjd_service_exists" == true ]]; then
-    gjd_deploy_traffic_args=(--no-traffic --allow-unauthenticated)
+    gjd_deploy_traffic_args=(--no-traffic --no-allow-unauthenticated)
   fi
 
   gcloud beta run deploy "$gjd_SERVICE" \
@@ -300,7 +300,8 @@ actual = {
     "liveness_probe": container["livenessProbe"],
     "traffic": traffic,
     "public_invocation": public,
-    "bootstrap_private": expected_bootstrap,
+    "service_private": not public,
+    "candidate_zero_traffic": not expected_bootstrap,
 }
 
 def assert_effective_deployment(condition, message):
@@ -317,13 +318,12 @@ assert_effective_deployment(actual_cpu in {expected_cpu, f"{int(expected_cpu) * 
 assert_effective_deployment(actual["timeout_seconds"] == int(expected_timeout), "timeout")
 assert_effective_deployment(actual["startup_probe"].get("httpGet", {}).get("path") == expected_startup, "startup probe")
 assert_effective_deployment(actual["liveness_probe"].get("httpGet", {}).get("path") == expected_liveness, "liveness probe")
+assert_effective_deployment(not actual["public_invocation"], "service has public invocation IAM")
 if expected_bootstrap:
     candidate_traffic = [item for item in traffic if item.get("revisionName") == expected_revision]
     assert_effective_deployment(len(candidate_traffic) == 1 and candidate_traffic[0].get("percent") == 100, "bootstrap candidate traffic")
-    assert_effective_deployment(not actual["public_invocation"], "bootstrap service is public")
 else:
     assert_effective_deployment(not any(item.get("revisionName") == expected_revision and item.get("percent", 0) for item in traffic), "new revision has traffic")
-    assert_effective_deployment(actual["public_invocation"], "public invocation IAM")
 with open(sys.argv[16], "w", encoding="utf-8") as output:
     json.dump(actual, output, indent=2, sort_keys=True)
     output.write("\n")
