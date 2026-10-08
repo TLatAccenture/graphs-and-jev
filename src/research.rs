@@ -23,6 +23,19 @@ pub trait Retrieve {
 #[derive(Debug)]
 pub struct ResearchError(pub String);
 
+impl ResearchError {
+    pub fn class(&self) -> &'static str {
+        let message = self.0.to_ascii_lowercase();
+        if message.contains("timed out") || message.contains("timeout") {
+            "timeout"
+        } else if message.contains("json") || message.contains("decode") {
+            "invalid"
+        } else {
+            "fetch"
+        }
+    }
+}
+
 struct Hit {
     from: String,
     from_label: &'static str,
