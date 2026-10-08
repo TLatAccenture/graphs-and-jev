@@ -201,8 +201,11 @@ printf '%s' '{"metadata":{"name":"graphs-and-jev"}}' >"$classifier_dir/out"
 : >"$classifier_dir/out"
 printf '%s\n' 'ERROR: (gcloud.run.services.describe) Cannot find service [graphs-and-jev]' >"$classifier_dir/err"
 [[ "$(classify_service_describe 1 graphs-and-jev "$classifier_dir/out" "$classifier_dir/err")" == absent ]] || fail 'installed CLI not-found response not classified absent'
-printf '%s\n' NOT_FOUND >"$classifier_dir/err"
-[[ "$(classify_service_describe 5 graphs-and-jev "$classifier_dir/out" "$classifier_dir/err")" == absent ]] || fail 'canonical code 5 not classified absent'
+for code5_message in 'ERROR: (gcloud.run.services.describe) Cannot find service [graphs-and-jev]' NOT_FOUND PERMISSION_DENIED; do
+  printf '%s
+' "$code5_message" >"$classifier_dir/err"
+  if classify_service_describe 5 graphs-and-jev "$classifier_dir/out" "$classifier_dir/err" >/dev/null 2>&1; then fail "exit 5 was misclassified absent: $code5_message"; fi
+done
 for failure in PERMISSION_DENIED UNAVAILABLE RESOURCE_EXHAUSTED; do
   printf '%s\n' "$failure" >"$classifier_dir/err"
   if classify_service_describe 1 graphs-and-jev "$classifier_dir/out" "$classifier_dir/err" >/dev/null 2>&1; then fail "$failure was misclassified absent"; fi
