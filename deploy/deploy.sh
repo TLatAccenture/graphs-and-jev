@@ -141,7 +141,7 @@ if failed:
   require_permission "$gjd_BUILD_SERVICE_ACCOUNT" "$gjd_PROJECT_RESOURCE" serviceusage.services.use
   require_permission "$gjd_BUILD_SERVICE_ACCOUNT" "$gjd_REPOSITORY_RESOURCE" artifactregistry.repositories.uploadArtifacts
   require_bucket_permission "$gjd_BUILD_SERVICE_ACCOUNT" "$gjd_SOURCE_BUCKET" storage.objects.get
-  for gjd_permission in storage.buckets.get storage.buckets.list storage.objects.create storage.objects.get storage.objects.update storage.objects.delete; do
+  for gjd_permission in storage.buckets.get storage.objects.create storage.objects.get storage.objects.update storage.objects.delete; do
     require_bucket_permission "$gjd_BUILD_SERVICE_ACCOUNT" "$gjd_LOG_BUCKET" "$gjd_permission"
   done
 

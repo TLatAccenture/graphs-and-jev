@@ -96,6 +96,10 @@ mock_status=$?
 set -e
 [[ "$mock_status" == 73 ]] || fail "mock deployment exited $mock_status: $mock_output"
 [[ "$mock_output" != *'command not found'* ]] || fail "bare variable command executed: $mock_output"
+[[ "$mock_output" != *'storage.buckets.list'* ]] || fail "bucket-list permission was checked: $mock_output"
+for field in location location_type uniform_bucket_level_access public_access_prevention; do
+  contains "\"${field}\"" "$script"
+done
 mock_build_args="$(cat "$mock_log")"
 [[ "$mock_build_args" == *'--tag=australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app:0123456789abcdef0123456789abcdef01234567'* ]] || fail "build tag missing full SHA: $mock_build_args"
 [[ "$mock_build_args" == *'--gcs-log-dir=gs://956922431929-australia-southeast1-cloudbuild-logs/logs'* ]] || fail "explicit logs bucket missing: $mock_build_args"
@@ -119,7 +123,8 @@ contains 'IMAGE=app' "$env_example"
 contains 'SOURCE_BUCKET=ninth-airship-386815-graphs-and-jev-build-source' "$env_example"
 contains 'LOG_BUCKET=956922431929-australia-southeast1-cloudbuild-logs' "$env_example"
 contains 'storage.buckets.get' "$script"
-contains 'storage.buckets.list' "$script"
+if rg -F --quiet 'storage.buckets.list' "$script"; then fail 'inapplicable bucket-list permission remains'; fi
+contains 'storage.buckets.get' "$script"
 for permission in storage.objects.create storage.objects.get storage.objects.update storage.objects.delete; do
   contains "$permission" "$script"
 done
