@@ -11,6 +11,7 @@ main() (
   local gjd_repository_name gjd_repository_format gjd_expected_repository_name gjd_bucket_json
   local gjd_branch gjd_git_sha gjd_revision_suffix gjd_image_tag gjd_build_sa_resource gjd_digest
   local gjd_image_digest gjd_service_json gjd_revision_json gjd_iam_json gjd_tmp_output gjd_revision
+  local gjd_upload_files gjd_upload_count gjd_upload_bytes gjd_upload_file gjd_upload_unexpected
   local -a gjd_required_apis
 
   gjd_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -144,6 +145,21 @@ if failed:
   git fetch --quiet origin "$gjd_branch"
   git merge-base --is-ancestor HEAD "origin/$gjd_branch" || fail "HEAD is not pushed to origin/$gjd_branch"
   [[ "$(git rev-parse HEAD)" == "$(git rev-parse "origin/$gjd_branch")" ]] || fail "HEAD must exactly match origin/$gjd_branch"
+
+  gjd_upload_files="$(gcloud meta list-files-for-upload . | LC_ALL=C sort)"
+  for gjd_upload_file in Dockerfile Cargo.toml Cargo.lock catalogue.json; do
+    grep -Fxq "$gjd_upload_file" <<<"$gjd_upload_files" || fail "Cloud Build upload is missing $gjd_upload_file"
+  done
+  if grep -Eq '(^|/)(target|\.git|docs|deploy|tests|scripts|\.env|credentials?)(/|$)' <<<"$gjd_upload_files"; then
+    fail 'Cloud Build upload includes a forbidden path'
+  fi
+  gjd_upload_unexpected="$(grep -Ev '^(Dockerfile|Cargo\.toml|Cargo\.lock|catalogue\.json|src/.+|static/.+)$' <<<"$gjd_upload_files" || true)"
+  [[ -z "$gjd_upload_unexpected" ]] || fail "Cloud Build upload includes unexpected files: $gjd_upload_unexpected"
+  gjd_upload_count="$(wc -l <<<"$gjd_upload_files" | tr -d ' ')"
+  gjd_upload_bytes="$(while IFS= read -r gjd_upload_file; do stat -f '%z' "$gjd_upload_file"; done <<<"$gjd_upload_files" | awk '{sum += $1} END {print sum + 0}')"
+  (( gjd_upload_count > 4 && gjd_upload_count < 500 )) || fail "Cloud Build upload file count is unsafe: $gjd_upload_count"
+  (( gjd_upload_bytes < 5242880 )) || fail "Cloud Build upload is too large: $gjd_upload_bytes bytes"
+  printf 'Cloud Build source context: %s files, %s bytes\n' "$gjd_upload_count" "$gjd_upload_bytes"
 
   gjd_git_sha="$(git rev-parse HEAD)"
   gjd_revision_suffix="${gjd_git_sha:0:12}"

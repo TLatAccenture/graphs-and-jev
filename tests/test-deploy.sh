@@ -12,6 +12,21 @@ contains() { rg -F --quiet -- "$1" "$2" || fail "$2 missing: $1"; }
 [[ -f "$env_example" ]] || fail "$env_example must exist"
 bash -n "$script"
 
+[[ -f "$root/.gcloudignore" ]] || fail '.gcloudignore must exist'
+upload_files="$(cd "$root" && gcloud meta list-files-for-upload . | LC_ALL=C sort)"
+for required in Dockerfile Cargo.toml Cargo.lock catalogue.json; do
+  grep -Fxq "$required" <<<"$upload_files" || fail "upload context missing $required"
+done
+if rg -n '(^|/)(target|\.git|docs|deploy|tests|scripts|\.env|credentials?)(/|$)' <<<"$upload_files"; then
+  fail 'upload context contains forbidden files'
+fi
+unexpected="$(grep -Ev '^(Dockerfile|Cargo\.toml|Cargo\.lock|catalogue\.json|src/.+|static/.+)$' <<<"$upload_files" || true)"
+[[ -z "$unexpected" ]] || fail "unexpected upload files: $unexpected"
+upload_count="$(wc -l <<<"$upload_files" | tr -d ' ')"
+upload_bytes="$(while IFS= read -r file; do stat -f '%z' "$root/$file"; done <<<"$upload_files" | awk '{sum += $1} END {print sum + 0}')"
+(( upload_count > 4 && upload_count < 500 )) || fail "unsafe upload file count: $upload_count"
+(( upload_bytes < 5242880 )) || fail "unsafe upload bytes: $upload_bytes"
+
 reentry_output="$(bash -c '
   readonly ROOT=/macos/system/root
   readonly git_sha=hook-owned
@@ -49,6 +64,15 @@ case "$*" in
   *"iam service-accounts describe graphs-and-jev-runner"*) printf '%s\n' graphs-and-jev-runner@ninth-airship-386815.iam.gserviceaccount.com ;;
   "storage buckets describe"*) printf '%s\n' '{"location":"AUSTRALIA-SOUTHEAST1","location_type":"region","uniform_bucket_level_access":true,"public_access_prevention":"enforced"}' ;;
   "policy-intelligence troubleshoot-policy iam"*) printf '%s\n' ALLOW_ACCESS_STATE_GRANTED ;;
+  "meta list-files-for-upload .") cat <<'FILES'
+Dockerfile
+Cargo.toml
+Cargo.lock
+catalogue.json
+src/main.rs
+static/index.html
+FILES
+    ;;
   "builds submit"*) printf '%s\n' "$*" >"$MOCK_BUILD_LOG"; exit 73 ;;
   *) printf 'unexpected gcloud: %s\n' "$*" >&2; exit 72 ;;
 esac
@@ -130,6 +154,8 @@ contains 'anthony.lui@archegon.com' "$script"
 contains 'git diff-index --quiet HEAD --' "$script"
 contains 'git status --porcelain' "$script"
 contains 'git merge-base --is-ancestor HEAD' "$script"
+contains 'gcloud meta list-files-for-upload' "$script"
+contains '5242880' "$script"
 contains 'gcloud builds submit' "$script"
 # shellcheck disable=SC2016
 contains '--service-account="$gjd_build_sa_resource"' "$script"
