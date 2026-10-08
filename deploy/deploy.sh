@@ -18,120 +18,203 @@ readonly PROJECT_ID="${PROJECT_ID:-ninth-airship-386815}"
 readonly REGION="${REGION:-australia-southeast1}"
 readonly SERVICE="${SERVICE:-graphs-and-jev}"
 readonly ARTIFACT_REPOSITORY="${ARTIFACT_REPOSITORY:-graphs-and-jev}"
-readonly IMAGE="${IMAGE:-graphs-and-jev}"
+readonly IMAGE="${IMAGE:-app}"
 readonly BUILD_SERVICE_ACCOUNT="${BUILD_SERVICE_ACCOUNT:-graphs-and-jev-builder@${PROJECT_ID}.iam.gserviceaccount.com}"
 readonly RUNTIME_SERVICE_ACCOUNT="${RUNTIME_SERVICE_ACCOUNT:-graphs-and-jev-runner@${PROJECT_ID}.iam.gserviceaccount.com}"
 readonly EXPECTED_ACCOUNT="${EXPECTED_ACCOUNT:-anthony.lui@archegon.com}"
-readonly DEPLOY_OUTPUT="${DEPLOY_OUTPUT:-${TMPDIR:-/tmp}/graphs-and-jev-deployment-result.env}"
+readonly DEPLOY_OUTPUT="${DEPLOY_OUTPUT:-${TMPDIR:-/tmp}/graphs-and-jev-deployment-result.json}"
+readonly PROJECT_RESOURCE="//cloudresourcemanager.googleapis.com/projects/${PROJECT_ID}"
+readonly REPOSITORY_RESOURCE="//artifactregistry.googleapis.com/projects/${PROJECT_ID}/locations/${REGION}/repositories/${ARTIFACT_REPOSITORY}"
+readonly RUNTIME_SA_RESOURCE="//iam.googleapis.com/projects/${PROJECT_ID}/serviceAccounts/${RUNTIME_SERVICE_ACCOUNT}"
+readonly MIN_INSTANCES="${MIN_INSTANCES:-0}"
+readonly MAX_INSTANCES="${MAX_INSTANCES:-2}"
+readonly CONCURRENCY="${CONCURRENCY:-20}"
+readonly CPU="${CPU:-1}"
+readonly MEMORY="${MEMORY:-512Mi}"
+readonly TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-30}"
+readonly STARTUP_PATH="${STARTUP_PATH:-/api/ready}"
+readonly LIVENESS_PATH="${LIVENESS_PATH:-/api/health}"
 
-command -v gcloud >/dev/null || { printf 'gcloud is required\n' >&2; exit 1; }
-command -v git >/dev/null || { printf 'git is required\n' >&2; exit 1; }
+for command_name in gcloud git python3; do
+  command -v "$command_name" >/dev/null || { printf '%s is required\n' "$command_name" >&2; exit 1; }
+done
+
+fail() { printf 'preflight failed: %s\n' "$*" >&2; exit 1; }
+require_permission() {
+  local principal="$1" resource="$2" permission="$3" state
+  state="$(gcloud policy-intelligence troubleshoot-policy iam "$resource" \
+    --project="$PROJECT_ID" \
+    --principal-email="$principal" \
+    --permission="$permission" \
+    --format='value(overallAccessState)')"
+  [[ "$state" == "GRANTED" ]] || fail "$principal lacks $permission on $resource (state: ${state:-unknown})"
+}
 
 active_account="$(gcloud auth list --filter=status:ACTIVE --format='value(account)')"
-[[ "$active_account" == "$EXPECTED_ACCOUNT" ]] || {
-  printf 'active gcloud account must be %s (found %s)\n' "$EXPECTED_ACCOUNT" "${active_account:-none}" >&2
-  exit 1
-}
+[[ "$active_account" == "$EXPECTED_ACCOUNT" ]] || fail "active account must be $EXPECTED_ACCOUNT (found ${active_account:-none})"
 active_project="$(gcloud config get-value project 2>/dev/null)"
-[[ "$active_project" == "$PROJECT_ID" ]] || {
-  printf 'active gcloud project must be %s (found %s)\n' "$PROJECT_ID" "${active_project:-none}" >&2
-  exit 1
-}
+[[ "$active_project" == "$PROJECT_ID" ]] || fail "active project must be $PROJECT_ID (found ${active_project:-none})"
 
-[[ -z "$(git status --porcelain --untracked-files=normal)" ]] || {
-  printf 'worktree must be clean before deployment\n' >&2
-  exit 1
-}
-git diff-index --quiet HEAD -- || { printf 'tracked files differ from HEAD\n' >&2; exit 1; }
-branch="$(git symbolic-ref --quiet --short HEAD)" || {
-  printf 'deployment requires a named branch\n' >&2
-  exit 1
-}
+billing_enabled="$(gcloud beta billing projects describe "$PROJECT_ID" --format='value(billingEnabled)')"
+[[ "$billing_enabled" == "True" ]] || fail "billing is not enabled for $PROJECT_ID"
+
+readonly required_apis=(
+  artifactregistry.googleapis.com
+  cloudbilling.googleapis.com
+  cloudbuild.googleapis.com
+  iam.googleapis.com
+  logging.googleapis.com
+  policytroubleshooter.googleapis.com
+  run.googleapis.com
+  serviceusage.googleapis.com
+)
+enabled_apis="$(gcloud services list --enabled --project="$PROJECT_ID" --format='value(config.name)')"
+for api in "${required_apis[@]}"; do
+  grep -Fxq "$api" <<<"$enabled_apis" || fail "required API is not enabled: $api"
+done
+
+repository_state="$(gcloud artifacts repositories describe "$ARTIFACT_REPOSITORY" \
+  --project="$PROJECT_ID" --location="$REGION" --format='value(format,location)')"
+[[ "$repository_state" == "DOCKER ${REGION}" ]] || fail "Artifact Registry repository must be DOCKER in $REGION (found ${repository_state:-none})"
+gcloud iam service-accounts describe "$BUILD_SERVICE_ACCOUNT" --project="$PROJECT_ID" --format='value(email)' | grep -Fxq "$BUILD_SERVICE_ACCOUNT" || fail "builder service account does not exist"
+gcloud iam service-accounts describe "$RUNTIME_SERVICE_ACCOUNT" --project="$PROJECT_ID" --format='value(email)' | grep -Fxq "$RUNTIME_SERVICE_ACCOUNT" || fail "runtime service account does not exist"
+
+# The builder only writes build logs, consumes enabled services, and pushes to this repository.
+require_permission "$BUILD_SERVICE_ACCOUNT" "$PROJECT_RESOURCE" logging.logEntries.create
+require_permission "$BUILD_SERVICE_ACCOUNT" "$PROJECT_RESOURCE" serviceusage.services.use
+require_permission "$BUILD_SERVICE_ACCOUNT" "$REPOSITORY_RESOURCE" artifactregistry.repositories.uploadArtifacts
+
+# The authenticated human submits and deploys, reads the resulting image/state, publishes IAM, and attaches the runtime identity.
+require_permission "$active_account" "$PROJECT_RESOURCE" cloudbuild.builds.create
+require_permission "$active_account" "$REPOSITORY_RESOURCE" artifactregistry.dockerimages.get
+require_permission "$active_account" "$PROJECT_RESOURCE" run.services.create
+require_permission "$active_account" "$PROJECT_RESOURCE" run.services.update
+require_permission "$active_account" "$PROJECT_RESOURCE" run.services.setIamPolicy
+require_permission "$active_account" "//iam.googleapis.com/projects/${PROJECT_ID}/serviceAccounts/${BUILD_SERVICE_ACCOUNT}" iam.serviceAccounts.actAs
+require_permission "$active_account" "$RUNTIME_SA_RESOURCE" iam.serviceAccounts.actAs
+
+[[ -z "$(git status --porcelain --untracked-files=normal)" ]] || fail 'worktree must be clean'
+git diff-index --quiet HEAD -- || fail 'tracked files differ from HEAD'
+branch="$(git symbolic-ref --quiet --short HEAD)" || fail 'deployment requires a named branch'
 git fetch --quiet origin "$branch"
-git merge-base --is-ancestor HEAD "origin/$branch" || {
-  printf 'HEAD is not pushed to origin/%s\n' "$branch" >&2
-  exit 1
-}
-[[ "$(git rev-parse HEAD)" == "$(git rev-parse "origin/$branch")" ]] || {
-  printf 'HEAD must exactly match origin/%s\n' "$branch" >&2
-  exit 1
-}
+git merge-base --is-ancestor HEAD "origin/$branch" || fail "HEAD is not pushed to origin/$branch"
+[[ "$(git rev-parse HEAD)" == "$(git rev-parse "origin/$branch")" ]] || fail "HEAD must exactly match origin/$branch"
 
 readonly git_sha
-git_sha="$(git rev-parse HEAD)"
-readonly revision_suffix="${git_sha:0:12}"
-readonly image_tag="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/${IMAGE}:${git_sha}"
+readonly revision_suffix
+readonly image_tag
 readonly build_sa_resource="projects/${PROJECT_ID}/serviceAccounts/${BUILD_SERVICE_ACCOUNT}"
+git_sha="$(git rev-parse HEAD)"
+revision_suffix="${git_sha:0:12}"
+image_tag="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/${IMAGE}:${git_sha}"
 
 gcloud builds submit . \
   --project="$PROJECT_ID" \
   --region="$REGION" \
   --service-account="$build_sa_resource" \
+  --default-buckets-behavior=regional-user-owned-bucket \
   --tag="$image_tag"
 
 digest="$(gcloud artifacts docker images describe "$image_tag" \
-  --project="$PROJECT_ID" \
-  --format='value(image_summary.digest)')"
-[[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || {
-  printf 'Artifact Registry returned an invalid digest: %s\n' "$digest" >&2
-  exit 1
-}
+  --project="$PROJECT_ID" --format='value(image_summary.digest)')"
+[[ "$digest" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "Artifact Registry returned an invalid digest: $digest"
 readonly image_digest="${REGION}-docker.pkg.dev/${PROJECT_ID}/${ARTIFACT_REPOSITORY}/${IMAGE}@${digest}"
 
-revision="$(gcloud beta run deploy "$SERVICE" \
+gcloud beta run deploy "$SERVICE" \
   --project="$PROJECT_ID" \
   --region="$REGION" \
   --image="$image_digest" \
   --revision-suffix="$revision_suffix" \
   --no-traffic \
   --allow-unauthenticated \
-  --min-instances=0 \
-  --max-instances=2 \
-  --concurrency=20 \
-  --cpu=1 \
-  --memory=512Mi \
-  --timeout=30s \
+  --min-instances="$MIN_INSTANCES" \
+  --max-instances="$MAX_INSTANCES" \
+  --concurrency="$CONCURRENCY" \
+  --cpu="$CPU" \
+  --memory="$MEMORY" \
+  --timeout="${TIMEOUT_SECONDS}s" \
   --port=8080 \
-  --startup-probe='initialDelaySeconds=0,timeoutSeconds=2,periodSeconds=2,failureThreshold=15,httpGet.port=8080,httpGet.path=/api/ready' \
-  --liveness-probe='initialDelaySeconds=10,timeoutSeconds=2,periodSeconds=10,failureThreshold=3,httpGet.port=8080,httpGet.path=/api/health' \
+  --startup-probe="initialDelaySeconds=0,timeoutSeconds=2,periodSeconds=2,failureThreshold=15,httpGet.port=8080,httpGet.path=${STARTUP_PATH}" \
+  --liveness-probe="initialDelaySeconds=10,timeoutSeconds=2,periodSeconds=10,failureThreshold=3,httpGet.port=8080,httpGet.path=${LIVENESS_PATH}" \
   --service-account="$RUNTIME_SERVICE_ACCOUNT" \
-  --format='value(metadata.name)')"
-[[ -n "$revision" ]] || { printf 'Cloud Run returned no revision name\n' >&2; exit 1; }
-
-service_url="$(gcloud run services describe "$SERVICE" \
-  --project="$PROJECT_ID" \
-  --region="$REGION" \
-  --format='value(status.url)')"
-[[ "$service_url" == https://* ]] || { printf 'Cloud Run returned an invalid service URL\n' >&2; exit 1; }
+  --quiet
 
 mkdir -p "$(dirname "$DEPLOY_OUTPUT")"
+service_json="$(mktemp)"
+revision_json="$(mktemp)"
+iam_json="$(mktemp)"
 tmp_output="$(mktemp "${DEPLOY_OUTPUT}.tmp.XXXXXX")"
-trap 'rm -f "$tmp_output"' EXIT
-chmod 600 "$tmp_output"
-{
-  printf 'PROJECT_ID=%q\n' "$PROJECT_ID"
-  printf 'REGION=%q\n' "$REGION"
-  printf 'SERVICE=%q\n' "$SERVICE"
-  printf 'SERVICE_URL=%q\n' "$service_url"
-  printf 'REVISION=%q\n' "$revision"
-  printf 'GIT_SHA=%q\n' "$git_sha"
-  printf 'IMAGE_DIGEST=%q\n' "$image_digest"
-  printf 'RUNTIME_SERVICE_ACCOUNT=%q\n' "$RUNTIME_SERVICE_ACCOUNT"
-  printf 'TRAFFIC=%q\n' '0'
-  printf 'PUBLIC_INVOCATION=%q\n' 'true'
-  printf 'MIN_INSTANCES=%q\n' '0'
-  printf 'MAX_INSTANCES=%q\n' '2'
-  printf 'CONCURRENCY=%q\n' '20'
-  printf 'CPU=%q\n' '1'
-  printf 'MEMORY=%q\n' '512Mi'
-  printf 'TIMEOUT=%q\n' '30s'
-  printf 'STARTUP_PROBE=%q\n' '/api/ready'
-  printf 'LIVENESS_PROBE=%q\n' '/api/health'
-} > "$tmp_output"
+trap 'rm -f "$service_json" "$revision_json" "$iam_json" "$tmp_output"' EXIT
+chmod 600 "$service_json" "$revision_json" "$iam_json" "$tmp_output"
+gcloud run services describe "$SERVICE" --project="$PROJECT_ID" --region="$REGION" --format=json >"$service_json"
+revision="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["status"]["latestCreatedRevisionName"])' "$service_json")"
+[[ "$revision" == "${SERVICE}-"*"-${revision_suffix}" ]] || fail "created revision $revision does not match commit suffix $revision_suffix"
+gcloud run revisions describe "$revision" --project="$PROJECT_ID" --region="$REGION" --format=json >"$revision_json"
+gcloud run services get-iam-policy "$SERVICE" --project="$PROJECT_ID" --region="$REGION" --format=json >"$iam_json"
+
+export EFFECTIVE_SETTINGS_JSON="$tmp_output"
+python3 - "$service_json" "$revision_json" "$iam_json" "$image_digest" "$RUNTIME_SERVICE_ACCOUNT" "$revision" "$MIN_INSTANCES" "$MAX_INSTANCES" "$CONCURRENCY" "$CPU" "$MEMORY" "$TIMEOUT_SECONDS" "$STARTUP_PATH" "$LIVENESS_PATH" <<'PY'
+import json
+import os
+import sys
+
+service = json.load(open(sys.argv[1], encoding="utf-8"))
+revision = json.load(open(sys.argv[2], encoding="utf-8"))
+iam = json.load(open(sys.argv[3], encoding="utf-8"))
+expected_image, expected_sa, expected_revision = sys.argv[4:7]
+expected_min, expected_max, expected_concurrency, expected_cpu, expected_memory, expected_timeout = sys.argv[7:13]
+expected_startup, expected_liveness = sys.argv[13:15]
+metadata = revision["metadata"]
+spec = revision["spec"]
+container = spec["containers"][0]
+annotations = metadata.get("annotations", {})
+limits = container.get("resources", {}).get("limits", {})
+traffic = service.get("status", {}).get("traffic", [])
+public = any(
+    binding.get("role") == "roles/run.invoker" and "allUsers" in binding.get("members", [])
+    for binding in iam.get("bindings", [])
+)
+actual = {
+    "service": service["metadata"]["name"],
+    "service_url": service["status"]["url"],
+    "revision": metadata["name"],
+    "image_digest": container["image"],
+    "runtime_service_account": spec["serviceAccountName"],
+    "min_instances": int(annotations.get("autoscaling.knative.dev/minScale", "0")),
+    "max_instances": int(annotations["autoscaling.knative.dev/maxScale"]),
+    "concurrency": spec["containerConcurrency"],
+    "cpu": limits["cpu"],
+    "memory": limits["memory"],
+    "timeout_seconds": int(spec["timeoutSeconds"]),
+    "startup_probe": container["startupProbe"],
+    "liveness_probe": container["livenessProbe"],
+    "traffic": traffic,
+    "public_invocation": public,
+}
+
+def assert_effective_deployment(condition, message):
+    if not condition:
+        raise SystemExit(f"effective deployment mismatch: {message}")
+
+assert_effective_deployment(actual["revision"] == expected_revision, "revision")
+assert_effective_deployment(actual["image_digest"] == expected_image, "image digest")
+assert_effective_deployment(actual["runtime_service_account"] == expected_sa, "runtime service account")
+assert_effective_deployment(actual["min_instances"] == int(expected_min) and actual["max_instances"] == int(expected_max), "instance bounds")
+assert_effective_deployment(actual["concurrency"] == int(expected_concurrency), "concurrency")
+actual_cpu = str(actual["cpu"])
+assert_effective_deployment(actual_cpu in {expected_cpu, f"{int(expected_cpu) * 1000}m"} and actual["memory"] == expected_memory, "CPU or memory")
+assert_effective_deployment(actual["timeout_seconds"] == int(expected_timeout), "timeout")
+assert_effective_deployment(actual["startup_probe"].get("httpGet", {}).get("path") == expected_startup, "startup probe")
+assert_effective_deployment(actual["liveness_probe"].get("httpGet", {}).get("path") == expected_liveness, "liveness probe")
+assert_effective_deployment(not any(item.get("revisionName") == expected_revision and item.get("percent", 0) for item in traffic), "new revision has traffic")
+assert_effective_deployment(actual["public_invocation"], "public invocation IAM")
+with open(os.environ["EFFECTIVE_SETTINGS_JSON"], "w", encoding="utf-8") as output:
+    json.dump(actual, output, indent=2, sort_keys=True)
+    output.write("\n")
+PY
+
 mv "$tmp_output" "$DEPLOY_OUTPUT"
 trap - EXIT
-
-printf 'Deployed revision %s at 0%% traffic\n' "$revision"
-printf 'Service URL: %s\n' "$service_url"
-printf 'Image: %s\n' "$image_digest"
-printf 'Captured non-secret deployment metadata in %s\n' "$DEPLOY_OUTPUT"
+rm -f "$service_json" "$revision_json" "$iam_json"
+printf 'Validated revision %s at 0%% traffic\n' "$revision"
+printf 'Captured verified effective settings in %s\n' "$DEPLOY_OUTPUT"
