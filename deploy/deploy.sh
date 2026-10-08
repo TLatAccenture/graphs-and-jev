@@ -1,5 +1,24 @@
 #!/usr/bin/env bash
 
+classify_service_describe() {
+  local status="$1" service="$2" stdout_file="$3" stderr_file="$4" name
+  if [[ "$status" == 0 ]]; then
+    name="$(python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); print(data.get("metadata", {}).get("name", ""))' "$stdout_file" 2>/dev/null)" || return 1
+    [[ "$name" == "$service" ]] || return 1
+    printf 'present\n'
+    return 0
+  fi
+  if [[ "$status" == 5 ]]; then
+    printf 'absent\n'
+    return 0
+  fi
+  if [[ "$status" == 1 ]] && [[ ! -s "$stdout_file" ]] && grep -Fxq "ERROR: (gcloud.run.services.describe) Cannot find service [$service]" "$stderr_file"; then
+    printf 'absent\n'
+    return 0
+  fi
+  return 1
+}
+
 main() (
   set -euo pipefail
   local gjd_REPO_ROOT gjd_PROJECT_ID gjd_REGION gjd_SERVICE gjd_ARTIFACT_REPOSITORY gjd_IMAGE
@@ -10,7 +29,8 @@ main() (
   local gjd_permission gjd_active_account gjd_active_project gjd_billing_enabled gjd_enabled_apis gjd_api
   local gjd_repository_name gjd_repository_format gjd_expected_repository_name
   local gjd_branch gjd_git_sha gjd_revision_suffix gjd_image_tag gjd_build_sa_resource gjd_digest
-  local gjd_image_digest gjd_service_exists gjd_service_json gjd_revision_json gjd_iam_json gjd_tmp_output gjd_revision
+  local gjd_image_digest gjd_service_exists gjd_service_json gjd_describe_stdout gjd_describe_stderr
+  local gjd_describe_status gjd_describe_result gjd_revision_json gjd_iam_json gjd_tmp_output gjd_revision
   local gjd_upload_files gjd_upload_count gjd_upload_bytes gjd_upload_file gjd_upload_unexpected
   local -a gjd_required_apis gjd_deploy_traffic_args
 
@@ -195,10 +215,21 @@ if failed:
   [[ "$gjd_digest" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "Artifact Registry returned an invalid digest: $gjd_digest"
   gjd_image_digest="${gjd_REGION}-docker.pkg.dev/${gjd_PROJECT_ID}/${gjd_ARTIFACT_REPOSITORY}/${gjd_IMAGE}@${gjd_digest}"
 
-  gjd_service_exists=false
-  if gcloud run services describe "$gjd_SERVICE" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format='value(metadata.name)' >/dev/null 2>&1; then
-    gjd_service_exists=true
+  gjd_describe_stdout="$(mktemp)"
+  gjd_describe_stderr="$(mktemp)"
+  trap 'rm -f "$gjd_describe_stdout" "$gjd_describe_stderr"' EXIT
+  set +e
+  gcloud run services describe "$gjd_SERVICE" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json >"$gjd_describe_stdout" 2>"$gjd_describe_stderr"
+  gjd_describe_status=$?
+  set -e
+  if ! gjd_describe_result="$(classify_service_describe "$gjd_describe_status" "$gjd_SERVICE" "$gjd_describe_stdout" "$gjd_describe_stderr")"; then
+    cat "$gjd_describe_stderr" >&2
+    fail "could not determine whether Cloud Run service $gjd_SERVICE exists"
   fi
+  gjd_service_exists=false
+  [[ "$gjd_describe_result" == present ]] && gjd_service_exists=true
+  rm -f "$gjd_describe_stdout" "$gjd_describe_stderr"
+  trap - EXIT
 
   gjd_deploy_traffic_args=(--no-allow-unauthenticated)
   if [[ "$gjd_service_exists" == true ]]; then

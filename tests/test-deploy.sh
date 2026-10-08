@@ -188,6 +188,30 @@ for service_exists in false true; do
   fi
 done
 contains 'gjd_service_exists=false' "$script"
+contains 'classify_service_describe()' "$script"
+contains 'gjd_describe_status' "$script"
+contains 'gjd_describe_stderr' "$script"
+if rg -F --quiet '>/dev/null 2>&1; then' "$script"; then fail 'service describe still collapses failures'; fi
+# shellcheck disable=SC1090
+source "$script"
+classifier_dir="$(mktemp -d)"
+printf '%s' '{"metadata":{"name":"graphs-and-jev"}}' >"$classifier_dir/out"
+: >"$classifier_dir/err"
+[[ "$(classify_service_describe 0 graphs-and-jev "$classifier_dir/out" "$classifier_dir/err")" == present ]] || fail 'existing service not classified present'
+: >"$classifier_dir/out"
+printf '%s\n' 'ERROR: (gcloud.run.services.describe) Cannot find service [graphs-and-jev]' >"$classifier_dir/err"
+[[ "$(classify_service_describe 1 graphs-and-jev "$classifier_dir/out" "$classifier_dir/err")" == absent ]] || fail 'installed CLI not-found response not classified absent'
+printf '%s\n' NOT_FOUND >"$classifier_dir/err"
+[[ "$(classify_service_describe 5 graphs-and-jev "$classifier_dir/out" "$classifier_dir/err")" == absent ]] || fail 'canonical code 5 not classified absent'
+for failure in PERMISSION_DENIED UNAVAILABLE RESOURCE_EXHAUSTED; do
+  printf '%s\n' "$failure" >"$classifier_dir/err"
+  if classify_service_describe 1 graphs-and-jev "$classifier_dir/out" "$classifier_dir/err" >/dev/null 2>&1; then fail "$failure was misclassified absent"; fi
+done
+: >"$classifier_dir/err"
+printf '%s' '{"metadata":{}}' >"$classifier_dir/out"
+if classify_service_describe 0 graphs-and-jev "$classifier_dir/out" "$classifier_dir/err" >/dev/null 2>&1; then fail 'malformed success was classified present'; fi
+rm -rf "$classifier_dir"
+
 contains '--no-allow-unauthenticated' "$script"
 contains 'bootstrap_private' "$script"
 contains 'expected_bootstrap' "$script"
