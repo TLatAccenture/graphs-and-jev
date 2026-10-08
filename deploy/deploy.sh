@@ -3,12 +3,12 @@
 main() (
   set -euo pipefail
   local gjd_REPO_ROOT gjd_PROJECT_ID gjd_REGION gjd_SERVICE gjd_ARTIFACT_REPOSITORY gjd_IMAGE
-  local gjd_SOURCE_BUCKET gjd_BUILD_SERVICE_ACCOUNT gjd_RUNTIME_SERVICE_ACCOUNT gjd_EXPECTED_ACCOUNT
+  local gjd_SOURCE_BUCKET gjd_LOG_BUCKET gjd_BUILD_SERVICE_ACCOUNT gjd_RUNTIME_SERVICE_ACCOUNT gjd_EXPECTED_ACCOUNT
   local gjd_DEPLOY_OUTPUT gjd_PROJECT_RESOURCE gjd_REPOSITORY_RESOURCE gjd_RUNTIME_SA_RESOURCE
-  local gjd_SOURCE_BUCKET_RESOURCE gjd_MIN_INSTANCES gjd_MAX_INSTANCES gjd_CONCURRENCY gjd_CPU
+  local gjd_MIN_INSTANCES gjd_MAX_INSTANCES gjd_CONCURRENCY gjd_CPU
   local gjd_MEMORY gjd_TIMEOUT_SECONDS gjd_STARTUP_PATH gjd_LIVENESS_PATH gjd_command_name
-  local gjd_active_account gjd_active_project gjd_billing_enabled gjd_enabled_apis gjd_api
-  local gjd_repository_name gjd_repository_format gjd_expected_repository_name gjd_bucket_json
+  local gjd_permission gjd_active_account gjd_active_project gjd_billing_enabled gjd_enabled_apis gjd_api
+  local gjd_repository_name gjd_repository_format gjd_expected_repository_name
   local gjd_branch gjd_git_sha gjd_revision_suffix gjd_image_tag gjd_build_sa_resource gjd_digest
   local gjd_image_digest gjd_service_json gjd_revision_json gjd_iam_json gjd_tmp_output gjd_revision
   local gjd_upload_files gjd_upload_count gjd_upload_bytes gjd_upload_file gjd_upload_unexpected
@@ -32,6 +32,7 @@ main() (
   gjd_ARTIFACT_REPOSITORY="${ARTIFACT_REPOSITORY:-graphs-and-jev}"
   gjd_IMAGE="${IMAGE:-app}"
   gjd_SOURCE_BUCKET="${SOURCE_BUCKET:-ninth-airship-386815-graphs-and-jev-build-source}"
+  gjd_LOG_BUCKET="${LOG_BUCKET:-956922431929-australia-southeast1-cloudbuild-logs}"
   gjd_BUILD_SERVICE_ACCOUNT="${BUILD_SERVICE_ACCOUNT:-graphs-and-jev-builder@${gjd_PROJECT_ID}.iam.gserviceaccount.com}"
   gjd_RUNTIME_SERVICE_ACCOUNT="${RUNTIME_SERVICE_ACCOUNT:-graphs-and-jev-runner@${gjd_PROJECT_ID}.iam.gserviceaccount.com}"
   gjd_EXPECTED_ACCOUNT="${EXPECTED_ACCOUNT:-anthony.lui@archegon.com}"
@@ -39,7 +40,6 @@ main() (
   gjd_PROJECT_RESOURCE="//cloudresourcemanager.googleapis.com/projects/${gjd_PROJECT_ID}"
   gjd_REPOSITORY_RESOURCE="//artifactregistry.googleapis.com/projects/${gjd_PROJECT_ID}/locations/${gjd_REGION}/repositories/${gjd_ARTIFACT_REPOSITORY}"
   gjd_RUNTIME_SA_RESOURCE="//iam.googleapis.com/projects/${gjd_PROJECT_ID}/serviceAccounts/${gjd_RUNTIME_SERVICE_ACCOUNT}"
-  gjd_SOURCE_BUCKET_RESOURCE="//storage.googleapis.com/projects/_/buckets/${gjd_SOURCE_BUCKET}"
   gjd_MIN_INSTANCES="${MIN_INSTANCES:-0}"
   gjd_MAX_INSTANCES="${MAX_INSTANCES:-2}"
   gjd_CONCURRENCY="${CONCURRENCY:-20}"
@@ -64,16 +64,24 @@ main() (
     [[ "$state" == "ALLOW_ACCESS_STATE_GRANTED" ]] || fail "$principal lacks $permission on $resource (state: ${state:-unknown})"
   }
   require_bucket_permission() {
-    local principal="$1" permission="$2" state
-    state="$(gcloud policy-intelligence troubleshoot-policy iam "$gjd_SOURCE_BUCKET_RESOURCE" \
+    local principal="$1" bucket="$2" permission="$3" state resource resource_name resource_type
+    resource="//storage.googleapis.com/projects/_/buckets/${bucket}"
+    if [[ "$permission" == storage.buckets.* ]]; then
+      resource_name="$resource"
+      resource_type=storage.googleapis.com/Bucket
+    else
+      resource_name="${resource}/objects/preflight"
+      resource_type=storage.googleapis.com/Object
+    fi
+    state="$(gcloud policy-intelligence troubleshoot-policy iam "$resource" \
       --project="$gjd_PROJECT_ID" \
       --principal-email="$principal" \
       --permission="$permission" \
-      --resource-name="${gjd_SOURCE_BUCKET_RESOURCE}/objects/source-preflight" \
+      --resource-name="$resource_name" \
       --resource-service=storage.googleapis.com \
-      --resource-type=storage.googleapis.com/Object \
+      --resource-type="$resource_type" \
       --format='value(allowPolicyExplanation.allowAccessState)')"
-    [[ "$state" == "ALLOW_ACCESS_STATE_GRANTED" ]] || fail "$principal lacks $permission on gs://$gjd_SOURCE_BUCKET (state: ${state:-unknown})"
+    [[ "$state" == "ALLOW_ACCESS_STATE_GRANTED" ]] || fail "$principal lacks $permission on gs://$bucket (state: ${state:-unknown})"
   }
 
   gjd_active_account="$(gcloud auth list --filter=status:ACTIVE --format='value(account)')"
@@ -109,8 +117,10 @@ main() (
   gcloud iam service-accounts describe "$gjd_BUILD_SERVICE_ACCOUNT" --project="$gjd_PROJECT_ID" --format='value(email)' | grep -Fxq "$gjd_BUILD_SERVICE_ACCOUNT" || fail "builder service account does not exist"
   gcloud iam service-accounts describe "$gjd_RUNTIME_SERVICE_ACCOUNT" --project="$gjd_PROJECT_ID" --format='value(email)' | grep -Fxq "$gjd_RUNTIME_SERVICE_ACCOUNT" || fail "runtime service account does not exist"
 
-  gjd_bucket_json="$(gcloud storage buckets describe "gs://${gjd_SOURCE_BUCKET}" --project="$gjd_PROJECT_ID" --format=json)"
-  python3 -c 'import json,sys
+  validate_bucket() {
+    local bucket="$1" bucket_json
+    bucket_json="$(gcloud storage buckets describe "gs://${bucket}" --project="$gjd_PROJECT_ID" --format=json)"
+    python3 -c 'import json,sys
 bucket=json.load(sys.stdin)
 expected=sys.argv[1].upper()
 checks={
@@ -121,17 +131,23 @@ checks={
 }
 failed=[name for name, ok in checks.items() if not ok]
 if failed:
-    raise SystemExit("source bucket preflight failed: " + ", ".join(failed))' "$gjd_REGION" <<<"$gjd_bucket_json"
+    raise SystemExit("bucket preflight failed: " + ", ".join(failed))' "$gjd_REGION" <<<"$bucket_json"
+  }
+  validate_bucket "$gjd_SOURCE_BUCKET"
+  validate_bucket "$gjd_LOG_BUCKET"
 
   # The builder only writes build logs, consumes enabled services, pushes the image, and reads staged source.
   require_permission "$gjd_BUILD_SERVICE_ACCOUNT" "$gjd_PROJECT_RESOURCE" logging.logEntries.create
   require_permission "$gjd_BUILD_SERVICE_ACCOUNT" "$gjd_PROJECT_RESOURCE" serviceusage.services.use
   require_permission "$gjd_BUILD_SERVICE_ACCOUNT" "$gjd_REPOSITORY_RESOURCE" artifactregistry.repositories.uploadArtifacts
-  require_bucket_permission "$gjd_BUILD_SERVICE_ACCOUNT" storage.objects.get
+  require_bucket_permission "$gjd_BUILD_SERVICE_ACCOUNT" "$gjd_SOURCE_BUCKET" storage.objects.get
+  for gjd_permission in storage.buckets.get storage.buckets.list storage.objects.create storage.objects.get storage.objects.update storage.objects.delete; do
+    require_bucket_permission "$gjd_BUILD_SERVICE_ACCOUNT" "$gjd_LOG_BUCKET" "$gjd_permission"
+  done
 
   # The authenticated human submits and deploys, reads the resulting image/state, publishes IAM, and attaches the runtime identity.
   require_permission "$gjd_active_account" "$gjd_PROJECT_RESOURCE" cloudbuild.builds.create
-  require_bucket_permission "$gjd_active_account" storage.objects.create
+  require_bucket_permission "$gjd_active_account" "$gjd_SOURCE_BUCKET" storage.objects.create
   require_permission "$gjd_active_account" "$gjd_REPOSITORY_RESOURCE" artifactregistry.dockerimages.get
   require_permission "$gjd_active_account" "$gjd_PROJECT_RESOURCE" run.services.create
   require_permission "$gjd_active_account" "$gjd_PROJECT_RESOURCE" run.services.update
@@ -170,7 +186,7 @@ if failed:
     --project="$gjd_PROJECT_ID" \
     --region="$gjd_REGION" \
     --service-account="$gjd_build_sa_resource" \
-    --default-buckets-behavior=regional-user-owned-bucket \
+    --gcs-log-dir="gs://${gjd_LOG_BUCKET}/logs" \
     --gcs-source-staging-dir="gs://${gjd_SOURCE_BUCKET}/source" \
     --tag="$gjd_image_tag"
 

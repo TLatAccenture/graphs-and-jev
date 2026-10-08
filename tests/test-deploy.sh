@@ -98,6 +98,7 @@ set -e
 [[ "$mock_output" != *'command not found'* ]] || fail "bare variable command executed: $mock_output"
 mock_build_args="$(cat "$mock_log")"
 [[ "$mock_build_args" == *'--tag=australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app:0123456789abcdef0123456789abcdef01234567'* ]] || fail "build tag missing full SHA: $mock_build_args"
+[[ "$mock_build_args" == *'--gcs-log-dir=gs://956922431929-australia-southeast1-cloudbuild-logs/logs'* ]] || fail "explicit logs bucket missing: $mock_build_args"
 [[ "$mock_build_args" == *'--service-account=projects/ninth-airship-386815/serviceAccounts/graphs-and-jev-builder@ninth-airship-386815.iam.gserviceaccount.com'* ]] || fail "build service account missing: $mock_build_args"
 if rg -n '^  gjd_(git_sha|revision_suffix|image_tag)$' "$script"; then fail 'bare derived-variable command remains'; fi
 rm -rf "$mock_dir"
@@ -116,6 +117,15 @@ contains 'ninth-airship-386815' "$env_example"
 contains 'australia-southeast1' "$env_example"
 contains 'IMAGE=app' "$env_example"
 contains 'SOURCE_BUCKET=ninth-airship-386815-graphs-and-jev-build-source' "$env_example"
+contains 'LOG_BUCKET=956922431929-australia-southeast1-cloudbuild-logs' "$env_example"
+contains 'storage.buckets.get' "$script"
+contains 'storage.buckets.list' "$script"
+for permission in storage.objects.create storage.objects.get storage.objects.update storage.objects.delete; do
+  contains "$permission" "$script"
+done
+# shellcheck disable=SC2016
+contains '--gcs-log-dir="gs://${gjd_LOG_BUCKET}/logs"' "$script"
+if rg -F --quiet -- '--default-buckets-behavior' "$script"; then fail 'implicit logs bucket behavior remains'; fi
 contains 'gcloud storage buckets describe' "$script"
 contains 'uniform_bucket_level_access' "$script"
 contains 'public_access_prevention' "$script"
@@ -126,7 +136,6 @@ contains 'ALLOW_ACCESS_STATE_GRANTED' "$script"
 contains '--gcs-source-staging-dir="gs://${gjd_SOURCE_BUCKET}/source"' "$script"
 # shellcheck disable=SC2016
 contains '[[ "$gjd_revision" == "${gjd_SERVICE}-${gjd_revision_suffix}" ]]' "$script"
-contains '--default-buckets-behavior=regional-user-owned-bucket' "$script"
 contains 'gcloud beta billing projects describe' "$script"
 contains 'gcloud services list' "$script"
 contains 'gcloud artifacts repositories describe' "$script"
