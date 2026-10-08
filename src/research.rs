@@ -17,22 +17,54 @@ pub struct Page {
 }
 
 pub trait Retrieve {
-    fn search(&self, query: &str) -> Result<Vec<Page>, String>;
+    fn search(&self, query: &str) -> Result<Vec<Page>, ResearchError>;
 }
 
 #[derive(Debug)]
-pub struct ResearchError(pub String);
+pub struct ResearchError {
+    class: &'static str,
+    detail: String,
+}
 
 impl ResearchError {
-    pub fn class(&self) -> &'static str {
-        let message = self.0.to_ascii_lowercase();
-        if message.contains("timed out") || message.contains("timeout") {
-            "timeout"
-        } else if message.contains("json") || message.contains("decode") {
-            "invalid"
-        } else {
-            "fetch"
+    pub fn fetch(detail: impl Into<String>) -> Self {
+        Self {
+            class: "fetch",
+            detail: detail.into(),
         }
+    }
+
+    pub fn invalid(detail: impl Into<String>) -> Self {
+        Self {
+            class: "invalid",
+            detail: detail.into(),
+        }
+    }
+
+    pub fn timeout(detail: impl Into<String>) -> Self {
+        Self {
+            class: "timeout",
+            detail: detail.into(),
+        }
+    }
+
+    fn from_reqwest(error: reqwest::Error) -> Self {
+        Self {
+            class: if error.is_timeout() {
+                "timeout"
+            } else {
+                "fetch"
+            },
+            detail: error.to_string(),
+        }
+    }
+
+    pub fn class(&self) -> &'static str {
+        self.class
+    }
+
+    pub fn detail(&self) -> &str {
+        &self.detail
     }
 }
 
@@ -62,7 +94,7 @@ pub fn run(request: &str, retrieve: &impl Retrieve) -> Result<Value, ResearchErr
             &[],
         ));
     }
-    let pages = retrieve.search(request).map_err(ResearchError)?;
+    let pages = retrieve.search(request)?;
     if pages.is_empty() {
         return Ok(body(
             request,
@@ -312,31 +344,45 @@ fn body(
 pub struct Live;
 
 impl Retrieve for Live {
-    fn search(&self, query: &str) -> Result<Vec<Page>, String> {
+    fn search(&self, query: &str) -> Result<Vec<Page>, ResearchError> {
         let client = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_secs(8))
             .user_agent("GraphJevResearch/0.1")
             .build()
-            .map_err(|e| e.to_string())?;
+            .map_err(ResearchError::from_reqwest)?;
         let mut pages = Vec::new();
-        let mut failures = 0;
+        let mut failures = Vec::new();
         match wikipedia(&client, query) {
-            Ok(p) => pages.extend(p),
-            Err(_) => failures += 1,
+            Ok(found) => pages.extend(found),
+            Err(error) => failures.push(error),
         }
         match europe_pmc(&client, query) {
-            Ok(p) => pages.extend(p),
-            Err(_) => failures += 1,
+            Ok(found) => pages.extend(found),
+            Err(error) => failures.push(error),
         }
-        if pages.is_empty() && failures == 2 {
-            return Err("Could not reach the web to retrieve sources.".into());
+        if pages.is_empty() && failures.len() == 2 {
+            return Err(combine_failures(failures));
         }
         pages.truncate(4);
         Ok(pages)
     }
 }
 
-fn wikipedia(client: &reqwest::blocking::Client, query: &str) -> Result<Vec<Page>, String> {
+fn combine_failures(failures: Vec<ResearchError>) -> ResearchError {
+    let class = if failures.iter().any(|error| error.class() == "timeout") {
+        "timeout"
+    } else if failures.iter().any(|error| error.class() == "invalid") {
+        "invalid"
+    } else {
+        "fetch"
+    };
+    ResearchError {
+        class,
+        detail: "Could not reach the web to retrieve sources.".into(),
+    }
+}
+
+fn wikipedia(client: &reqwest::blocking::Client, query: &str) -> Result<Vec<Page>, ResearchError> {
     let search = format!(
         "https://en.wikipedia.org/w/api.php?action=query&list=search&srlimit=1&utf8=1&format=json&srsearch={}",
         encode(query)
@@ -374,7 +420,7 @@ fn wikipedia(client: &reqwest::blocking::Client, query: &str) -> Result<Vec<Page
     }])
 }
 
-fn europe_pmc(client: &reqwest::blocking::Client, query: &str) -> Result<Vec<Page>, String> {
+fn europe_pmc(client: &reqwest::blocking::Client, query: &str) -> Result<Vec<Page>, ResearchError> {
     let url = format!(
         "https://www.ebi.ac.uk/europepmc/webservices/rest/search?format=json&pageSize=3&resultType=core&query={}",
         encode(query)
@@ -414,16 +460,23 @@ fn citation_url(row: &Value) -> String {
     String::new()
 }
 
-fn get_json(client: &reqwest::blocking::Client, url: &str) -> Result<Value, String> {
-    let response = client.get(url).send().map_err(|e| e.to_string())?;
+fn get_json(client: &reqwest::blocking::Client, url: &str) -> Result<Value, ResearchError> {
+    let response = client
+        .get(url)
+        .send()
+        .map_err(ResearchError::from_reqwest)?;
     if !response.status().is_success() {
-        return Err(format!("HTTP {}", response.status()));
+        return Err(ResearchError::fetch(format!("HTTP {}", response.status())));
     }
-    let bytes = response.bytes().map_err(|e| e.to_string())?;
+    let bytes = response.bytes().map_err(ResearchError::from_reqwest)?;
     if bytes.len() > 1_000_000 {
-        return Err("response too large".into());
+        return Err(ResearchError::invalid("response too large"));
     }
-    serde_json::from_slice(&bytes).map_err(|e| e.to_string())
+    parse_json(&bytes)
+}
+
+fn parse_json(bytes: &[u8]) -> Result<Value, ResearchError> {
+    serde_json::from_slice(bytes).map_err(|error| ResearchError::invalid(error.to_string()))
 }
 
 fn encode(text: &str) -> String {
@@ -452,10 +505,12 @@ mod tests {
     }
 
     impl Retrieve for Fixture {
-        fn search(&self, _query: &str) -> Result<Vec<Page>, String> {
+        fn search(&self, _query: &str) -> Result<Vec<Page>, ResearchError> {
             self.calls.set(self.calls.get() + 1);
             if self.fail {
-                return Err("Could not reach the web to retrieve sources.".into());
+                return Err(ResearchError::fetch(
+                    "Could not reach the web to retrieve sources.",
+                ));
             }
             Ok(self.pages.clone())
         }
@@ -529,6 +584,36 @@ mod tests {
     }
 
     #[test]
+    fn source_failures_preserve_the_most_specific_class() {
+        let error = combine_failures(vec![
+            ResearchError::fetch("connection refused"),
+            ResearchError::timeout("request timed out"),
+        ]);
+        assert_eq!(error.class(), "timeout");
+
+        let error = combine_failures(vec![
+            ResearchError::fetch("http 502"),
+            ResearchError::invalid("invalid json"),
+        ]);
+        assert_eq!(error.class(), "invalid");
+    }
+
+    #[test]
+    fn transport_error_classes_are_typed() {
+        let timeout = reqwest::blocking::Client::builder()
+            .timeout(std::time::Duration::from_millis(1))
+            .build()
+            .unwrap()
+            .get("http://10.255.255.1")
+            .send()
+            .unwrap_err();
+        assert_eq!(ResearchError::from_reqwest(timeout).class(), "timeout");
+
+        let invalid = parse_json(b"not-json").unwrap_err();
+        assert_eq!(invalid.class(), "invalid");
+    }
+
+    #[test]
     fn a_failed_fetch_is_an_error() {
         let fixture = Fixture {
             calls: Cell::new(0),
@@ -540,6 +625,6 @@ mod tests {
             &fixture,
         )
         .unwrap_err();
-        assert!(err.0.contains("Could not reach the web"));
+        assert!(err.detail().contains("Could not reach the web"));
     }
 }

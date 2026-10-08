@@ -153,6 +153,18 @@ impl ValidationError {
 
 impl DecideIn {
     fn validate(&self, max_state: usize) -> Result<(), ValidationError> {
+        if self.questions.len() > 100 {
+            return Err(ValidationError::new(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "At most 100 questions are allowed.",
+            ));
+        }
+        if self.questions.keys().any(|name| name.chars().count() > 100) {
+            return Err(ValidationError::new(
+                StatusCode::UNPROCESSABLE_ENTITY,
+                "Question names must be at most 100 characters.",
+            ));
+        }
         let state_size = serde_json::to_string(&self.state).map_or(0, |value| value.len());
         if state_size > max_state {
             return Err(ValidationError::new(
@@ -273,9 +285,6 @@ async fn catalogue(State(app): State<Arc<App>>) -> Json<Value> {
 }
 
 async fn decide(State(app): State<Arc<App>>, Json(body): Json<DecideIn>) -> Response {
-    if let Some(response) = check(&app) {
-        return response;
-    }
     if body.backend != "catalogue" {
         return error(
             StatusCode::NOT_FOUND,
@@ -296,9 +305,6 @@ async fn decide(State(app): State<Arc<App>>, Json(body): Json<DecideIn>) -> Resp
 }
 
 async fn run_pipeline(State(app): State<Arc<App>>, Json(body): Json<PipelineIn>) -> Response {
-    if let Some(response) = check(&app) {
-        return response;
-    }
     if body.backend != "catalogue" {
         return error(
             StatusCode::NOT_FOUND,
@@ -370,7 +376,8 @@ pub fn router(app: Arc<App>, static_dir: &std::path::Path) -> Router {
     let expensive = Router::new()
         .route("/api/decide", post(decide))
         .route("/api/pipeline", post(run_pipeline))
-        .layer(DefaultBodyLimit::max(MAX_BODY_BYTES));
+        .layer(DefaultBodyLimit::max(MAX_BODY_BYTES))
+        .route_layer(middleware::from_fn_with_state(app.clone(), limit_expensive));
     Router::new()
         .route("/api/health", get(health))
         .route("/api/ready", get(ready))
@@ -397,6 +404,17 @@ fn log_fields(
         "outcome": outcome,
         "upstream_error_class": upstream_error_class,
     })
+}
+
+async fn limit_expensive(
+    State(app): State<Arc<App>>,
+    request: Request<Body>,
+    next: Next,
+) -> Response {
+    match check(&app) {
+        Some(response) => response,
+        None => next.run(request).await,
+    }
 }
 
 async fn log_request(State(app): State<Arc<App>>, request: Request<Body>, next: Next) -> Response {

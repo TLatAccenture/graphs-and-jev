@@ -131,6 +131,55 @@ async fn health_and_readiness_bypass_expensive_route_limit() {
 }
 
 #[tokio::test]
+async fn quota_rejection_precedes_json_extraction() {
+    let (router, logs) = app(0);
+    let response = router
+        .oneshot(
+            Request::builder()
+                .method("POST")
+                .uri("/api/pipeline")
+                .header("content-type", "application/json")
+                .body(Body::from("not-json"))
+                .unwrap(),
+        )
+        .await
+        .unwrap();
+    assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
+    assert!(logs
+        .lock()
+        .unwrap()
+        .join("\n")
+        .contains(r#""outcome":"rate_limited""#));
+}
+
+#[tokio::test]
+async fn decide_rejects_oversized_question_name_and_excess_count() {
+    let response = post(
+        app(10).0,
+        "/api/decide",
+        json!({"backend":"catalogue", "state":{}, "questions": {"x".repeat(101): {"type":"choice","labels":["yes","no"]}}}),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+
+    let questions = (0..101)
+        .map(|index| {
+            (
+                format!("q{index}"),
+                json!({"type":"choice","labels":["yes","no"]}),
+            )
+        })
+        .collect::<serde_json::Map<_, _>>();
+    let response = post(
+        app(10).0,
+        "/api/decide",
+        json!({"backend":"catalogue", "state":{}, "questions": questions}),
+    )
+    .await;
+    assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+}
+
+#[tokio::test]
 async fn pipeline_log_captures_decision_outcome_without_raw_inputs() {
     let request = "SENTINEL_REQUEST annual CO2 for Australia in 2024";
     let preference = "SENTINEL_PREFERENCE prefer national data";
@@ -194,7 +243,12 @@ async fn concrete_upstream_classes_reach_structured_logs() {
             _ => "connection refused",
         };
         let (app, logs) = app_with_research(10, move |_| {
-            Err(serve::research::ResearchError(message.into()))
+            let error = match class {
+                "timeout" => serve::research::ResearchError::timeout(message),
+                "invalid" => serve::research::ResearchError::invalid(message),
+                _ => serve::research::ResearchError::fetch(message),
+            };
+            Err(error)
         });
         let response = post(
             app,
