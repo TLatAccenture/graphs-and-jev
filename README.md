@@ -37,6 +37,23 @@ python3 -m http.server 8000
 
 Open <http://localhost:8000/graphs-and-jev/>.
 
+### Run the Rust container
+
+Build the same Linux architecture used by Cloud Run, then smoke-test it on a random local port:
+
+```bash
+docker build --platform linux/amd64 -t graphs-and-jev:test .
+./scripts/smoke-container.sh
+```
+
+To run it directly:
+
+```bash
+docker run --rm -p 8080:8080 -e PORT=8080 graphs-and-jev:test
+```
+
+The image runs as a non-root user. `CATALOGUE_PATH` and `STATIC_DIR` default to the packaged catalogue and field guide; override them only when mounting replacements. Cloud Run should configure external startup and liveness probes for `/api/ready` and `/api/health`; the image deliberately contains no HTTP client, cloud SDK, or credentials.
+
 ## Reuse
 
 No reuse licence is granted yet. All rights are reserved unless a licence is added later.
