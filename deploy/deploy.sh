@@ -1,193 +1,204 @@
 #!/usr/bin/env bash
-set -euo pipefail
 
-GJ_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
-readonly GJ_REPO_ROOT
-cd "$GJ_REPO_ROOT"
+main() (
+  set -euo pipefail
+  local gjd_REPO_ROOT gjd_PROJECT_ID gjd_REGION gjd_SERVICE gjd_ARTIFACT_REPOSITORY gjd_IMAGE
+  local gjd_SOURCE_BUCKET gjd_BUILD_SERVICE_ACCOUNT gjd_RUNTIME_SERVICE_ACCOUNT gjd_EXPECTED_ACCOUNT
+  local gjd_DEPLOY_OUTPUT gjd_PROJECT_RESOURCE gjd_REPOSITORY_RESOURCE gjd_RUNTIME_SA_RESOURCE
+  local gjd_SOURCE_BUCKET_RESOURCE gjd_MIN_INSTANCES gjd_MAX_INSTANCES gjd_CONCURRENCY gjd_CPU
+  local gjd_MEMORY gjd_TIMEOUT_SECONDS gjd_STARTUP_PATH gjd_LIVENESS_PATH gjd_command_name
+  local gjd_active_account gjd_active_project gjd_billing_enabled gjd_enabled_apis gjd_api
+  local gjd_repository_name gjd_repository_format gjd_expected_repository_name gjd_bucket_json
+  local gjd_branch gjd_git_sha gjd_revision_suffix gjd_image_tag gjd_build_sa_resource gjd_digest
+  local gjd_image_digest gjd_service_json gjd_revision_json gjd_iam_json gjd_tmp_output gjd_revision
+  local -a gjd_required_apis
 
-if [[ $# -gt 1 ]]; then
-  printf 'usage: %s [environment-file]\n' "$0" >&2
-  exit 64
-fi
-if [[ $# -eq 1 ]]; then
-  # shellcheck disable=SC1090
-  source "$1"
-fi
+  gjd_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+  cd "$gjd_REPO_ROOT"
 
-readonly GJ_PROJECT_ID="${PROJECT_ID:-ninth-airship-386815}"
-readonly GJ_REGION="${REGION:-australia-southeast1}"
-readonly GJ_SERVICE="${SERVICE:-graphs-and-jev}"
-readonly GJ_ARTIFACT_REPOSITORY="${ARTIFACT_REPOSITORY:-graphs-and-jev}"
-readonly GJ_IMAGE="${IMAGE:-app}"
-readonly GJ_SOURCE_BUCKET="${SOURCE_BUCKET:-ninth-airship-386815-graphs-and-jev-build-source}"
-readonly GJ_BUILD_SERVICE_ACCOUNT="${BUILD_SERVICE_ACCOUNT:-graphs-and-jev-builder@${GJ_PROJECT_ID}.iam.gserviceaccount.com}"
-readonly GJ_RUNTIME_SERVICE_ACCOUNT="${RUNTIME_SERVICE_ACCOUNT:-graphs-and-jev-runner@${GJ_PROJECT_ID}.iam.gserviceaccount.com}"
-readonly GJ_EXPECTED_ACCOUNT="${EXPECTED_ACCOUNT:-anthony.lui@archegon.com}"
-readonly GJ_DEPLOY_OUTPUT="${DEPLOY_OUTPUT:-${TMPDIR:-/tmp}/graphs-and-jev-deployment-result.json}"
-readonly GJ_PROJECT_RESOURCE="//cloudresourcemanager.googleapis.com/projects/${GJ_PROJECT_ID}"
-readonly GJ_REPOSITORY_RESOURCE="//artifactregistry.googleapis.com/projects/${GJ_PROJECT_ID}/locations/${GJ_REGION}/repositories/${GJ_ARTIFACT_REPOSITORY}"
-readonly GJ_RUNTIME_SA_RESOURCE="//iam.googleapis.com/projects/${GJ_PROJECT_ID}/serviceAccounts/${GJ_RUNTIME_SERVICE_ACCOUNT}"
-readonly GJ_SOURCE_BUCKET_RESOURCE="//storage.googleapis.com/projects/_/buckets/${GJ_SOURCE_BUCKET}"
-readonly GJ_MIN_INSTANCES="${MIN_INSTANCES:-0}"
-readonly GJ_MAX_INSTANCES="${MAX_INSTANCES:-2}"
-readonly GJ_CONCURRENCY="${CONCURRENCY:-20}"
-readonly GJ_CPU="${CPU:-1}"
-readonly GJ_MEMORY="${MEMORY:-512Mi}"
-readonly GJ_TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-30}"
-readonly GJ_STARTUP_PATH="${STARTUP_PATH:-/api/ready}"
-readonly GJ_LIVENESS_PATH="${LIVENESS_PATH:-/api/health}"
+  if [[ $# -gt 1 ]]; then
+    printf 'usage: %s [environment-file]\n' "$0" >&2
+    exit 64
+  fi
+  if [[ $# -eq 1 ]]; then
+    # shellcheck disable=SC1090
+    source "$1"
+  fi
 
-for GJ_command_name in gcloud git python3; do
-  command -v "$GJ_command_name" >/dev/null || { printf '%s is required\n' "$GJ_command_name" >&2; exit 1; }
-done
+  gjd_PROJECT_ID="${PROJECT_ID:-ninth-airship-386815}"
+  gjd_REGION="${REGION:-australia-southeast1}"
+  gjd_SERVICE="${SERVICE:-graphs-and-jev}"
+  gjd_ARTIFACT_REPOSITORY="${ARTIFACT_REPOSITORY:-graphs-and-jev}"
+  gjd_IMAGE="${IMAGE:-app}"
+  gjd_SOURCE_BUCKET="${SOURCE_BUCKET:-ninth-airship-386815-graphs-and-jev-build-source}"
+  gjd_BUILD_SERVICE_ACCOUNT="${BUILD_SERVICE_ACCOUNT:-graphs-and-jev-builder@${gjd_PROJECT_ID}.iam.gserviceaccount.com}"
+  gjd_RUNTIME_SERVICE_ACCOUNT="${RUNTIME_SERVICE_ACCOUNT:-graphs-and-jev-runner@${gjd_PROJECT_ID}.iam.gserviceaccount.com}"
+  gjd_EXPECTED_ACCOUNT="${EXPECTED_ACCOUNT:-anthony.lui@archegon.com}"
+  gjd_DEPLOY_OUTPUT="${DEPLOY_OUTPUT:-${TMPDIR:-/tmp}/graphs-and-jev-deployment-result.json}"
+  gjd_PROJECT_RESOURCE="//cloudresourcemanager.googleapis.com/projects/${gjd_PROJECT_ID}"
+  gjd_REPOSITORY_RESOURCE="//artifactregistry.googleapis.com/projects/${gjd_PROJECT_ID}/locations/${gjd_REGION}/repositories/${gjd_ARTIFACT_REPOSITORY}"
+  gjd_RUNTIME_SA_RESOURCE="//iam.googleapis.com/projects/${gjd_PROJECT_ID}/serviceAccounts/${gjd_RUNTIME_SERVICE_ACCOUNT}"
+  gjd_SOURCE_BUCKET_RESOURCE="//storage.googleapis.com/projects/_/buckets/${gjd_SOURCE_BUCKET}"
+  gjd_MIN_INSTANCES="${MIN_INSTANCES:-0}"
+  gjd_MAX_INSTANCES="${MAX_INSTANCES:-2}"
+  gjd_CONCURRENCY="${CONCURRENCY:-20}"
+  gjd_CPU="${CPU:-1}"
+  gjd_MEMORY="${MEMORY:-512Mi}"
+  gjd_TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-30}"
+  gjd_STARTUP_PATH="${STARTUP_PATH:-/api/ready}"
+  gjd_LIVENESS_PATH="${LIVENESS_PATH:-/api/health}"
 
-fail() { printf 'preflight failed: %s\n' "$*" >&2; exit 1; }
-require_permission() {
-  local principal="$1" resource="$2" permission="$3" state
-  state="$(gcloud policy-intelligence troubleshoot-policy iam "$resource" \
-    --project="$GJ_PROJECT_ID" \
-    --principal-email="$principal" \
-    --permission="$permission" \
-    --format='value(allowPolicyExplanation.allowAccessState)')"
-  [[ "$state" == "ALLOW_ACCESS_STATE_GRANTED" ]] || fail "$principal lacks $permission on $resource (state: ${state:-unknown})"
-}
-require_bucket_permission() {
-  local principal="$1" permission="$2" state
-  state="$(gcloud policy-intelligence troubleshoot-policy iam "$GJ_SOURCE_BUCKET_RESOURCE" \
-    --project="$GJ_PROJECT_ID" \
-    --principal-email="$principal" \
-    --permission="$permission" \
-    --resource-name="${GJ_SOURCE_BUCKET_RESOURCE}/objects/source-preflight" \
-    --resource-service=storage.googleapis.com \
-    --resource-type=storage.googleapis.com/Object \
-    --format='value(allowPolicyExplanation.allowAccessState)')"
-  [[ "$state" == "ALLOW_ACCESS_STATE_GRANTED" ]] || fail "$principal lacks $permission on gs://$GJ_SOURCE_BUCKET (state: ${state:-unknown})"
-}
+  for gjd_command_name in gcloud git python3; do
+    command -v "$gjd_command_name" >/dev/null || { printf '%s is required\n' "$gjd_command_name" >&2; exit 1; }
+  done
 
-GJ_active_account="$(gcloud auth list --filter=status:ACTIVE --format='value(account)')"
-[[ "$GJ_active_account" == "$GJ_EXPECTED_ACCOUNT" ]] || fail "active account must be $GJ_EXPECTED_ACCOUNT (found ${GJ_active_account:-none})"
-GJ_active_project="$(gcloud config get-value project 2>/dev/null)"
-[[ "$GJ_active_project" == "$GJ_PROJECT_ID" ]] || fail "active project must be $GJ_PROJECT_ID (found ${GJ_active_project:-none})"
+  fail() { printf 'preflight failed: %s\n' "$*" >&2; exit 1; }
+  require_permission() {
+    local principal="$1" resource="$2" permission="$3" state
+    state="$(gcloud policy-intelligence troubleshoot-policy iam "$resource" \
+      --project="$gjd_PROJECT_ID" \
+      --principal-email="$principal" \
+      --permission="$permission" \
+      --format='value(allowPolicyExplanation.allowAccessState)')"
+    [[ "$state" == "ALLOW_ACCESS_STATE_GRANTED" ]] || fail "$principal lacks $permission on $resource (state: ${state:-unknown})"
+  }
+  require_bucket_permission() {
+    local principal="$1" permission="$2" state
+    state="$(gcloud policy-intelligence troubleshoot-policy iam "$gjd_SOURCE_BUCKET_RESOURCE" \
+      --project="$gjd_PROJECT_ID" \
+      --principal-email="$principal" \
+      --permission="$permission" \
+      --resource-name="${gjd_SOURCE_BUCKET_RESOURCE}/objects/source-preflight" \
+      --resource-service=storage.googleapis.com \
+      --resource-type=storage.googleapis.com/Object \
+      --format='value(allowPolicyExplanation.allowAccessState)')"
+    [[ "$state" == "ALLOW_ACCESS_STATE_GRANTED" ]] || fail "$principal lacks $permission on gs://$gjd_SOURCE_BUCKET (state: ${state:-unknown})"
+  }
 
-GJ_billing_enabled="$(gcloud beta billing projects describe "$GJ_PROJECT_ID" --format='value(billingEnabled)')"
-[[ "$GJ_billing_enabled" == "True" ]] || fail "billing is not enabled for $GJ_PROJECT_ID"
+  gjd_active_account="$(gcloud auth list --filter=status:ACTIVE --format='value(account)')"
+  [[ "$gjd_active_account" == "$gjd_EXPECTED_ACCOUNT" ]] || fail "active account must be $gjd_EXPECTED_ACCOUNT (found ${gjd_active_account:-none})"
+  gjd_active_project="$(gcloud config get-value project 2>/dev/null)"
+  [[ "$gjd_active_project" == "$gjd_PROJECT_ID" ]] || fail "active project must be $gjd_PROJECT_ID (found ${gjd_active_project:-none})"
 
-readonly GJ_required_apis=(
-  artifactregistry.googleapis.com
-  cloudbuild.googleapis.com
-  iam.googleapis.com
-  logging.googleapis.com
-  policytroubleshooter.googleapis.com
-  run.googleapis.com
-  serviceusage.googleapis.com
-  storage.googleapis.com
-)
-GJ_enabled_apis="$(gcloud services list --enabled --project="$GJ_PROJECT_ID" --format='value(config.name)')"
-for GJ_api in "${GJ_required_apis[@]}"; do
-  grep -Fxq "$GJ_api" <<<"$GJ_enabled_apis" || fail "required API is not enabled: $GJ_api"
-done
+  gjd_billing_enabled="$(gcloud beta billing projects describe "$gjd_PROJECT_ID" --format='value(billingEnabled)')"
+  [[ "$gjd_billing_enabled" == "True" ]] || fail "billing is not enabled for $gjd_PROJECT_ID"
 
-GJ_repository_name="$(gcloud artifacts repositories describe "$GJ_ARTIFACT_REPOSITORY" \
-  --project="$GJ_PROJECT_ID" --location="$GJ_REGION" --format='value(name)')"
-GJ_repository_format="$(gcloud artifacts repositories describe "$GJ_ARTIFACT_REPOSITORY" \
-  --project="$GJ_PROJECT_ID" --location="$GJ_REGION" --format='value(format)')"
-readonly GJ_expected_repository_name="projects/${GJ_PROJECT_ID}/locations/${GJ_REGION}/repositories/${GJ_ARTIFACT_REPOSITORY}"
-[[ "$GJ_repository_name" == "$GJ_expected_repository_name" ]] || fail "Artifact Registry repository is not $GJ_expected_repository_name (found ${GJ_repository_name:-none})"
-[[ "$GJ_repository_format" == "DOCKER" ]] || fail "Artifact Registry repository must use DOCKER format (found ${GJ_repository_format:-none})"
-gcloud iam service-accounts describe "$GJ_BUILD_SERVICE_ACCOUNT" --project="$GJ_PROJECT_ID" --format='value(email)' | grep -Fxq "$GJ_BUILD_SERVICE_ACCOUNT" || fail "builder service account does not exist"
-gcloud iam service-accounts describe "$GJ_RUNTIME_SERVICE_ACCOUNT" --project="$GJ_PROJECT_ID" --format='value(email)' | grep -Fxq "$GJ_RUNTIME_SERVICE_ACCOUNT" || fail "runtime service account does not exist"
+  gjd_required_apis=(
+    artifactregistry.googleapis.com
+    cloudbuild.googleapis.com
+    iam.googleapis.com
+    logging.googleapis.com
+    policytroubleshooter.googleapis.com
+    run.googleapis.com
+    serviceusage.googleapis.com
+    storage.googleapis.com
+  )
+  gjd_enabled_apis="$(gcloud services list --enabled --project="$gjd_PROJECT_ID" --format='value(config.name)')"
+  for gjd_api in "${gjd_required_apis[@]}"; do
+    grep -Fxq "$gjd_api" <<<"$gjd_enabled_apis" || fail "required API is not enabled: $gjd_api"
+  done
 
-GJ_bucket_json="$(gcloud storage buckets describe "gs://${GJ_SOURCE_BUCKET}" --project="$GJ_PROJECT_ID" --format=json)"
-python3 -c 'import json,sys
-bucket=json.load(sys.stdin)
-expected=sys.argv[1].upper()
-checks={
-    "location": bucket.get("location") == expected,
-    "regional location type": bucket.get("location_type") == "region",
-    "uniform bucket-level access": bucket.get("uniform_bucket_level_access") is True,
-    "public access prevention": bucket.get("public_access_prevention") == "enforced",
-}
-failed=[name for name, ok in checks.items() if not ok]
-if failed:
-    raise SystemExit("source bucket preflight failed: " + ", ".join(failed))' "$GJ_REGION" <<<"$GJ_bucket_json"
+  gjd_repository_name="$(gcloud artifacts repositories describe "$gjd_ARTIFACT_REPOSITORY" \
+    --project="$gjd_PROJECT_ID" --location="$gjd_REGION" --format='value(name)')"
+  gjd_repository_format="$(gcloud artifacts repositories describe "$gjd_ARTIFACT_REPOSITORY" \
+    --project="$gjd_PROJECT_ID" --location="$gjd_REGION" --format='value(format)')"
+  gjd_expected_repository_name="projects/${gjd_PROJECT_ID}/locations/${gjd_REGION}/repositories/${gjd_ARTIFACT_REPOSITORY}"
+  [[ "$gjd_repository_name" == "$gjd_expected_repository_name" ]] || fail "Artifact Registry repository is not $gjd_expected_repository_name (found ${gjd_repository_name:-none})"
+  [[ "$gjd_repository_format" == "DOCKER" ]] || fail "Artifact Registry repository must use DOCKER format (found ${gjd_repository_format:-none})"
+  gcloud iam service-accounts describe "$gjd_BUILD_SERVICE_ACCOUNT" --project="$gjd_PROJECT_ID" --format='value(email)' | grep -Fxq "$gjd_BUILD_SERVICE_ACCOUNT" || fail "builder service account does not exist"
+  gcloud iam service-accounts describe "$gjd_RUNTIME_SERVICE_ACCOUNT" --project="$gjd_PROJECT_ID" --format='value(email)' | grep -Fxq "$gjd_RUNTIME_SERVICE_ACCOUNT" || fail "runtime service account does not exist"
 
-# The builder only writes build logs, consumes enabled services, pushes the image, and reads staged source.
-require_permission "$GJ_BUILD_SERVICE_ACCOUNT" "$GJ_PROJECT_RESOURCE" logging.logEntries.create
-require_permission "$GJ_BUILD_SERVICE_ACCOUNT" "$GJ_PROJECT_RESOURCE" serviceusage.services.use
-require_permission "$GJ_BUILD_SERVICE_ACCOUNT" "$GJ_REPOSITORY_RESOURCE" artifactregistry.repositories.uploadArtifacts
-require_bucket_permission "$GJ_BUILD_SERVICE_ACCOUNT" storage.objects.get
+  gjd_bucket_json="$(gcloud storage buckets describe "gs://${gjd_SOURCE_BUCKET}" --project="$gjd_PROJECT_ID" --format=json)"
+  python3 -c 'import json,sys
+  bucket=json.load(sys.stdin)
+  expected=sys.argv[1].upper()
+  checks={
+      "location": bucket.get("location") == expected,
+      "regional location type": bucket.get("location_type") == "region",
+      "uniform bucket-level access": bucket.get("uniform_bucket_level_access") is True,
+      "public access prevention": bucket.get("public_access_prevention") == "enforced",
+  }
+  failed=[name for name, ok in checks.items() if not ok]
+  if failed:
+      raise SystemExit("source bucket preflight failed: " + ", ".join(failed))' "$gjd_REGION" <<<"$gjd_bucket_json"
 
-# The authenticated human submits and deploys, reads the resulting image/state, publishes IAM, and attaches the runtime identity.
-require_permission "$GJ_active_account" "$GJ_PROJECT_RESOURCE" cloudbuild.builds.create
-require_bucket_permission "$GJ_active_account" storage.objects.create
-require_permission "$GJ_active_account" "$GJ_REPOSITORY_RESOURCE" artifactregistry.dockerimages.get
-require_permission "$GJ_active_account" "$GJ_PROJECT_RESOURCE" run.services.create
-require_permission "$GJ_active_account" "$GJ_PROJECT_RESOURCE" run.services.update
-require_permission "$GJ_active_account" "$GJ_PROJECT_RESOURCE" run.services.setIamPolicy
-require_permission "$GJ_active_account" "//iam.googleapis.com/projects/${GJ_PROJECT_ID}/serviceAccounts/${GJ_BUILD_SERVICE_ACCOUNT}" iam.serviceAccounts.actAs
-require_permission "$GJ_active_account" "$GJ_RUNTIME_SA_RESOURCE" iam.serviceAccounts.actAs
+  # The builder only writes build logs, consumes enabled services, pushes the image, and reads staged source.
+  require_permission "$gjd_BUILD_SERVICE_ACCOUNT" "$gjd_PROJECT_RESOURCE" logging.logEntries.create
+  require_permission "$gjd_BUILD_SERVICE_ACCOUNT" "$gjd_PROJECT_RESOURCE" serviceusage.services.use
+  require_permission "$gjd_BUILD_SERVICE_ACCOUNT" "$gjd_REPOSITORY_RESOURCE" artifactregistry.repositories.uploadArtifacts
+  require_bucket_permission "$gjd_BUILD_SERVICE_ACCOUNT" storage.objects.get
 
-[[ -z "$(git status --porcelain --untracked-files=normal)" ]] || fail 'worktree must be clean'
-git diff-index --quiet HEAD -- || fail 'tracked files differ from HEAD'
-GJ_branch="$(git symbolic-ref --quiet --short HEAD)" || fail 'deployment requires a named GJ_branch'
-git fetch --quiet origin "$GJ_branch"
-git merge-base --is-ancestor HEAD "origin/$GJ_branch" || fail "HEAD is not pushed to origin/$GJ_branch"
-[[ "$(git rev-parse HEAD)" == "$(git rev-parse "origin/$GJ_branch")" ]] || fail "HEAD must exactly match origin/$GJ_branch"
+  # The authenticated human submits and deploys, reads the resulting image/state, publishes IAM, and attaches the runtime identity.
+  require_permission "$gjd_active_account" "$gjd_PROJECT_RESOURCE" cloudbuild.builds.create
+  require_bucket_permission "$gjd_active_account" storage.objects.create
+  require_permission "$gjd_active_account" "$gjd_REPOSITORY_RESOURCE" artifactregistry.dockerimages.get
+  require_permission "$gjd_active_account" "$gjd_PROJECT_RESOURCE" run.services.create
+  require_permission "$gjd_active_account" "$gjd_PROJECT_RESOURCE" run.services.update
+  require_permission "$gjd_active_account" "$gjd_PROJECT_RESOURCE" run.services.setIamPolicy
+  require_permission "$gjd_active_account" "//iam.googleapis.com/projects/${gjd_PROJECT_ID}/serviceAccounts/${gjd_BUILD_SERVICE_ACCOUNT}" iam.serviceAccounts.actAs
+  require_permission "$gjd_active_account" "$gjd_RUNTIME_SA_RESOURCE" iam.serviceAccounts.actAs
 
-readonly GJ_git_sha
-readonly GJ_revision_suffix
-readonly GJ_image_tag
-readonly GJ_build_sa_resource="projects/${GJ_PROJECT_ID}/serviceAccounts/${GJ_BUILD_SERVICE_ACCOUNT}"
-GJ_git_sha="$(git rev-parse HEAD)"
-GJ_revision_suffix="${GJ_git_sha:0:12}"
-GJ_image_tag="${GJ_REGION}-docker.pkg.dev/${GJ_PROJECT_ID}/${GJ_ARTIFACT_REPOSITORY}/${GJ_IMAGE}:${GJ_git_sha}"
+  [[ -z "$(git status --porcelain --untracked-files=normal)" ]] || fail 'worktree must be clean'
+  git diff-index --quiet HEAD -- || fail 'tracked files differ from HEAD'
+  gjd_branch="$(git symbolic-ref --quiet --short HEAD)" || fail 'deployment requires a named gjd_branch'
+  git fetch --quiet origin "$gjd_branch"
+  git merge-base --is-ancestor HEAD "origin/$gjd_branch" || fail "HEAD is not pushed to origin/$gjd_branch"
+  [[ "$(git rev-parse HEAD)" == "$(git rev-parse "origin/$gjd_branch")" ]] || fail "HEAD must exactly match origin/$gjd_branch"
 
-gcloud builds submit . \
-  --project="$GJ_PROJECT_ID" \
-  --region="$GJ_REGION" \
-  --service-account="$GJ_build_sa_resource" \
-  --default-buckets-behavior=regional-user-owned-bucket \
-  --gcs-source-staging-dir="gs://${GJ_SOURCE_BUCKET}/source" \
-  --tag="$GJ_image_tag"
+  gjd_git_sha
+  gjd_revision_suffix
+  gjd_image_tag
+  gjd_build_sa_resource="projects/${gjd_PROJECT_ID}/serviceAccounts/${gjd_BUILD_SERVICE_ACCOUNT}"
+  gjd_git_sha="$(git rev-parse HEAD)"
+  gjd_revision_suffix="${gjd_git_sha:0:12}"
+  gjd_image_tag="${gjd_REGION}-docker.pkg.dev/${gjd_PROJECT_ID}/${gjd_ARTIFACT_REPOSITORY}/${gjd_IMAGE}:${gjd_git_sha}"
 
-GJ_digest="$(gcloud artifacts docker images describe "$GJ_image_tag" \
-  --project="$GJ_PROJECT_ID" --format='value(image_summary.digest)')"
-[[ "$GJ_digest" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "Artifact Registry returned an invalid digest: $GJ_digest"
-readonly GJ_image_digest="${GJ_REGION}-docker.pkg.dev/${GJ_PROJECT_ID}/${GJ_ARTIFACT_REPOSITORY}/${GJ_IMAGE}@${GJ_digest}"
+  gcloud builds submit . \
+    --project="$gjd_PROJECT_ID" \
+    --region="$gjd_REGION" \
+    --service-account="$gjd_build_sa_resource" \
+    --default-buckets-behavior=regional-user-owned-bucket \
+    --gcs-source-staging-dir="gs://${gjd_SOURCE_BUCKET}/source" \
+    --tag="$gjd_image_tag"
 
-gcloud beta run deploy "$GJ_SERVICE" \
-  --project="$GJ_PROJECT_ID" \
-  --region="$GJ_REGION" \
-  --image="$GJ_image_digest" \
-  --revision-suffix="$GJ_revision_suffix" \
-  --no-traffic \
-  --allow-unauthenticated \
-  --min-instances="$GJ_MIN_INSTANCES" \
-  --max-instances="$GJ_MAX_INSTANCES" \
-  --concurrency="$GJ_CONCURRENCY" \
-  --cpu="$GJ_CPU" \
-  --memory="$GJ_MEMORY" \
-  --timeout="${GJ_TIMEOUT_SECONDS}s" \
-  --port=8080 \
-  --startup-probe="initialDelaySeconds=0,timeoutSeconds=2,periodSeconds=2,failureThreshold=15,httpGet.port=8080,httpGet.path=${GJ_STARTUP_PATH}" \
-  --liveness-probe="initialDelaySeconds=10,timeoutSeconds=2,periodSeconds=10,failureThreshold=3,httpGet.port=8080,httpGet.path=${GJ_LIVENESS_PATH}" \
-  --service-account="$GJ_RUNTIME_SERVICE_ACCOUNT" \
-  --quiet
+  gjd_digest="$(gcloud artifacts docker images describe "$gjd_image_tag" \
+    --project="$gjd_PROJECT_ID" --format='value(image_summary.digest)')"
+  [[ "$gjd_digest" =~ ^sha256:[0-9a-f]{64}$ ]] || fail "Artifact Registry returned an invalid digest: $gjd_digest"
+  gjd_image_digest="${gjd_REGION}-docker.pkg.dev/${gjd_PROJECT_ID}/${gjd_ARTIFACT_REPOSITORY}/${gjd_IMAGE}@${gjd_digest}"
 
-mkdir -p "$(dirname "$GJ_DEPLOY_OUTPUT")"
-GJ_service_json="$(mktemp)"
-GJ_revision_json="$(mktemp)"
-GJ_iam_json="$(mktemp)"
-GJ_tmp_output="$(mktemp "${GJ_DEPLOY_OUTPUT}.tmp.XXXXXX")"
-trap 'rm -f "$GJ_service_json" "$GJ_revision_json" "$GJ_iam_json" "$GJ_tmp_output"' EXIT
-chmod 600 "$GJ_service_json" "$GJ_revision_json" "$GJ_iam_json" "$GJ_tmp_output"
-gcloud run services describe "$GJ_SERVICE" --project="$GJ_PROJECT_ID" --region="$GJ_REGION" --format=json >"$GJ_service_json"
-GJ_revision="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["status"]["latestCreatedRevisionName"])' "$GJ_service_json")"
-[[ "$GJ_revision" == "${GJ_SERVICE}-${GJ_revision_suffix}" ]] || fail "created revision $GJ_revision does not match commit suffix $GJ_revision_suffix"
-gcloud run revisions describe "$GJ_revision" --project="$GJ_PROJECT_ID" --region="$GJ_REGION" --format=json >"$GJ_revision_json"
-gcloud run services get-iam-policy "$GJ_SERVICE" --project="$GJ_PROJECT_ID" --region="$GJ_REGION" --format=json >"$GJ_iam_json"
+  gcloud beta run deploy "$gjd_SERVICE" \
+    --project="$gjd_PROJECT_ID" \
+    --region="$gjd_REGION" \
+    --image="$gjd_image_digest" \
+    --revision-suffix="$gjd_revision_suffix" \
+    --no-traffic \
+    --allow-unauthenticated \
+    --min-instances="$gjd_MIN_INSTANCES" \
+    --max-instances="$gjd_MAX_INSTANCES" \
+    --concurrency="$gjd_CONCURRENCY" \
+    --cpu="$gjd_CPU" \
+    --memory="$gjd_MEMORY" \
+    --timeout="${gjd_TIMEOUT_SECONDS}s" \
+    --port=8080 \
+    --startup-probe="initialDelaySeconds=0,timeoutSeconds=2,periodSeconds=2,failureThreshold=15,httpGet.port=8080,httpGet.path=${gjd_STARTUP_PATH}" \
+    --liveness-probe="initialDelaySeconds=10,timeoutSeconds=2,periodSeconds=10,failureThreshold=3,httpGet.port=8080,httpGet.path=${gjd_LIVENESS_PATH}" \
+    --service-account="$gjd_RUNTIME_SERVICE_ACCOUNT" \
+    --quiet
 
-python3 - "$GJ_service_json" "$GJ_revision_json" "$GJ_iam_json" "$GJ_image_digest" "$GJ_RUNTIME_SERVICE_ACCOUNT" "$GJ_revision" "$GJ_MIN_INSTANCES" "$GJ_MAX_INSTANCES" "$GJ_CONCURRENCY" "$GJ_CPU" "$GJ_MEMORY" "$GJ_TIMEOUT_SECONDS" "$GJ_STARTUP_PATH" "$GJ_LIVENESS_PATH" "$GJ_tmp_output" <<'PY'
+  mkdir -p "$(dirname "$gjd_DEPLOY_OUTPUT")"
+  gjd_service_json="$(mktemp)"
+  gjd_revision_json="$(mktemp)"
+  gjd_iam_json="$(mktemp)"
+  gjd_tmp_output="$(mktemp "${gjd_DEPLOY_OUTPUT}.tmp.XXXXXX")"
+  trap 'rm -f "$gjd_service_json" "$gjd_revision_json" "$gjd_iam_json" "$gjd_tmp_output"' EXIT
+  chmod 600 "$gjd_service_json" "$gjd_revision_json" "$gjd_iam_json" "$gjd_tmp_output"
+  gcloud run services describe "$gjd_SERVICE" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json >"$gjd_service_json"
+  gjd_revision="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["status"]["latestCreatedRevisionName"])' "$gjd_service_json")"
+  [[ "$gjd_revision" == "${gjd_SERVICE}-${gjd_revision_suffix}" ]] || fail "created revision $gjd_revision does not match commit suffix $gjd_revision_suffix"
+  gcloud run revisions describe "$gjd_revision" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json >"$gjd_revision_json"
+  gcloud run services get-iam-policy "$gjd_SERVICE" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json >"$gjd_iam_json"
+
+  python3 - "$gjd_service_json" "$gjd_revision_json" "$gjd_iam_json" "$gjd_image_digest" "$gjd_RUNTIME_SERVICE_ACCOUNT" "$gjd_revision" "$gjd_MIN_INSTANCES" "$gjd_MAX_INSTANCES" "$gjd_CONCURRENCY" "$gjd_CPU" "$gjd_MEMORY" "$gjd_TIMEOUT_SECONDS" "$gjd_STARTUP_PATH" "$gjd_LIVENESS_PATH" "$gjd_tmp_output" <<'PY'
 import json
 import sys
 
@@ -246,8 +257,13 @@ with open(sys.argv[15], "w", encoding="utf-8") as output:
     output.write("\n")
 PY
 
-mv "$GJ_tmp_output" "$GJ_DEPLOY_OUTPUT"
-trap - EXIT
-rm -f "$GJ_service_json" "$GJ_revision_json" "$GJ_iam_json"
-printf 'Validated revision %s at 0%% traffic\n' "$GJ_revision"
-printf 'Captured verified effective settings in %s\n' "$GJ_DEPLOY_OUTPUT"
+  mv "$gjd_tmp_output" "$gjd_DEPLOY_OUTPUT"
+  trap - EXIT
+  rm -f "$gjd_service_json" "$gjd_revision_json" "$gjd_iam_json"
+  printf 'Validated revision %s at 0%% traffic\n' "$gjd_revision"
+  printf 'Captured verified effective settings in %s\n' "$gjd_DEPLOY_OUTPUT"
+)
+
+if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
+  main "$@"
+fi

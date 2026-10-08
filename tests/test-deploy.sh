@@ -12,9 +12,10 @@ contains() { rg -F --quiet -- "$1" "$2" || fail "$2 missing: $1"; }
 [[ -f "$env_example" ]] || fail "$env_example must exist"
 bash -n "$script"
 
-readonly_root_output="$(bash -c '
+reentry_output="$(bash -c '
   readonly ROOT=/macos/system/root
   readonly git_sha=hook-owned
+  readonly GJ_git_sha=hook-owned-too
   gcloud() {
     if [[ "$1 $2" == "auth list" ]]; then
       printf "%s\n" wrong@example.com
@@ -24,18 +25,25 @@ readonly_root_output="$(bash -c '
   }
   export -f gcloud
   deploy_script="$1"
-  set --
   source "$deploy_script"
-' _ "$script" 2>&1 || true)"
-[[ "$readonly_root_output" == *'active account must be anthony.lui@archegon.com'* ]] || fail "readonly ROOT harness did not reach controlled account preflight: $readonly_root_output"
-[[ "$readonly_root_output" != *'readonly variable'* ]] || fail 'deploy script collided with a readonly caller variable'
+  source "$deploy_script"
+  main || true
+  main || true
+' _ "$script" 2>&1)"
+[[ "$(rg -c 'active account must be anthony.lui@archegon.com' <<<"$reentry_output")" == 2 ]] || fail "reentry harness did not reach controlled preflight twice: $reentry_output"
+[[ "$reentry_output" != *'readonly variable'* ]] || fail 'deploy script collided with a readonly caller variable'
+
 
 contains 'set -euo pipefail' "$script"
-contains 'GJ_REPO_ROOT=' "$script"
-if rg -n '\b(ROOT|git_sha)=' "$script"; then fail 'unprefixed collision-prone assignment remains'; fi
-if rg -n '^(readonly )?(REPO_ROOT|active_account|active_project|billing_enabled|enabled_apis|repository_name|repository_format|expected_repository_name|bucket_json|branch|revision_suffix|image_tag|build_sa_resource|digest|image_digest|service_json|revision_json|iam_json|tmp_output|revision)=' "$script"; then fail 'unprefixed internal assignment remains'; fi
+contains 'main() (' "$script"
+contains 'local gjd_REPO_ROOT' "$script"
 # shellcheck disable=SC2016
-contains 'readonly GJ_PROJECT_ID="${PROJECT_ID:-ninth-airship-386815}"' "$script"
+contains 'if [[ "${BASH_SOURCE[0]}" == "$0" ]]' "$script"
+contains 'main "$@"' "$script"
+if rg -n '\b(ROOT|git_sha)=' "$script"; then fail 'unprefixed collision-prone assignment remains'; fi
+if rg -n '^(readonly )?(gjd_[A-Za-z0-9_]+|REPO_ROOT|active_account|active_project|billing_enabled|enabled_apis|repository_name|repository_format|expected_repository_name|bucket_json|branch|revision_suffix|image_tag|build_sa_resource|digest|image_digest|service_json|revision_json|iam_json|tmp_output|revision)=' "$script"; then fail 'unprefixed internal assignment remains'; fi
+# shellcheck disable=SC2016
+contains 'gjd_PROJECT_ID="${PROJECT_ID:-ninth-airship-386815}"' "$script"
 contains 'ninth-airship-386815' "$env_example"
 contains 'australia-southeast1' "$env_example"
 contains 'IMAGE=app' "$env_example"
@@ -47,9 +55,9 @@ contains 'storage.objects.get' "$script"
 contains 'allowPolicyExplanation.allowAccessState' "$script"
 contains 'ALLOW_ACCESS_STATE_GRANTED' "$script"
 # shellcheck disable=SC2016
-contains '--gcs-source-staging-dir="gs://${GJ_SOURCE_BUCKET}/source"' "$script"
+contains '--gcs-source-staging-dir="gs://${gjd_SOURCE_BUCKET}/source"' "$script"
 # shellcheck disable=SC2016
-contains '[[ "$GJ_revision" == "${GJ_SERVICE}-${GJ_revision_suffix}" ]]' "$script"
+contains '[[ "$gjd_revision" == "${gjd_SERVICE}-${gjd_revision_suffix}" ]]' "$script"
 contains '--default-buckets-behavior=regional-user-owned-bucket' "$script"
 contains 'gcloud beta billing projects describe' "$script"
 contains 'gcloud services list' "$script"
@@ -80,32 +88,32 @@ contains 'git status --porcelain' "$script"
 contains 'git merge-base --is-ancestor HEAD' "$script"
 contains 'gcloud builds submit' "$script"
 # shellcheck disable=SC2016
-contains '--service-account="$GJ_build_sa_resource"' "$script"
+contains '--service-account="$gjd_build_sa_resource"' "$script"
 contains 'gcloud artifacts docker images describe' "$script"
 # shellcheck disable=SC2016
-contains '${GJ_IMAGE}@${GJ_digest}' "$script"
+contains '${gjd_IMAGE}@${gjd_digest}' "$script"
 contains 'assert_effective_deployment' "$script"
 contains 'gcloud beta run deploy' "$script"
 contains '--no-traffic' "$script"
 contains '--allow-unauthenticated' "$script"
 # shellcheck disable=SC2016
-contains 'GJ_MIN_INSTANCES="${MIN_INSTANCES:-0}"' "$script"
+contains 'gjd_MIN_INSTANCES="${MIN_INSTANCES:-0}"' "$script"
 # shellcheck disable=SC2016
-contains 'GJ_MAX_INSTANCES="${MAX_INSTANCES:-2}"' "$script"
+contains 'gjd_MAX_INSTANCES="${MAX_INSTANCES:-2}"' "$script"
 # shellcheck disable=SC2016
-contains 'GJ_CONCURRENCY="${CONCURRENCY:-20}"' "$script"
+contains 'gjd_CONCURRENCY="${CONCURRENCY:-20}"' "$script"
 # shellcheck disable=SC2016
-contains 'GJ_CPU="${CPU:-1}"' "$script"
+contains 'gjd_CPU="${CPU:-1}"' "$script"
 # shellcheck disable=SC2016
-contains 'GJ_MEMORY="${MEMORY:-512Mi}"' "$script"
+contains 'gjd_MEMORY="${MEMORY:-512Mi}"' "$script"
 # shellcheck disable=SC2016
-contains 'GJ_TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-30}"' "$script"
+contains 'gjd_TIMEOUT_SECONDS="${TIMEOUT_SECONDS:-30}"' "$script"
 # shellcheck disable=SC2016
-contains 'GJ_STARTUP_PATH="${STARTUP_PATH:-/api/ready}"' "$script"
+contains 'gjd_STARTUP_PATH="${STARTUP_PATH:-/api/ready}"' "$script"
 # shellcheck disable=SC2016
-contains 'GJ_LIVENESS_PATH="${LIVENESS_PATH:-/api/health}"' "$script"
+contains 'gjd_LIVENESS_PATH="${LIVENESS_PATH:-/api/health}"' "$script"
 # shellcheck disable=SC2016
-contains '--service-account="$GJ_RUNTIME_SERVICE_ACCOUNT"' "$script"
+contains '--service-account="$gjd_RUNTIME_SERVICE_ACCOUNT"' "$script"
 
 if rg -n '(:latest|--tag=latest)' "$script"; then
   fail 'deploy script must not use latest'
@@ -125,7 +133,7 @@ repository_format="$(printf '%s\n' "$repository_format_fixture")"
 validator="$(python3 - "$script" <<'PYEXTRACT'
 import sys
 text = open(sys.argv[1], encoding="utf-8").read()
-marker = "python3 - \"$GJ_service_json\""
+marker = "python3 - \"$gjd_service_json\""
 start = text.index(marker)
 start = text.index("<<'PY'", start) + len("<<'PY'") + 1
 end = text.index("\nPY\n", start)
@@ -149,7 +157,7 @@ python3 -c "$validator" \
   'graphs-and-jev-runner@ninth-airship-386815.iam.gserviceaccount.com' 'graphs-and-jev-abc123' \
   0 2 20 1 512Mi 30 /api/ready /api/health "$validator_dir/effective.json"
 python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); assert data["revision"] == "graphs-and-jev-abc123"; assert data["image_digest"].endswith("a" * 64)' "$validator_dir/effective.json"
-if rg -n '\bGJ_[A-Za-z_]*' <<<"$validator"; then fail 'shell namespace leaked into embedded Python'; fi
+if rg -n '\b(gjd_|GJ_)[A-Za-z_]*' <<<"$validator"; then fail 'shell namespace leaked into embedded Python'; fi
 trap - EXIT
 rm -rf "$validator_dir"
 
