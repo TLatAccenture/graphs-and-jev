@@ -8,18 +8,18 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/graphs-and-jev/guide.css">
+<link rel="stylesheet" href="/guide.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-header">
   <div class="in">
-    <a class="brand" href="/graphs-and-jev/">Graphs + Jev</a>
+    <a class="brand" href="/">Graphs + Jev</a>
     <nav class="site-nav" aria-label="Primary">
-      <a href="/graphs-and-jev/#how-it-works">How it works</a>
-      <a href="/graphs-and-jev/#use-cases">Use cases</a>
-      <a href="/graphs-and-jev/#technical-guide">Technical guide</a>
-      <a class="cta" href="/graphs-and-jev/#example">Try the demo</a>
+      <a href="/#how-it-works">How it works</a>
+      <a href="/#use-cases">Use cases</a>
+      <a href="/#technical-guide">Technical guide</a>
+      <a class="cta" href="/#example">Try the demo</a>
     </nav>
   </div>
 </header>
@@ -37,7 +37,7 @@
       </div>
     </div>
     <figure class="hero-art" style="margin:0">
-      <img src="/graphs-and-jev/assets/evidence-path.svg" width="480" height="540" alt="A question passes through connected facts. A two-hop path from John Doe to ACME is highlighted, Jev chooses Answer, and the answer returns with its path and sources.">
+      <img src="/assets/evidence-path.svg" width="480" height="540" alt="A question passes through connected facts. A two-hop path from Example Person to ACME is highlighted, Jev chooses Answer, and the answer returns with its path and sources.">
     </figure>
   </div>
 </section>
@@ -47,7 +47,7 @@
     <div class="section-head">
       <span class="eyebrow">The concept in 60 seconds</span>
       <h2 id="how-title">Three steps from a question to a decision you can check.</h2>
-      <p>Before any of this, the evidence has to be within reach. RAG retrieves indexed documents; MCP connects an AI application to governed tools and live systems. Both put material in front of the model, but neither shows how the pieces relate or whether they are enough to answer. That is where graphs and Jev come in. <a href="/graphs-and-jev/dcceew/#reach">See all four layers in the DCCEEW story</a>.</p>
+      <p>Before any of this, the evidence has to be within reach. RAG retrieves indexed documents; MCP connects an AI application to governed tools and live systems. Both put material in front of the model, but neither shows how the pieces relate or whether they are enough to answer. That is where graphs and Jev come in. <a href="/dcceew/#reach">See all four layers in the DCCEEW story</a>.</p>
     </div>
     <ol class="steps">
       <li>
@@ -69,7 +69,7 @@
     <dl class="defs" style="margin-top:clamp(40px,6vw,72px)">
       <div><dt>RAG</dt><dd>Retrieval-augmented generation: search an index of documents and add the best passages to the model's prompt. A technique for finding things.</dd></div>
       <div><dt>MCP</dt><dd>Model Context Protocol: an open standard for connecting an AI application to tools, resources and live systems. A way of connecting to things.</dd></div>
-      <div><dt>Graph</dt><dd>Facts (nodes) and the typed relationships between them (edges), such as <em>John Doe leads Solar Farm Alpha</em>.</dd></div>
+      <div><dt>Graph</dt><dd>Facts (nodes) and the typed relationships between them (edges), such as <em>Example Person leads Solar Farm Alpha</em>.</dd></div>
       <div><dt>Graph database</dt><dd>The store that holds a graph and answers questions by following relationships. Neo4j and Google Cloud Spanner Graph are examples. These demonstrations keep a small graph in memory instead.</dd></div>
       <div><dt>Jev</dt><dd>The typed decision layer. It decides what an agent may do with the evidence. It is not the database and does not store facts.</dd></div>
     </dl>
@@ -120,11 +120,11 @@
     <div class="section-head">
       <span class="eyebrow">Use cases</span>
       <h2 id="uses-title">Three demonstrations of the same pattern.</h2>
-      <p>Each one asks a real question, builds or reads a graph, and lets Jev decide what to return. Two use deterministic representative evidence in the browser; the third explains why short graph neighbourhoods are enough.</p>
+      <p>Each one asks a real question, builds or reads a graph, and lets Jev decide what to return. DCCEEW uses deterministic Rust catalogue rules, Parkinson’s retrieves live public evidence, and Little Bunnies explains why short graph neighbourhoods are enough.</p>
     </div>
 
     <article class="feature" aria-labelledby="uc-dcceew">
-      <div class="feature-art"><img src="/graphs-and-jev/assets/dcceew-landscape.svg" width="640" height="400" alt=""></div>
+      <div class="feature-art"><img src="/assets/dcceew-landscape.svg" width="640" height="400" alt=""></div>
       <div>
         <span class="label">DCCEEW catalogue discovery</span>
         <h3 id="uc-dcceew">Department of Climate Change, Energy, the Environment and Water (DCCEEW)</h3>
@@ -134,12 +134,12 @@
           <div><dt>What Jev controls</dt><dd>Answers only when a dataset covers the request; otherwise it asks, rejects or reports no data.</dd></div>
           <div><dt>The full story</dt><dd>How RAG and MCP bring evidence within reach, and where graphs and Jev take over.</dd></div>
         </dl>
-        <a class="btn" href="/graphs-and-jev/dcceew/">Open the DCCEEW story and demo</a>
+        <a class="btn" href="/dcceew/">Open the DCCEEW story and demo</a>
       </div>
     </article>
 
     <article class="feature" aria-labelledby="uc-pd">
-      <div class="feature-art"><img src="/graphs-and-jev/assets/parkinsons-research.svg" width="640" height="400" alt=""></div>
+      <div class="feature-art"><img src="/assets/parkinsons-research.svg" width="640" height="400" alt=""></div>
       <div>
         <span class="label">Parkinson&rsquo;s research evidence</span>
         <h3 id="uc-pd">Parkinson&rsquo;s research evidence</h3>
@@ -148,12 +148,12 @@
           <div><dt>What the graph adds</dt><dd>Turns retrieved publications into typed links between compounds, targets and conditions, each pointing back to its source.</dd></div>
           <div><dt>What Jev controls</dt><dd>Refuses diagnosis, prescribing and dosing before any search, and asks for clarification when sources do not state a relationship.</dd></div>
         </dl>
-        <a class="btn" href="/graphs-and-jev/parkinsons/">Open the Parkinson&rsquo;s demo</a>
+        <a class="btn" href="/parkinsons/">Open the Parkinson&rsquo;s demo</a>
       </div>
     </article>
 
     <article class="feature" aria-labelledby="uc-sw">
-      <div class="feature-art"><img src="/graphs-and-jev/assets/small-world.svg" width="640" height="400" alt=""></div>
+      <div class="feature-art"><img src="/assets/small-world.svg" width="640" height="400" alt=""></div>
       <div>
         <span class="label">Small-world context</span>
         <h3 id="uc-sw">Little Bunnies: why two hops are usually enough</h3>
@@ -162,7 +162,7 @@
           <div><dt>What the graph adds</dt><dd>Short paths. In a small-world network, a few hops reach most of the graph.</dd></div>
           <div><dt>What Jev controls</dt><dd>Keeps the decision state inside a fixed token budget, so context stays bounded.</dd></div>
         </dl>
-        <a class="btn" href="/graphs-and-jev/little-bunnies/">Open Little Bunnies</a>
+        <a class="btn" href="/little-bunnies/">Open Little Bunnies</a>
       </div>
     </article>
   </div>
@@ -179,11 +179,11 @@
         <li><strong>Traceable</strong>Every outcome returns the path and the sources behind it.</li>
         <li><strong>Bounded outcomes</strong>Answer, clarify, reject, review or no data. Nothing in between.</li>
         <li><strong>Refusal before retrieval</strong>Requests outside scope, such as a medication dose, stop before any search runs.</li>
-        <li><strong>Portable publication</strong>Static files with no cloud SDK or server dependency. The same publication runs on GitHub Pages or any static host.</li>
-        <li><strong>No runtime egress</strong>No hosted model, API, analytics or live research search is called. External source links open only when you choose them.</li>
+        <li><strong>Portable Rust service</strong>One static container with no cloud SDK. The same image can run on GCP, AWS or Azure.</li>
+        <li><strong>Explicit egress</strong>No hosted model or analytics is called. Parkinson’s retrieval uses only Wikipedia and Europe PMC after the local clinical refusal gate.</li>
         <li><strong>No raw personal data</strong>The demonstration graphs hold no personal data, and the static publication does not log request text.</li>
       </ul>
-      <p class="annotation" style="margin-top:28px">Scope: the browser demonstrations use deterministic catalogue rules and an in-memory graph. They are not a production graph database, and the Parkinson&rsquo;s page is not clinical decision support.</p>
+      <p class="annotation" style="margin-top:28px">Scope: DCCEEW uses deterministic Rust catalogue rules over illustrative data; Parkinson’s uses live Wikipedia and Europe PMC retrieval. The demonstrations use an in-memory graph. They are not a production graph database, and the Parkinson&rsquo;s page is not clinical decision support.</p>
     </div>
   </div>
 </section>
@@ -200,7 +200,7 @@
       <div class="spotlight-main">
         <div class="spotlight-copy">
           <span class="eyebrow">GCP event spotlight</span>
-          <p class="spotlight-product"><img src="/graphs-and-jev/assets/engine-logos/google-cloud-spanner.svg" alt="" width="32" height="32">Google Cloud Spanner Graph</p>
+          <p class="spotlight-product"><img src="/assets/engine-logos/google-cloud-spanner.svg" alt="" width="32" height="32">Google Cloud Spanner Graph</p>
           <h3 id="spanner-title">One database. Relational and graph views.</h3>
           <p class="spotlight-lede">Spanner Graph maps Spanner tables or SQL views into a property graph without creating a separate copy of the data. Teams can use GQL for graph patterns, SQL for relational work, and combine both when a decision needs connected and tabular context.</p>
           <ul class="spotlight-claims">
@@ -219,7 +219,7 @@
           </ul>
         </div>
         <figure class="spotlight-art">
-          <img src="/graphs-and-jev/assets/spanner-graph-architecture.svg" width="480" height="600" loading="lazy" alt="Diagram: Spanner tables and SQL views hold one copy of the data, exposed both as a relational view queried with SQL and as a property graph queried with GQL. Together they give connected context to Jev, which answers, clarifies, sends for review or rejects.">
+          <img src="/assets/spanner-graph-architecture.svg" width="480" height="600" loading="lazy" alt="Diagram: Spanner tables and SQL views hold one copy of the data, exposed both as a relational view queried with SQL and as a property graph queried with GQL. Together they give connected context to Jev, which answers, clarifies, sends for review or rejects.">
         </figure>
       </div>
       <div class="spotlight-fit">
@@ -283,8 +283,8 @@
   <h3>Lab 1: hybrid text retrieval against graph retrieval</h3>
   <p class="note">The text baseline is what most teams already run: BM25 over each node's text, fused with dense similarity from a small embedding model (all-MiniLM-L6-v2) by reciprocal rank fusion. Dense similarities are precomputed for the questions in the list; for a question you type yourself, the text side falls back to BM25 alone. Graph retrieval starts at the entities named in the question and follows relationships.</p>
   <div class="params">
-    <label style="flex:1 1 100%">Question <input id="aQ" style="width:100%;font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink)" value="What is John Doe's role in ACME's renewable energy projects?" list="aQList"></label>
-    <datalist id="aQList"><option value="What is John Doe's role in ACME's renewable energy projects?"></option><option value="Which customers were affected by Outage 14?"></option><option value="Which clause governs the supplier of Wind Project Beta?"></option><option value="What does the 2025 strategic plan cover?"></option></datalist>
+    <label style="flex:1 1 100%">Question <input id="aQ" style="width:100%;font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink)" value="What is Example Person's role in ACME's renewable energy projects?" list="aQList"></label>
+    <datalist id="aQList"><option value="What is Example Person's role in ACME's renewable energy projects?"></option><option value="Which customers were affected by Outage 14?"></option><option value="Which clause governs the supplier of Wind Project Beta?"></option><option value="What does the 2025 strategic plan cover?"></option></datalist>
     <label>Hops <input id="aK" type="number" min="1" max="4" value="2" style="width:64px"></label>
     <button class="primary" data-run="A">Run</button>
   </div>
@@ -324,7 +324,7 @@
     </details>
 
     <details class="tech">
-      <summary><span>One question, five dialects<small>Which projects does John Doe lead, and who owns them?</small></span></summary>
+      <summary><span>One question, five dialects<small>Which projects does Example Person lead, and who owns them?</small></span></summary>
       <div class="body">
         <div class="tabs" id="snipTabs" role="tablist"></div>
 <div class="snip"><pre><code id="snipCode"></code></pre><button class="copy" id="snipCopy">Copy</button></div>
@@ -359,7 +359,7 @@
 /* ---------- Example graph shared by the hero and the labs ---------- */
 const G = {
   nodes: [
-    {id:"john",label:"John Doe",type:"Person",x:55,y:55,text:"John Doe is a programme director based in Sydney."},
+    {id:"john",label:"Example Person",type:"Person",x:55,y:55,text:"Example Person is a programme director based in Sydney."},
     {id:"solar",label:"Solar Farm Alpha",type:"Project",x:180,y:35,text:"Solar Farm Alpha is a 120 MW site commissioned in 2024."},
     {id:"acme",label:"ACME",type:"Company",x:305,y:60,text:"ACME is an infrastructure company."},
     {id:"wind",label:"Wind Project Beta",type:"Project",x:180,y:140,text:"Wind Project Beta is an offshore site in planning."},
@@ -390,7 +390,7 @@ function bfs(start,k){const d={[start]:0};let f=[start];for(let h=1;h<=k;h++){co
 const SCENARIOS={
   leads:{q:"Who leads ACME's renewable projects?",start:"john",hops:2,
     path:[["john","LEADS","solar"],["acme","OWNS","solar"]],
-    outcome:"answer",answer:"John Doe leads Solar Farm Alpha, which ACME owns.",
+    outcome:"answer",answer:"Example Person leads Solar Farm Alpha, which ACME owns.",
     why:"Two relationships connect the person to the company. No single fact says this; the edges do."},
   outage:{q:"Which customers did Outage 14 affect?",start:"outage",hops:2,
     path:[["outage","AFFECTED","api"],["api","SERVES","custy"],["api","SERVES","custz"]],
@@ -451,15 +451,15 @@ choose("leads");
 /* ---------- Engine data ---------- */
 const GV={"A":4,"A-":3.7,"B+":3.3,"B":3,"B-":2.7,"C+":2.3,"C":2,"C-":1.7,"D":1,"F":0};
 const E=[
- {n:"Neo4j",logo:"/graphs-and-jev/assets/engine-logos/neo4j.svg",initials:"N4",cat:"native",shared:"A-",embed:null,d:5,o:5,c:2,v:5,cost:4670,note:"Business Critical, 32 GB"},
- {n:"FalkorDB",logo:"/graphs-and-jev/assets/engine-logos/falkordb.png",initials:"FK",cat:"native",shared:"B+",embed:"B",d:4,o:3,c:4,v:3,cost:350,note:"Pro, 8 GB with HA"},
- {n:"Memgraph",logo:"/graphs-and-jev/assets/engine-logos/memgraph.svg",initials:"MG",cat:"native",shared:"B",embed:null,d:4,o:3,c:3,v:3,cost:null,note:"Community free for internal use (BSL); Enterprise on request; Cloud priced by calculator"},
+ {n:"Neo4j",logo:"/assets/engine-logos/neo4j.svg",initials:"N4",cat:"native",shared:"A-",embed:null,d:5,o:5,c:2,v:5,cost:4670,note:"Business Critical, 32 GB"},
+ {n:"FalkorDB",logo:"/assets/engine-logos/falkordb.png",initials:"FK",cat:"native",shared:"B+",embed:"B",d:4,o:3,c:4,v:3,cost:350,note:"Pro, 8 GB with HA"},
+ {n:"Memgraph",logo:"/assets/engine-logos/memgraph.svg",initials:"MG",cat:"native",shared:"B",embed:null,d:4,o:3,c:3,v:3,cost:null,note:"Community free for internal use (BSL); Enterprise on request; Cloud priced by calculator"},
  {n:"Neptune",displayName:"Amazon Neptune",logo:null,initials:"AN",cat:"native",shared:"B",embed:null,d:3,o:5,c:3,v:5,cost:460,note:"Two db.r6g.large, before storage and I/O"},
- {n:"Spanner Graph",displayName:"Google Cloud Spanner Graph",logo:"/graphs-and-jev/assets/engine-logos/google-cloud-spanner.svg",initials:"SG",cat:"over",shared:"B",embed:null,d:3,o:5,c:3,v:5,cost:90,hi:898,note:"Enterprise edition, us-central1, 100 processing units to 1 node; compute only"},
- {n:"PuppyGraph",logo:"/graphs-and-jev/assets/engine-logos/puppygraph.svg",initials:"PG",cat:"over",shared:"B",prov:true,embed:null,d:4,o:3,c:4,v:3,cost:null,note:"Priced on server CPU and memory; quote only"},
- {n:"Fabric graph",displayName:"Microsoft Fabric Graph",logo:"/graphs-and-jev/assets/engine-logos/microsoft-fabric.svg",initials:"FG",cat:"over",shared:"C+",embed:null,d:3,o:3,c:3,v:4,cost:1300,note:"Always on, pay-as-you-go estimate"},
- {n:"MongoDB Atlas",logo:"/graphs-and-jev/assets/engine-logos/mongodb.svg",initials:"MA",cat:"doc",shared:"C",embed:null,d:2,o:5,c:4,v:5,cost:394,note:"M30 cluster"},
- {n:"Cosmos DB Gremlin",displayName:"Azure Cosmos DB for Apache Gremlin",logo:"/graphs-and-jev/assets/engine-logos/azure-cosmos-db.svg",initials:"CD",cat:"doc",shared:"D",embed:null,d:2,o:4,c:2,v:2,cost:null,note:"Throughput-based; depends on load"},
+ {n:"Spanner Graph",displayName:"Google Cloud Spanner Graph",logo:"/assets/engine-logos/google-cloud-spanner.svg",initials:"SG",cat:"over",shared:"B",embed:null,d:3,o:5,c:3,v:5,cost:90,hi:898,note:"Enterprise edition, us-central1, 100 processing units to 1 node; compute only"},
+ {n:"PuppyGraph",logo:"/assets/engine-logos/puppygraph.svg",initials:"PG",cat:"over",shared:"B",prov:true,embed:null,d:4,o:3,c:4,v:3,cost:null,note:"Priced on server CPU and memory; quote only"},
+ {n:"Fabric graph",displayName:"Microsoft Fabric Graph",logo:"/assets/engine-logos/microsoft-fabric.svg",initials:"FG",cat:"over",shared:"C+",embed:null,d:3,o:3,c:3,v:4,cost:1300,note:"Always on, pay-as-you-go estimate"},
+ {n:"MongoDB Atlas",logo:"/assets/engine-logos/mongodb.svg",initials:"MA",cat:"doc",shared:"C",embed:null,d:2,o:5,c:4,v:5,cost:394,note:"M30 cluster"},
+ {n:"Cosmos DB Gremlin",displayName:"Azure Cosmos DB for Apache Gremlin",logo:"/assets/engine-logos/azure-cosmos-db.svg",initials:"CD",cat:"doc",shared:"D",embed:null,d:2,o:4,c:2,v:2,cost:null,note:"Throughput-based; depends on load"},
  {n:"Kuzu forks",logo:null,initials:"KF",cat:"embed",shared:null,embed:"B-",d:4,o:1,c:5,v:2,cost:0,note:"Open source; your own compute"},
  {n:"Kuzu 0.11.3",logo:null,initials:"KZ",cat:"embed",shared:null,embed:"C",d:4,o:1,c:5,v:0,cost:0,note:"Archived; pin only for existing use"}
 ];
@@ -513,7 +513,7 @@ drawGrades();
 
 /* ---------- Labs ---------- */
 // Cosine similarity of each node's text to the preset questions (all-MiniLM-L6-v2), precomputed.
-const DENSE={"What is John Doe's role in ACME's renewable energy projects?":{"john":0.565,"solar":0.308,"acme":0.559,"wind":0.28,"renew":0.551,"plan":0.387,"supplier":0.281,"clause":0.01,"api":0.036,"outage":0.042,"custy":0.089,"custz":0.075},"Which customers were affected by Outage 14?":{"john":-0.026,"solar":0.159,"acme":0.136,"wind":0.055,"renew":-0.024,"plan":-0.01,"supplier":0.148,"clause":0.324,"api":0.104,"outage":0.578,"custy":0.327,"custz":0.341},"Which clause governs the supplier of Wind Project Beta?":{"john":0.139,"solar":0.334,"acme":0.229,"wind":0.613,"renew":0.317,"plan":0.309,"supplier":0.458,"clause":0.207,"api":0.047,"outage":0.115,"custy":0.115,"custz":0.127},"What does the 2025 strategic plan cover?":{"john":0.087,"solar":0.251,"acme":0.189,"wind":0.357,"renew":0.431,"plan":0.718,"supplier":0.123,"clause":0.114,"api":-0.019,"outage":-0.01,"custy":0.145,"custz":0.162}};
+const DENSE={"What is Example Person's role in ACME's renewable energy projects?":{"john":0.565,"solar":0.308,"acme":0.559,"wind":0.28,"renew":0.551,"plan":0.387,"supplier":0.281,"clause":0.01,"api":0.036,"outage":0.042,"custy":0.089,"custz":0.075},"Which customers were affected by Outage 14?":{"john":-0.026,"solar":0.159,"acme":0.136,"wind":0.055,"renew":-0.024,"plan":-0.01,"supplier":0.148,"clause":0.324,"api":0.104,"outage":0.578,"custy":0.327,"custz":0.341},"Which clause governs the supplier of Wind Project Beta?":{"john":0.139,"solar":0.334,"acme":0.229,"wind":0.613,"renew":0.317,"plan":0.309,"supplier":0.458,"clause":0.207,"api":0.047,"outage":0.115,"custy":0.115,"custz":0.127},"What does the 2025 strategic plan cover?":{"john":0.087,"solar":0.251,"acme":0.189,"wind":0.357,"renew":0.431,"plan":0.718,"supplier":0.123,"clause":0.114,"api":-0.019,"outage":-0.01,"custy":0.145,"custz":0.162}};
 function labA(G, question, hops){
   // Hybrid text retrieval: BM25 over each node's text, fused with dense similarity by
   // reciprocal rank fusion (1 / (60 + rank) from each ranking). DENSE holds similarities from
@@ -617,17 +617,17 @@ run("A",FN.A);run("B",FN.B);run("C",FN.C);
 
 /* ---------- Snippets ---------- */
 const SNIPS=[
- {t:"Cypher",who:"Neo4j, FalkorDB, Memgraph, Kuzu, Neptune (openCypher), PuppyGraph",c:`MATCH (p:Person {name: 'John Doe'})-[:LEADS]->(proj:Project)<-[:OWNS]-(c:Company)
+ {t:"Cypher",who:"Neo4j, FalkorDB, Memgraph, Kuzu, Neptune (openCypher), PuppyGraph",c:`MATCH (p:Person {name: 'Example Person'})-[:LEADS]->(proj:Project)<-[:OWNS]-(c:Company)
 RETURN p.name, proj.name, c.name;`},
- {t:"Gremlin",who:"Neptune, Cosmos DB, PuppyGraph",c:`g.V().has('Person', 'name', 'John Doe')
+ {t:"Gremlin",who:"Neptune, Cosmos DB, PuppyGraph",c:`g.V().has('Person', 'name', 'Example Person')
   .out('LEADS').as('project')
   .in('OWNS').as('owner')
   .select('project', 'owner').by('name')`},
  {t:"GQL",who:"Spanner Graph needs the GRAPH line. Fabric graph runs against the graph you have open.",c:`GRAPH ProjectGraph
-MATCH (p:Person {name: 'John Doe'})-[:LEADS]->(proj:Project)<-[:OWNS]-(c:Company)
+MATCH (p:Person {name: 'Example Person'})-[:LEADS]->(proj:Project)<-[:OWNS]-(c:Company)
 RETURN p.name AS person, proj.name AS project, c.name AS owner`},
  {t:"MongoDB",who:"MongoDB Atlas. Keep maxDepth low; $graphLookup has a 100 MB memory limit per stage.",c:`db.entities.aggregate([
-  { $match: { name: "John Doe" } },
+  { $match: { name: "Example Person" } },
   { $graphLookup: {
       from: "entities",
       startWith: "$links",
@@ -646,10 +646,10 @@ conn = kuzu.Connection(db)
 conn.execute("CREATE NODE TABLE Person(name STRING PRIMARY KEY)")
 conn.execute("CREATE NODE TABLE Project(name STRING PRIMARY KEY)")
 conn.execute("CREATE REL TABLE LEADS(FROM Person TO Project)")
-conn.execute("CREATE (:Person {name: 'John Doe'})")
+conn.execute("CREATE (:Person {name: 'Example Person'})")
 conn.execute("CREATE (:Project {name: 'Solar Farm Alpha'})")
 conn.execute("""
-  MATCH (p:Person {name: 'John Doe'}), (x:Project {name: 'Solar Farm Alpha'})
+  MATCH (p:Person {name: 'Example Person'}), (x:Project {name: 'Solar Farm Alpha'})
   CREATE (p)-[:LEADS]->(x)
 """)
 

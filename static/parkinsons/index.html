@@ -8,17 +8,17 @@
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/graphs-and-jev/guide.css">
+<link rel="stylesheet" href="/guide.css">
 </head>
 <body>
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-header">
   <div class="in">
-    <a class="brand" href="/graphs-and-jev/">Graphs + Jev</a>
+    <a class="brand" href="/">Graphs + Jev</a>
     <nav class="site-nav" aria-label="Primary">
-      <a href="/graphs-and-jev/#how-it-works">How it works</a>
-      <a href="/graphs-and-jev/#use-cases" aria-current="true">Use cases</a>
-      <a href="/graphs-and-jev/#technical-guide">Technical guide</a>
+      <a href="/#how-it-works">How it works</a>
+      <a href="/#use-cases" aria-current="true">Use cases</a>
+      <a href="/#technical-guide">Technical guide</a>
       <a class="cta" href="#demo">Try the demo</a>
     </nav>
   </div>
@@ -28,14 +28,14 @@
 <section class="page-hero" aria-labelledby="page-title">
   <div class="wrap">
     <div>
-      <nav class="crumb" aria-label="Breadcrumb"><a href="/graphs-and-jev/">Graphs + Jev</a> / <a href="/graphs-and-jev/#use-cases">Use cases</a> / <span aria-current="page">Parkinson’s research evidence</span></nav>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="/">Graphs + Jev</a> / <a href="/#use-cases">Use cases</a> / <span aria-current="page">Parkinson’s research evidence</span></nav>
       <p class="eyebrow">Use case · Research evidence</p>
       <h1 id="page-title">Trace Parkinson’s research back to its source.</h1>
-      <p class="lede">A question about Parkinson’s research is checked against representative evidence drawn from published sources. The graph keeps each relationship a retrieved page states, typed and tied to its citation. Jev answers only when a page states a relationship, and refuses clinical requests before any search runs.</p>
+      <p class="lede">A question about Parkinson’s research uses live public-source retrieval from Wikipedia and Europe PMC. The graph keeps each relationship a retrieved page states, typed and tied to its citation. Jev answers only when a page states a relationship, and refuses clinical requests before any search runs.</p>
       <p class="boundary"><strong>Research retrieval, not clinical advice.</strong>This page does not diagnose, prescribe, or recommend a dose or treatment. Questions that ask for any of these are refused. Speak to a qualified clinician about care.</p>
     </div>
     <div class="page-art">
-      <img src="/graphs-and-jev/assets/parkinsons-research.svg" width="640" height="400" alt="Three publications linked by dashed citation lines to a compound, a protein target and a condition. A typed path runs from the compound to the target to the condition.">
+      <img src="/assets/parkinsons-research.svg" width="640" height="400" alt="Three publications linked by dashed citation lines to a compound, a protein target and a condition. A typed path runs from the compound to the target to the condition.">
     </div>
   </div>
 </section>
@@ -56,7 +56,7 @@
     <div class="section-head">
       <p class="eyebrow">Static demonstration</p>
       <h2 id="demo-title">Ask a Parkinson’s research question.</h2>
-      <p class="lede">This self-contained publication returns representative, cited research results in your browser. It does not perform live searches or provide clinical advice.</p>
+      <p class="lede">This page asks the same-origin Rust service to retrieve live public research from Wikipedia and Europe PMC. It does not provide clinical advice.</p>
     </div>
 
     <div class="demo-grid">
@@ -77,7 +77,7 @@
           <div class="actions">
             <button class="btn btn--purple" type="submit" id="pdSubmit">Search and decide</button>
           </div>
-          <p class="demo-status" id="pdStatus" aria-live="polite" data-state="idle">Ready. Representative research evidence is loaded in this page.</p>
+          <p class="demo-status" id="pdStatus" aria-live="polite" data-state="idle">Ready. Submit a question to search Wikipedia and Europe PMC.</p>
         </form>
 
         <section class="result" id="pdResult" aria-labelledby="pd-result-heading" tabindex="-1" hidden>
@@ -113,11 +113,10 @@
 </main>
 <footer class="site-footer">
   <div class="wrap">
-    <p><a href="/graphs-and-jev/">Back to Graphs + Jev</a> · <a href="/graphs-and-jev/dcceew/">DCCEEW catalogue discovery</a> · <a href="/graphs-and-jev/little-bunnies/">Small-world context</a></p>
+    <p><a href="/">Back to Graphs + Jev</a> · <a href="/dcceew/">DCCEEW catalogue discovery</a> · <a href="/little-bunnies/">Small-world context</a></p>
   </div>
 </footer>
 
-<script src="/graphs-and-jev/demo-data.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 const pdForm = $("#askPd"), pdStatus = $("#pdStatus"), pdSubmit = $("#pdSubmit"), pdResult = $("#pdResult");
@@ -212,22 +211,30 @@ pdForm.addEventListener("submit", async (ev) => {
   const request = $("#pdRequest").value.trim();
   pdSubmit.disabled = true;
   pdForm.setAttribute("aria-busy", "true");
-  setStatus("Checking the representative research evidence…", "working");
+  setStatus("Working: searching Wikipedia and Europe PMC…", "working");
   try {
     let res;
     try {
-      res = await staticPipeline({domain: "parkinsons", request});
+      res = await fetch("/api/pipeline", {
+        method: "POST",
+        headers: {"content-type": "application/json"},
+        body: JSON.stringify({backend: "catalogue", domain: "parkinsons", request})
+      });
     } catch (e) {
-      render({outcome: "error", detail: "The in-browser demonstration could not run. Reload the page, then try again."});
-      setStatus("Unavailable: the in-browser demonstration did not complete.", "error");
+      render({outcome: "error", detail: "The research service could not be reached. Reload the page, then try again."});
+      setStatus("Unavailable: the research service did not complete the request.", "unavailable");
       return;
     }
     let body;
     try { body = await res.json(); }
-    catch (e) { body = {detail: "The in-browser demonstration returned an unexpected response (HTTP " + res.status + ")."}; }
+    catch (e) {
+      render({outcome: "error", detail: "The research service returned an unexpected response (HTTP " + res.status + ")."});
+      setStatus("Error: the research service returned an unreadable response.", "error");
+      return;
+    }
     if (!res.ok) {
-      render({outcome: "error", detail: body.detail || "The in-browser demonstration returned HTTP " + res.status + "."});
-      setStatus("Unavailable: " + (res.status === 502 ? "the representative evidence could not be loaded." : "the in-browser demonstration could not complete the request."), "error");
+      render({outcome: "error", detail: body.detail || "The research service returned HTTP " + res.status + "."});
+      setStatus("Unavailable: " + (res.status === 502 ? "Wikipedia or Europe PMC could not be reached." : "the research service could not complete the request."), "unavailable");
       return;
     }
     const r = render(body);

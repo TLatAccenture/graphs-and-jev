@@ -34,7 +34,6 @@ async fn static_routes_serve_pages_and_assets() {
         "/parkinsons/",
         "/little-bunnies/",
         "/guide.css",
-        "/demo-data.js",
         "/assets/small-world.svg",
     ] {
         let response = service()
@@ -94,11 +93,7 @@ fn every_page_shares_primary_navigation() {
             html.contains("<nav class=\"site-nav\" aria-label=\"Primary\">"),
             "{rel}: shared primary nav"
         );
-        for href in [
-            "/graphs-and-jev/#how-it-works",
-            "/graphs-and-jev/#use-cases",
-            "/graphs-and-jev/#technical-guide",
-        ] {
+        for href in ["/#how-it-works", "/#use-cases", "/#technical-guide"] {
             assert!(html.contains(&format!("href=\"{href}\"")), "{rel}: {href}");
         }
     }
@@ -213,12 +208,12 @@ fn engine_marks_are_local_and_documented() {
         }
         let path = quoted_after(row, "logo:").unwrap_or_else(|| panic!("logo path or null: {row}"));
         assert!(
-            path.starts_with("/graphs-and-jev/assets/engine-logos/") && !path.contains(".."),
+            path.starts_with("/assets/engine-logos/") && !path.contains(".."),
             "logo below assets/engine-logos: {path}"
         );
         let file = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
             .join("static")
-            .join(path.strip_prefix("/graphs-and-jev/").unwrap());
+            .join(path.strip_prefix("/").unwrap());
         assert!(file.is_file(), "logo file exists: {path}");
     }
     for img in tags(&html, "img") {
@@ -266,4 +261,116 @@ fn sticky_header_anchor_offsets_cover_desktop_and_mobile() {
         css.contains("scroll-padding-top:var(--header-offset)"),
         "document anchor offset"
     );
+}
+
+#[test]
+fn live_use_cases_call_only_same_origin_api_routes() {
+    let dcceew = page("dcceew/index.html");
+    assert!(
+        dcceew.contains("fetch(\"/api/catalogue\")"),
+        "DCCEEW loads the Rust catalogue"
+    );
+    assert!(
+        dcceew.contains("fetch(\"/api/pipeline\""),
+        "DCCEEW calls the Rust pipeline"
+    );
+
+    let parkinsons = page("parkinsons/index.html");
+    assert!(
+        parkinsons.contains("fetch(\"/api/pipeline\""),
+        "Parkinson's calls the Rust pipeline"
+    );
+
+    for rel in PAGES {
+        let html = page(rel);
+        assert!(
+            !html.contains("demo-data.js"),
+            "{rel}: static fixture script"
+        );
+        assert!(!html.contains("fetch(\"http"), "{rel}: cross-origin fetch");
+    }
+    assert!(!PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("static/demo-data.js")
+        .exists());
+}
+
+#[test]
+fn live_use_cases_keep_accessible_state_contracts() {
+    for rel in ["dcceew/index.html", "parkinsons/index.html"] {
+        let html = page(rel);
+        assert!(
+            html.contains("setStatus(\"Working:") || html.contains("setStatus(\"Working"),
+            "{rel}: working state"
+        );
+        assert!(html.contains("\"error\")"), "{rel}: error state");
+        assert!(
+            html.contains("\"unavailable\")"),
+            "{rel}: unavailable state"
+        );
+        assert!(html.contains("aria-busy"), "{rel}: busy state");
+        assert!(
+            html.contains("disabled = true"),
+            "{rel}: submit disabled while working"
+        );
+    }
+}
+
+#[test]
+fn publication_copy_matches_live_backends_and_disclosures() {
+    let home = page("index.html");
+    let dcceew = page("dcceew/index.html");
+    let parkinsons = page("parkinsons/index.html");
+
+    assert!(dcceew.contains("deterministic Rust catalogue rules"));
+    assert!(dcceew.to_lowercase().contains("illustrative"));
+    assert!(parkinsons.contains("Wikipedia") && parkinsons.contains("Europe PMC"));
+    assert!(parkinsons.contains("live public-source retrieval"));
+    assert!(parkinsons.to_lowercase().contains("not clinical advice"));
+    assert!(parkinsons.contains("refused before retrieval"));
+    assert!(home.contains("deterministic Rust catalogue rules"));
+    assert!(home.contains("Wikipedia and Europe PMC"));
+}
+
+#[test]
+fn browser_assets_contain_no_runtime_secrets_analytics_or_raw_personal_data() {
+    let root = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("static");
+    let mut pending = vec![root];
+    while let Some(path) = pending.pop() {
+        for entry in fs::read_dir(path).unwrap().flatten() {
+            let path = entry.path();
+            if path.is_dir() {
+                pending.push(path);
+                continue;
+            }
+            let Some(ext) = path.extension().and_then(|e| e.to_str()) else {
+                continue;
+            };
+            if !["html", "js", "css", "svg"].contains(&ext) {
+                continue;
+            }
+            let text = fs::read_to_string(&path).unwrap();
+            for forbidden in [
+                "API_TOKEN",
+                "ninth-airship-386815",
+                "Authorization: Bearer",
+                "googletagmanager",
+                "google-analytics",
+                "gtag(",
+                "John Doe",
+            ] {
+                assert!(!text.contains(forbidden), "{}: {forbidden}", path.display());
+            }
+        }
+    }
+}
+
+#[test]
+fn browser_assets_use_cloud_run_root_paths() {
+    for rel in PAGES {
+        let html = page(rel);
+        assert!(
+            !html.contains("/graphs-and-jev/"),
+            "{rel}: stale GitHub Pages base path"
+        );
+    }
 }
