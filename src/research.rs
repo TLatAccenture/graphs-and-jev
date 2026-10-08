@@ -598,13 +598,23 @@ mod tests {
         assert_eq!(error.class(), "invalid");
     }
 
+    fn withholding_server() -> String {
+        let listener = std::net::TcpListener::bind((std::net::Ipv4Addr::LOCALHOST, 0)).unwrap();
+        let address = listener.local_addr().unwrap();
+        std::thread::spawn(move || {
+            let (_connection, _) = listener.accept().unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(100));
+        });
+        format!("http://{address}")
+    }
+
     #[test]
     fn transport_error_classes_are_typed() {
         let timeout = reqwest::blocking::Client::builder()
             .timeout(std::time::Duration::from_millis(1))
             .build()
             .unwrap()
-            .get("http://10.255.255.1")
+            .get(withholding_server())
             .send()
             .unwrap_err();
         assert_eq!(ResearchError::from_reqwest(timeout).class(), "timeout");
