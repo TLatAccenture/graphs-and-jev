@@ -31,14 +31,17 @@ contains '--default-buckets-behavior=regional-user-owned-bucket' "$script"
 contains 'gcloud beta billing projects describe' "$script"
 contains 'gcloud services list' "$script"
 contains 'gcloud artifacts repositories describe' "$script"
+contains "--format='value(name,format)'" "$script"
+# shellcheck disable=SC2016
+contains 'projects/${PROJECT_ID}/locations/${REGION}/repositories/${ARTIFACT_REPOSITORY} DOCKER' "$script"
 contains 'gcloud iam service-accounts describe' "$script"
 contains 'troubleshoot-policy iam' "$script"
 contains 'iam.serviceAccounts.actAs' "$script"
 contains 'logging.logEntries.create' "$script"
 contains 'serviceusage.services.use' "$script"
 contains 'artifactregistry.repositories.uploadArtifacts' "$script"
-contains "value(overallAccessState)" "$script"
-contains 'cloudbilling.googleapis.com' "$script"
+if rg -F --quiet 'value(overallAccessState)' "$script"; then fail 'obsolete troubleshooter field remains'; fi
+if rg -F --quiet 'cloudbilling.googleapis.com' "$script"; then fail 'billing API must not be required'; fi
 contains 'logging.googleapis.com' "$script"
 contains 'gcloud run revisions describe' "$script"
 contains 'gcloud run services get-iam-policy' "$script"
@@ -84,5 +87,13 @@ contains '--service-account="$RUNTIME_SERVICE_ACCOUNT"' "$script"
 if rg -n '(:latest|--tag=latest)' "$script"; then
   fail 'deploy script must not use latest'
 fi
+
+permission_fixture='{"accessTuple":{"permission":"run.services.update"},"allowPolicyExplanation":{"allowAccessState":"ALLOW_ACCESS_STATE_GRANTED","explainedPolicies":[]},"overallAccessState":"UNKNOWN_INFO"}'
+parsed_state="$(python3 -c 'import json,sys; print(json.load(sys.stdin)["allowPolicyExplanation"]["allowAccessState"])' <<<"$permission_fixture")"
+[[ "$parsed_state" == "ALLOW_ACCESS_STATE_GRANTED" ]] || fail 'realistic granted IAM fixture did not parse'
+repository_fixture='projects/ninth-airship-386815/locations/australia-southeast1/repositories/graphs-and-jev DOCKER'
+IFS=$'\t' read -r repository_name repository_format <<<"$(tr ' ' '\t' <<<"$repository_fixture")"
+[[ "$repository_name" == 'projects/ninth-airship-386815/locations/australia-southeast1/repositories/graphs-and-jev' ]] || fail 'realistic repository name did not parse'
+[[ "$repository_format" == 'DOCKER' ]] || fail 'realistic repository format did not parse'
 
 printf 'deploy static checks passed\n'
