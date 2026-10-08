@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>DCCEEW catalogue discovery · Graphs + Jev</title>
 <meta name="description" content="How evidence reaches an AI system through RAG and MCP, how a graph connects it, and how Jev makes a bounded decision over an air-quality catalogue.">
@@ -370,6 +371,7 @@
 <script>
 const $ = s => document.querySelector(s);
 const form = $("#ask"), statusEl = $("#status"), submit = $("#submit"), result = $("#result");
+const scenarios = [...document.querySelectorAll("[data-q]")];
 const OUTCOME_LABEL = {
   answer: "Answer",
   clarify: "Clarify: more detail needed",
@@ -412,8 +414,9 @@ fetch("/api/catalogue").then(r => {
   setStatus("Ready. The catalogue is loaded with " + cat.sources.length + " sources.", "idle");
 }).catch(() => setStatus("Unavailable: the catalogue service did not load. Try again later.", "unavailable"));
 
-document.querySelectorAll("[data-q]").forEach(btn => btn.addEventListener("click", () => {
-  document.querySelectorAll("[data-q]").forEach(b => b.setAttribute("aria-pressed", b === btn ? "true" : "false"));
+scenarios.forEach(btn => btn.addEventListener("click", () => {
+  if (form.getAttribute("aria-busy") === "true") return;
+  scenarios.forEach(b => b.setAttribute("aria-pressed", b === btn ? "true" : "false"));
   $("#request").value = btn.dataset.q;
   $("#preference").value = btn.dataset.p;
   form.requestSubmit();
@@ -472,9 +475,11 @@ function render(body) {
 
 form.addEventListener("submit", async (ev) => {
   ev.preventDefault();
+  if (form.getAttribute("aria-busy") === "true") return;
   const request = $("#request").value.trim();
   const preference = $("#preference").value.trim();
   submit.disabled = true;
+  scenarios.forEach(button => button.disabled = true);
   form.setAttribute("aria-busy", "true");
   setStatus("Working: Jev is deciding how to handle the request…", "working");
   try {
@@ -502,6 +507,7 @@ form.addEventListener("submit", async (ev) => {
     setStatus(res.ok ? "Done. Outcome: " + label + "." : "The service could not complete the request.", res.ok ? "done" : "error");
   } finally {
     submit.disabled = false;
+    scenarios.forEach(button => button.disabled = false);
     form.removeAttribute("aria-busy");
   }
 });

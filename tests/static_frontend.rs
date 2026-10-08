@@ -34,6 +34,7 @@ async fn static_routes_serve_pages_and_assets() {
         "/parkinsons/",
         "/little-bunnies/",
         "/guide.css",
+        "/favicon.svg",
         "/assets/small-world.svg",
     ] {
         let response = service()
@@ -371,6 +372,16 @@ fn browser_assets_use_cloud_run_root_paths() {
         assert!(
             !html.contains("/graphs-and-jev/"),
             "{rel}: stale GitHub Pages base path"
+        );
+    }
+}
+
+#[test]
+fn every_page_references_local_favicon() {
+    for rel in PAGES {
+        assert!(
+            page(rel).contains(r#"<link rel="icon" href="/favicon.svg" type="image/svg+xml">"#),
+            "{rel}: local favicon"
         );
     }
 }
