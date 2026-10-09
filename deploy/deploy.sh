@@ -24,8 +24,8 @@ main() (
   local gjd_MEMORY gjd_TIMEOUT_SECONDS gjd_STARTUP_PATH gjd_LIVENESS_PATH gjd_command_name
   local gjd_permission gjd_active_account gjd_active_project gjd_billing_enabled gjd_enabled_apis gjd_api
   local gjd_repository_name gjd_repository_format gjd_expected_repository_name
-  local gjd_branch gjd_git_sha gjd_revision_suffix gjd_image_tag gjd_build_sa_resource gjd_digest
-  local gjd_image_digest gjd_service_exists gjd_service_json gjd_describe_stdout gjd_describe_stderr
+  local gjd_branch gjd_git_sha gjd_revision_suffix gjd_candidate_tag gjd_image_tag gjd_build_sa_resource gjd_digest
+  local gjd_image_digest gjd_service_exists gjd_candidate_url gjd_service_url gjd_service_json gjd_describe_stdout gjd_describe_stderr
   local gjd_describe_status gjd_describe_result gjd_revision_json gjd_iam_json gjd_tmp_output gjd_revision
   local gjd_upload_files gjd_upload_count gjd_upload_bytes gjd_upload_file gjd_upload_unexpected
   local -a gjd_required_apis gjd_deploy_traffic_args
@@ -195,6 +195,8 @@ if failed:
 
   gjd_git_sha="$(git rev-parse HEAD)"
   gjd_revision_suffix="${gjd_git_sha:0:12}"
+  gjd_candidate_tag="candidate-${gjd_revision_suffix}"
+  [[ "$gjd_candidate_tag" =~ ^[a-z][a-z0-9-]{0,62}$ ]] || fail "invalid candidate tag: $gjd_candidate_tag"
   gjd_image_tag="${gjd_REGION}-docker.pkg.dev/${gjd_PROJECT_ID}/${gjd_ARTIFACT_REPOSITORY}/${gjd_IMAGE}:${gjd_git_sha}"
   gjd_build_sa_resource="projects/${gjd_PROJECT_ID}/serviceAccounts/${gjd_BUILD_SERVICE_ACCOUNT}"
 
@@ -237,6 +239,7 @@ if failed:
     --region="$gjd_REGION" \
     --image="$gjd_image_digest" \
     --revision-suffix="$gjd_revision_suffix" \
+    --tag="$gjd_candidate_tag" \
     "${gjd_deploy_traffic_args[@]}" \
     --min-instances="$gjd_MIN_INSTANCES" \
     --max-instances="$gjd_MAX_INSTANCES" \
@@ -263,7 +266,7 @@ if failed:
   gcloud run revisions describe "$gjd_revision" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json >"$gjd_revision_json"
   gcloud run services get-iam-policy "$gjd_SERVICE" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json >"$gjd_iam_json"
 
-  python3 - "$gjd_service_json" "$gjd_revision_json" "$gjd_iam_json" "$gjd_image_digest" "$gjd_RUNTIME_SERVICE_ACCOUNT" "$gjd_revision" "$gjd_MIN_INSTANCES" "$gjd_MAX_INSTANCES" "$gjd_CONCURRENCY" "$gjd_CPU" "$gjd_MEMORY" "$gjd_TIMEOUT_SECONDS" "$gjd_STARTUP_PATH" "$gjd_LIVENESS_PATH" "$([[ "$gjd_service_exists" == false ]] && printf true || printf false)" "$gjd_tmp_output" <<'PY'
+  python3 - "$gjd_service_json" "$gjd_revision_json" "$gjd_iam_json" "$gjd_image_digest" "$gjd_RUNTIME_SERVICE_ACCOUNT" "$gjd_revision" "$gjd_MIN_INSTANCES" "$gjd_MAX_INSTANCES" "$gjd_CONCURRENCY" "$gjd_CPU" "$gjd_MEMORY" "$gjd_TIMEOUT_SECONDS" "$gjd_STARTUP_PATH" "$gjd_LIVENESS_PATH" "$gjd_candidate_tag" "$([[ "$gjd_service_exists" == false ]] && printf true || printf false)" "$gjd_tmp_output" <<'PY'
 import json
 import sys
 
@@ -273,7 +276,8 @@ iam = json.load(open(sys.argv[3], encoding="utf-8"))
 expected_image, expected_sa, expected_revision = sys.argv[4:7]
 expected_min, expected_max, expected_concurrency, expected_cpu, expected_memory, expected_timeout = sys.argv[7:13]
 expected_startup, expected_liveness = sys.argv[13:15]
-expected_bootstrap = sys.argv[15].lower() == "true"
+expected_tag = sys.argv[15]
+expected_bootstrap = sys.argv[16].lower() == "true"
 metadata = revision["metadata"]
 spec = revision["spec"]
 container = spec["containers"][0]
@@ -284,6 +288,7 @@ public = any(
     binding.get("role") == "roles/run.invoker" and "allUsers" in binding.get("members", [])
     for binding in iam.get("bindings", [])
 )
+tagged = [item for item in traffic if item.get("tag") == expected_tag and item.get("revisionName") == expected_revision]
 actual = {
     "service": service["metadata"]["name"],
     "service_url": service["status"]["url"],
@@ -302,6 +307,8 @@ actual = {
     "public_invocation": public,
     "service_private": not public,
     "candidate_zero_traffic": not expected_bootstrap,
+    "candidate_tag": expected_tag,
+    "candidate_url": tagged[0].get("url", "") if len(tagged) == 1 else "",
 }
 
 def assert_effective_deployment(condition, message):
@@ -319,15 +326,33 @@ assert_effective_deployment(actual["timeout_seconds"] == int(expected_timeout), 
 assert_effective_deployment(actual["startup_probe"].get("httpGet", {}).get("path") == expected_startup, "startup probe")
 assert_effective_deployment(actual["liveness_probe"].get("httpGet", {}).get("path") == expected_liveness, "liveness probe")
 assert_effective_deployment(not actual["public_invocation"], "service has public invocation IAM")
+assert_effective_deployment(len(tagged) == 1 and actual["candidate_url"].startswith("https://"), "candidate tag target or URL")
 if expected_bootstrap:
-    candidate_traffic = [item for item in traffic if item.get("revisionName") == expected_revision]
-    assert_effective_deployment(len(candidate_traffic) == 1 and candidate_traffic[0].get("percent") == 100, "bootstrap candidate traffic")
+    candidate_traffic = tagged
+    assert_effective_deployment(candidate_traffic[0].get("percent") == 100, "bootstrap candidate traffic")
 else:
-    assert_effective_deployment(not any(item.get("revisionName") == expected_revision and item.get("percent", 0) for item in traffic), "new revision has traffic")
-with open(sys.argv[16], "w", encoding="utf-8") as output:
+    assert_effective_deployment(tagged[0].get("percent", 0) == 0, "tagged candidate has traffic")
+with open(sys.argv[17], "w", encoding="utf-8") as output:
     json.dump(actual, output, indent=2, sort_keys=True)
     output.write("\n")
 PY
+
+  gjd_candidate_url="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["candidate_url"])' "$gjd_tmp_output")"
+  gjd_service_url="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["service_url"])' "$gjd_tmp_output")"
+  poll_private_urls() {
+    local attempt url status
+    for attempt in 1 2 3 4 5 6; do
+      local all_private=true
+      for url in "$gjd_candidate_url" "$gjd_service_url"; do
+        status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 10 "${url}/?privacy_check=${gjd_git_sha}-${attempt}")" || status=000
+        [[ "$status" =~ ^(401|403)$ ]] || all_private=false
+      done
+      [[ "$all_private" == true ]] && return 0
+      sleep 5
+    done
+    fail 'privacy propagation did not produce 401/403 for candidate and service URLs'
+  }
+  poll_private_urls
 
   mv "$gjd_tmp_output" "$gjd_DEPLOY_OUTPUT"
   trap - EXIT

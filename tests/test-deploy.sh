@@ -158,7 +158,7 @@ if rg -F --quiet 'cloudbilling.googleapis.com' "$script"; then fail 'billing API
 contains 'logging.googleapis.com' "$script"
 contains 'gcloud run revisions describe' "$script"
 contains 'gcloud run services get-iam-policy' "$script"
-contains 'sys.argv[16]' "$script"
+contains 'sys.argv[17]' "$script"
 contains 'json.load' "$script"
 # shellcheck disable=SC2016
 contains 'graphs-and-jev-builder@${PROJECT_ID}.iam.gserviceaccount.com' "$env_example"
@@ -178,6 +178,13 @@ contains 'gcloud artifacts docker images describe' "$script"
 contains '${gjd_IMAGE}@${gjd_digest}' "$script"
 contains 'assert_effective_deployment' "$script"
 contains 'gcloud beta run deploy' "$script"
+# shellcheck disable=SC2016
+contains '--tag="$gjd_candidate_tag"' "$script"
+contains 'candidate_url' "$script"
+contains 'candidate_tag' "$script"
+contains 'poll_private_urls' "$script"
+contains '401|403' "$script"
+contains 'privacy propagation' "$script"
 for service_exists in false true; do
   deploy_args=(--no-allow-unauthenticated)
   if [[ "$service_exists" == true ]]; then deploy_args=(--no-traffic --no-allow-unauthenticated); fi
@@ -276,7 +283,7 @@ PYEXTRACT
 validator_dir="$(mktemp -d)"
 trap 'rm -rf "$validator_dir"' EXIT
 cat >"$validator_dir/service.json" <<'JSON'
-{"metadata":{"name":"graphs-and-jev"},"status":{"url":"https://graphs-and-jev.example.run.app","traffic":[]}}
+{"metadata":{"name":"graphs-and-jev"},"status":{"url":"https://graphs-and-jev.example.run.app","traffic":[{"tag":"candidate-abc123","revisionName":"graphs-and-jev-abc123","percent":0,"url":"https://candidate-abc123---graphs-and-jev.example.run.app"}]}}
 JSON
 cat >"$validator_dir/revision.json" <<'JSON'
 {"metadata":{"name":"graphs-and-jev-abc123","annotations":{"autoscaling.knative.dev/minScale":"0","autoscaling.knative.dev/maxScale":"2"}},"spec":{"serviceAccountName":"graphs-and-jev-runner@ninth-airship-386815.iam.gserviceaccount.com","containerConcurrency":20,"timeoutSeconds":30,"containers":[{"image":"australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","resources":{"limits":{"cpu":"1","memory":"512Mi"}},"startupProbe":{"httpGet":{"path":"/api/ready"}},"livenessProbe":{"httpGet":{"path":"/api/health"}}}]}}
@@ -288,10 +295,10 @@ python3 -c "$validator" \
   "$validator_dir/service.json" "$validator_dir/revision.json" "$validator_dir/iam.json" \
   'australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' \
   'graphs-and-jev-runner@ninth-airship-386815.iam.gserviceaccount.com' 'graphs-and-jev-abc123' \
-  0 2 20 1 512Mi 30 /api/ready /api/health false "$validator_dir/effective.json"
-python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); assert data["revision"] == "graphs-and-jev-abc123"; assert data["image_digest"].endswith("a" * 64); assert data["service_private"] is True; assert data["candidate_zero_traffic"] is True; assert data["public_invocation"] is False' "$validator_dir/effective.json"
+  0 2 20 1 512Mi 30 /api/ready /api/health candidate-abc123 false "$validator_dir/effective.json"
+python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); assert data["revision"] == "graphs-and-jev-abc123"; assert data["image_digest"].endswith("a" * 64); assert data["service_private"] is True; assert data["candidate_zero_traffic"] is True; assert data["public_invocation"] is False; assert data["candidate_tag"] == "candidate-abc123"; assert data["candidate_url"].startswith("https://candidate-abc123---")' "$validator_dir/effective.json"
 cat >"$validator_dir/service-bootstrap.json" <<'JSON'
-{"metadata":{"name":"graphs-and-jev"},"status":{"url":"https://candidate.example.run.app","traffic":[{"revisionName":"graphs-and-jev-abc123","percent":100}]}}
+{"metadata":{"name":"graphs-and-jev"},"status":{"url":"https://candidate.example.run.app","traffic":[{"tag":"candidate-abc123","revisionName":"graphs-and-jev-abc123","percent":100,"url":"https://candidate-abc123---graphs-and-jev.example.run.app"}]}}
 JSON
 cat >"$validator_dir/iam-private.json" <<'JSON'
 {"bindings":[]}
@@ -300,7 +307,7 @@ python3 -c "$validator" \
   "$validator_dir/service-bootstrap.json" "$validator_dir/revision.json" "$validator_dir/iam-private.json" \
   'australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' \
   'graphs-and-jev-runner@ninth-airship-386815.iam.gserviceaccount.com' 'graphs-and-jev-abc123' \
-  0 2 20 1 512Mi 30 /api/ready /api/health true "$validator_dir/effective-bootstrap.json"
+  0 2 20 1 512Mi 30 /api/ready /api/health candidate-abc123 true "$validator_dir/effective-bootstrap.json"
 python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); assert data["service_private"] is True; assert data["candidate_zero_traffic"] is False; assert data["public_invocation"] is False; assert data["traffic"][0]["percent"] == 100; assert data["service_url"] == "https://candidate.example.run.app"' "$validator_dir/effective-bootstrap.json"
 if rg -n '\b(gjd_|GJ_)[A-Za-z_]*' <<<"$validator"; then fail 'shell namespace leaked into embedded Python'; fi
 trap - EXIT
