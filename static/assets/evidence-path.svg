@@ -36,7 +36,7 @@
     <circle cx="120" cy="190" r="13" fill="#0067a5"/>
     <circle cx="250" cy="170" r="13" fill="#0067a5"/>
     <circle cx="380" cy="200" r="13" fill="#0067a5"/>
-    <text class="sm" x="96" y="222">John Doe</text>
+    <text class="sm" x="96" y="222">Example Person</text>
     <text class="sm" x="212" y="150">Solar Farm Alpha</text>
     <text class="sm" x="362" y="232">ACME</text>
     <text class="lab" x="160" y="176" fill="#0067a5">LEADS</text>
@@ -60,7 +60,7 @@
   <text class="lab" x="24" y="442">04  TRACEABLE ANSWER</text>
   <rect x="24" y="448" width="432" height="72" fill="#e2f4e8"/>
   <rect x="24" y="448" width="5" height="72" fill="#0b7a3b"/>
-  <text class="txt" x="44" y="478">John Doe leads Solar Farm Alpha,</text>
+  <text class="txt" x="44" y="478">Example Person leads Solar Farm Alpha,</text>
   <text class="txt" x="44" y="500">which ACME owns.</text>
   <text class="sm" x="300" y="500">Path &#183; 2 hops &#183; sources</text>
 </svg>

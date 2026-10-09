@@ -1,0 +1,11 @@
+# Strict Cloud Build source allowlist. Parent directories must be re-included
+# before descendants because ignored directories are not traversed.
+**
+!Dockerfile
+!Cargo.toml
+!Cargo.lock
+!catalogue.json
+!src/
+!src/**
+!static/
+!static/**

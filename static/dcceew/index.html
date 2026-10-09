@@ -2,23 +2,24 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
+<link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>DCCEEW catalogue discovery · Graphs + Jev</title>
 <meta name="description" content="How evidence reaches an AI system through RAG and MCP, how a graph connects it, and how Jev makes a bounded decision over an air-quality catalogue.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/graphs-and-jev/guide.css">
+<link rel="stylesheet" href="/guide.css">
 </head>
 <body class="ctx">
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-header">
   <div class="in">
-    <a class="brand" href="/graphs-and-jev/">Graphs + Jev</a>
+    <a class="brand" href="/">Graphs + Jev</a>
     <nav class="site-nav" aria-label="Primary">
-      <a href="/graphs-and-jev/#how-it-works">How it works</a>
-      <a href="/graphs-and-jev/#use-cases" aria-current="true">Use cases</a>
-      <a href="/graphs-and-jev/#technical-guide">Technical guide</a>
+      <a href="/#how-it-works">How it works</a>
+      <a href="/#use-cases" aria-current="true">Use cases</a>
+      <a href="/#technical-guide">Technical guide</a>
       <a class="cta" href="#demo">Try the demo</a>
     </nav>
   </div>
@@ -28,13 +29,13 @@
 <section class="page-hero" aria-labelledby="page-title">
   <div class="wrap">
     <div>
-      <nav class="crumb" aria-label="Breadcrumb"><a href="/graphs-and-jev/">Graphs + Jev</a> / <a href="/graphs-and-jev/#use-cases">Use cases</a> / <span aria-current="page">DCCEEW catalogue discovery</span></nav>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="/">Graphs + Jev</a> / <a href="/#use-cases">Use cases</a> / <span aria-current="page">DCCEEW catalogue discovery</span></nav>
       <p class="eyebrow">Use case · Catalogue discovery</p>
       <h1 id="page-title">Find the datasets that actually answer the question.</h1>
       <p class="lede">A demonstration for the Department of Climate Change, Energy, the Environment and Water (DCCEEW). The evidence behind an answer is spread across documents, tables, catalogue records and reference data. First it has to be brought within reach. Then it has to be connected. Then someone, or something, has to decide whether it is enough to answer.</p>
     </div>
     <div class="page-art">
-      <img src="/graphs-and-jev/assets/dcceew-landscape.svg" width="640" height="400" alt="A landscape of monitoring stations under bands of atmosphere. A highlighted path links a pollutant to a place and then to the dataset that measures it.">
+      <img src="/assets/dcceew-landscape.svg" width="640" height="400" alt="A landscape of monitoring stations under bands of atmosphere. A highlighted path links a pollutant to a place and then to the dataset that measures it.">
     </div>
   </div>
 </section>
@@ -233,7 +234,7 @@
     <div class="section-head">
       <p class="eyebrow">06 · Try it</p>
       <h2 id="demo-title">Ask the DCCEEW catalogue.</h2>
-      <p class="lede">This self-contained publication runs representative catalogue decisions in your browser. Start with an example, or write your own request.</p>
+      <p class="lede">This page calls the same-origin Rust service, where deterministic Rust catalogue rules evaluate illustrative catalogue data. Start with an example, or write your own request.</p>
     </div>
 
     <div class="demo-grid">
@@ -290,7 +291,7 @@
           <div><dt>No data</dt><dd>The request was clear, but no combination of sources covers it.</dd></div>
         </dl>
         <p class="annotation"><strong style="color:var(--graph)">Graph</strong> stages find and check evidence. <strong style="color:var(--purple-mid)">Decision</strong> stages are Jev's bounded calls.</p>
-        <p class="boundary boundary--scope"><strong>Scope</strong>A demonstration catalogue of illustrative sources. The decision stages follow Jev's bounded-decision contract but are answered here by catalogue rules: no hosted model is called and request text is not logged.</p>
+        <p class="boundary boundary--scope"><strong>Scope</strong>A demonstration catalogue of illustrative sources. The decision stages follow Jev's bounded-decision contract and are answered by deterministic Rust catalogue rules: no hosted model is called and request text is not logged.</p>
         <p class="annotation" id="catalogue-summary"></p>
       </aside>
     </div>
@@ -312,7 +313,7 @@
           <li>Graph coverage checks, including combined sources and roll-ups.</li>
           <li>Five bounded outcomes, with refusal and clarification before any search.</li>
           <li>A traceable result: stages run, datasets matched, and why.</li>
-          <li>A self-contained browser demonstration deployable to any static host.</li>
+          <li>A same-origin browser demonstration backed by the portable Rust service.</li>
         </ul>
       </section>
       <section aria-labelledby="next-title">
@@ -363,14 +364,14 @@
 </main>
 <footer class="site-footer">
   <div class="wrap">
-    <p><a href="/graphs-and-jev/">Back to Graphs + Jev</a> · <a href="/graphs-and-jev/parkinsons/">Parkinson&rsquo;s research evidence</a> · <a href="/graphs-and-jev/little-bunnies/">Small-world context</a></p>
+    <p><a href="/">Back to Graphs + Jev</a> · <a href="/parkinsons/">Parkinson&rsquo;s research evidence</a> · <a href="/little-bunnies/">Small-world context</a></p>
   </div>
 </footer>
 
-<script src="/graphs-and-jev/demo-data.js"></script>
 <script>
 const $ = s => document.querySelector(s);
 const form = $("#ask"), statusEl = $("#status"), submit = $("#submit"), result = $("#result");
+const scenarios = [...document.querySelectorAll("[data-q]")];
 const OUTCOME_LABEL = {
   answer: "Answer",
   clarify: "Clarify: more detail needed",
@@ -405,13 +406,17 @@ function fact(dl, term, value) {
   const d = el("div"); d.append(el("dt", term), el("dd", value)); dl.append(d);
 }
 
-staticCatalogue().then(r => r.json()).then(cat => {
+fetch("/api/catalogue").then(r => {
+  if (!r.ok) throw new Error("catalogue unavailable");
+  return r.json();
+}).then(cat => {
   $("#catalogue-summary").textContent = cat.summary + " " + cat.sources.length + " sources.";
   setStatus("Ready. The catalogue is loaded with " + cat.sources.length + " sources.", "idle");
-}).catch(() => setStatus("The catalogue did not load. The demo may still answer; try a request.", "error"));
+}).catch(() => setStatus("Unavailable: the catalogue service did not load. Try again later.", "unavailable"));
 
-document.querySelectorAll("[data-q]").forEach(btn => btn.addEventListener("click", () => {
-  document.querySelectorAll("[data-q]").forEach(b => b.setAttribute("aria-pressed", b === btn ? "true" : "false"));
+scenarios.forEach(btn => btn.addEventListener("click", () => {
+  if (form.getAttribute("aria-busy") === "true") return;
+  scenarios.forEach(b => b.setAttribute("aria-pressed", b === btn ? "true" : "false"));
   $("#request").value = btn.dataset.q;
   $("#preference").value = btn.dataset.p;
   form.requestSubmit();
@@ -451,7 +456,7 @@ function render(body) {
   const lines = body.explanation && body.explanation.text ? body.explanation.text.split("\n").filter(Boolean) : [];
   $("#answer").textContent = outcome === "answer" ? (lines[0] || "Matching datasets found.") : (body.message || body.detail || "No answer was returned.");
   trail(body.stages);
-  const why = outcome === "answer" ? lines.slice(1) : [OUTCOME_WHY[outcome] || "The in-browser demonstration could not complete the request."];
+  const why = outcome === "answer" ? lines.slice(1) : [OUTCOME_WHY[outcome] || "The service could not complete the request."];
   fill($("#why"), why, "No explanation was returned.");
   fill($("#datasets"), (body.solutions || []).map(datasetItem), outcome === "answer" ? "No datasets were returned." : "None. Jev returns datasets only when it can stand behind them.");
   const tech = $("#tech");
@@ -470,28 +475,39 @@ function render(body) {
 
 form.addEventListener("submit", async (ev) => {
   ev.preventDefault();
+  if (form.getAttribute("aria-busy") === "true") return;
   const request = $("#request").value.trim();
   const preference = $("#preference").value.trim();
   submit.disabled = true;
+  scenarios.forEach(button => button.disabled = true);
   form.setAttribute("aria-busy", "true");
   setStatus("Working: Jev is deciding how to handle the request…", "working");
   try {
     let res;
     try {
-      res = await staticPipeline({request, preference: preference || null});
+      res = await fetch("/api/pipeline", {
+        method: "POST",
+        headers: {"content-type": "application/json"},
+        body: JSON.stringify({backend: "catalogue", request, preference: preference || null})
+      });
     } catch (e) {
-      render({outcome: "error", detail: "The in-browser demonstration could not run. Reload the page, then try again."});
-      setStatus("The in-browser demonstration did not complete.", "error");
+      render({outcome: "error", detail: "The service could not be reached. Reload the page, then try again."});
+      setStatus("Unavailable: the service did not complete the request.", "unavailable");
       return;
     }
     let body;
     try { body = await res.json(); }
-    catch (e) { body = {detail: "The in-browser demonstration returned an unexpected response (HTTP " + res.status + ")."}; }
-    if (!res.ok) body = {outcome: "error", detail: body.detail || "The in-browser demonstration returned HTTP " + res.status + "."};
+    catch (e) {
+      render({outcome: "error", detail: "The service returned an unexpected response (HTTP " + res.status + ")."});
+      setStatus("Error: the service returned an unreadable response.", "error");
+      return;
+    }
+    if (!res.ok) body = {outcome: "error", detail: body.detail || "The service returned HTTP " + res.status + "."};
     const label = render(body);
-    setStatus(res.ok ? "Done. Outcome: " + label + "." : "The in-browser demonstration could not complete the request.", res.ok ? "done" : "error");
+    setStatus(res.ok ? "Done. Outcome: " + label + "." : "The service could not complete the request.", res.ok ? "done" : "error");
   } finally {
     submit.disabled = false;
+    scenarios.forEach(button => button.disabled = false);
     form.removeAttribute("aria-busy");
   }
 });
