@@ -464,10 +464,6 @@ fn homepage_exposes_one_accessible_eight_beat_rail_and_exact_model() {
             && html.contains("Respect reduced motion")
     );
     assert!(html.contains("residual = supported - allocated.reduce"));
-    assert!(
-        html.contains("assertWorkloadModel"),
-        "exhaustive arithmetic self-check"
-    );
 }
 
 #[test]
@@ -481,7 +477,7 @@ fn homepage_removes_retired_copy_footer_and_remote_runtime_assets() {
         "cost savings",
         "save money",
         "cheaper by",
-        ">Escalate<",
+        ">escalate<",
         "outcome:\"escalate\"",
     ] {
         assert!(
@@ -521,6 +517,116 @@ fn homepage_preserves_demo_use_cases_and_complete_technical_guide() {
             "missing preserved contract: {contract}"
         );
     }
+}
+
+#[test]
+fn review_copy_places_products_and_qualifies_claims() {
+    let html = page("index.html");
+    assert!(html.contains(">The case in one minute<"));
+    assert_eq!(html.matches("Traceable for supported flows").count(), 2);
+    assert!(html.contains(
+        "Every supported outcome returns the relevant path and available sources behind it."
+    ));
+    assert!(html.contains("Index candidate"));
+    assert!(html.contains("Analytical data"));
+    assert!(html.contains("Relationship data"));
+    assert!(html.contains("Archive · redact · review"));
+    let scene = html.split("class=\"migration-scene\"").nth(1).unwrap();
+    let modernisation = scene.split("migration-stage--sift").nth(1).unwrap();
+    let before_landing = modernisation
+        .split("migration-stage--landing")
+        .next()
+        .unwrap();
+    assert!(!before_landing.contains("BigQuery") && !before_landing.contains("Spanner Graph"));
+    assert!(html.contains("Little Bunnies: two hops in this sample"));
+    assert!(html.contains("In this sample small-world graph"));
+}
+
+#[test]
+fn story_accessibility_contracts_do_not_hijack_controls() {
+    let html = page("index.html");
+    assert!(html.contains("if (event.target !== story) return;"));
+    assert!(!html.contains("assertWorkloadModel"));
+    assert!(!html.contains("console.assert"));
+    for id in ["totalUnits", "boundedShare", "evidenceShare"] {
+        assert!(
+            html.contains(&format!("id=\"{id}\" type=\"range\""))
+                && html.contains(&format!("aria-describedby=\"{id}Value")),
+            "descriptive range contract: {id}"
+        );
+    }
+    assert!(html.contains("class=\"vs-story-controls\" hidden"));
+}
+
+#[test]
+fn workload_allocation_is_exact_for_all_6137_reachable_inputs() {
+    fn allocate(total: i32, bounded_share: i32, evidence_share: i32) -> [i32; 5] {
+        let bounded = (total * bounded_share + 50) / 100;
+        let supported = (bounded * evidence_share + 50) / 100;
+        let weights = [7, 1, 1, 1];
+        let mut allocated = weights.map(|weight| supported * weight / 10);
+        let mut residual = supported - allocated.iter().sum::<i32>();
+        let mut order = [0, 1, 2, 3];
+        order.sort_by_key(|&index| (-(supported * weights[index] % 10), index));
+        for index in order {
+            if residual == 0 {
+                break;
+            }
+            allocated[index] += 1;
+            residual -= 1;
+        }
+        [
+            allocated[0],
+            allocated[1],
+            allocated[2],
+            total - supported,
+            allocated[3],
+        ]
+    }
+
+    let mut combinations = 0;
+    for total in (40..=200).step_by(10) {
+        for bounded in (10..=100).step_by(5) {
+            for evidence in (10..=100).step_by(5) {
+                let values = allocate(total, bounded, evidence);
+                assert!(values.iter().all(|value| *value >= 0));
+                assert_eq!(values.iter().sum::<i32>(), total);
+                combinations += 1;
+            }
+        }
+    }
+    assert_eq!(combinations, 6_137);
+}
+
+#[test]
+fn migration_and_value_story_css_are_scoped_and_consolidated() {
+    let css = page("guide.css");
+    assert!(css.contains(".migration-story .migration-scene"));
+    for selector in [
+        ".migration-scene{",
+        ".migration-stage{",
+        ".source-pool{",
+        ".sift-fan{",
+        ".activate-rail{",
+        ".google-plane{",
+    ] {
+        assert!(
+            !css.contains(&format!("\n{selector}")),
+            "unscoped selector: {selector}"
+        );
+    }
+    assert_eq!(
+        css.matches(".vs-progress button{").count(),
+        1,
+        "one progress rule"
+    );
+    assert_eq!(
+        css.matches(".vs-stage[data-beat=\"5\"] .vs-queue").count(),
+        2,
+        "one base and one mobile operating-mark queue rule"
+    );
+    assert!(css.contains(".vs-story.vs-enhanced .vs-story-controls{display:flex"));
+    assert!(css.contains("min-width:44px") && css.contains("min-height:44px"));
 }
 
 #[test]

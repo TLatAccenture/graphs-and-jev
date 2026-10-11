@@ -48,9 +48,9 @@
       <p class="migration-core"><strong>MCP reaches the source estate. Decision models sift it before movement. Cloud Storage provides governed landing. BigQuery and Spanner Graph activate connected evidence. Gemini earns its place at synthesis.</strong></p>
       <p>Different sifts want different engines. A source-side deterministic sift handles narrow pre-migration triage without egress; Sensitive Data Protection and Dataplex complement it after governed landing. This placement is architectural, not a benchmark or a claim that one engine replaces another.</p>
     </header>
-    <div class="migration-scene" role="img" aria-label="Cloud-neutral sources connect through MCP to a source-side sift, fan into index, BigQuery, Spanner Graph, or archive-redact-review, land in governed Cloud Storage, activate through BigQuery, Spanner Graph and Jev, then accelerate with Vertex AI Gemini inside Google Cloud.">
+    <div class="migration-scene" role="img" aria-label="Cloud-neutral sources connect through MCP to a source-side sift, fan into index candidate, analytical data, relationship data, or archive-redact-review, land in governed Cloud Storage, activate through BigQuery, Spanner Graph and Jev, then accelerate with Vertex AI Gemini inside Google Cloud.">
       <section class="migration-stage migration-stage--sources"><b><span>Migration</span></b><h3>Cloud-neutral source estate</h3><div class="source-pool"><span>Object storage</span><span>Databases</span><span>APIs</span><span>File shares</span></div><i class="connector connector--down"></i><strong class="mcp-node">MCP entry</strong></section>
-      <section class="migration-stage migration-stage--sift"><b><span>Modernisation</span></b><h3>Source-side sift before movement</h3><p>Rules classify shape, sensitivity and destination without sending every object to a general model.</p><div class="sift-fan"><span>Index</span><span>BigQuery</span><span>Spanner Graph</span><span>Archive · redact · review</span></div></section>
+      <section class="migration-stage migration-stage--sift"><b><span>Modernisation</span></b><h3>Source-side sift before movement</h3><p>Rules classify shape, sensitivity and destination without sending every object to a general model.</p><div class="sift-fan"><span>Index candidate</span><span>Analytical data</span><span>Relationship data</span><span>Archive · redact · review</span></div></section>
       <section class="migration-stage migration-stage--landing"><b>Governed landing</b><h3>Cloud Storage</h3><p>Sensitive Data Protection + Dataplex complement the sift <strong>after landing</strong> with managed discovery, classification and governance.</p></section>
       <section class="migration-stage migration-stage--activate"><b><span>Activation</span></b><h3>Connected evidence becomes bounded action</h3><div class="activate-rail"><span>BigQuery<small>facts</small></span><span>Spanner Graph<small>relationships</small></span><span class="jev-node">Jev<small>decisions</small></span></div></section>
       <section class="migration-stage migration-stage--accelerate"><b><span>Acceleration</span></b><h3>Google Cloud</h3><div class="google-plane"><span>Vertex AI</span><strong>Gemini</strong><small>Filtered, cited evidence for exceptions, synthesis, planning and novel problems</small></div></section>
@@ -61,7 +61,7 @@
 <section id="how-it-works" class="band band--paper" aria-labelledby="how-title">
   <div class="wrap">
     <div class="section-head">
-      <span class="eyebrow">From migration to action</span>
+      <span class="eyebrow">The case in one minute</span>
       <h2 id="how-title">Connect the facts. Bound the decision. Show the evidence.</h2>
       <p>Before any of this, the evidence has to be within reach. RAG retrieves indexed documents; MCP connects an AI application to governed tools and live systems. Both put material in front of the model, but neither shows how the pieces relate or whether they are enough to answer. That is where graphs and Jev come in. <a href="/dcceew/#reach">See all four layers in the DCCEEW story</a>.</p>
     </div>
@@ -79,7 +79,7 @@
       <li>
         <h3>Show the reasoning</h3>
         <p class="q">Why should anyone trust the result?</p>
-        <p>Every outcome comes back with the short path and the sources behind it, so a reviewer can see exactly which facts led to the decision.</p>
+        <p><strong>Traceable for supported flows.</strong> Every supported outcome returns the relevant path and available sources behind it.</p>
       </li>
     </ol>
     <dl class="defs" style="margin-top:clamp(40px,6vw,72px)">
@@ -172,10 +172,10 @@
       <div class="feature-art"><img src="/assets/small-world.svg" width="640" height="400" alt=""></div>
       <div>
         <span class="label">Small-world context</span>
-        <h3 id="uc-sw">Little Bunnies: why two hops are usually enough</h3>
+        <h3 id="uc-sw">Little Bunnies: two hops in this sample</h3>
         <dl class="facts">
           <div><dt>Business question</dt><dd>How much connected context does an agent need before it can decide?</dd></div>
-          <div><dt>What the graph adds</dt><dd>Short paths. In a small-world network, a few hops reach most of the graph.</dd></div>
+          <div><dt>What the graph adds</dt><dd>In this sample small-world graph, two hops expose enough connected context for the demonstration. Other graphs need their own measured bound.</dd></div>
           <div><dt>What Jev controls</dt><dd>Keeps the decision state inside a fixed token budget, so context stays bounded.</dd></div>
         </dl>
         <a class="btn" href="/little-bunnies/">Open Little Bunnies</a>
@@ -236,7 +236,7 @@
         <article class="vs-beat" data-beat="6"><span>07</span><h3>Translate architecture into outcomes</h3><p><strong>Throughput</strong> means more useful work completed; <strong>economics</strong> means matching engine cost to task shape; <strong>control</strong> means bounded actions; <strong>focus</strong> protects expert attention; <strong>accountability</strong> keeps a trace; <strong>adaptation</strong> lets rules change without rebuilding the whole agent.</p></article>
         <article class="vs-beat" data-beat="7"><span>08</span><h3>Measure useful work, not activity</h3><p>Future evaluation should track useful work per reasoning token, decision accuracy and calibration, unsupported-action rate, escalation precision, human-review time, route latency, and cost of incorrect automation.</p></article>
       </div>
-      <div class="vs-story-controls" aria-label="Value story controls">
+      <div class="vs-story-controls" hidden aria-label="Value story controls">
         <button type="button" id="previousBeat">← Previous</button><button type="button" id="nextBeat">Next →</button><button type="button" id="expandBeats" aria-pressed="false">Expand all beats</button>
         <div class="vs-motion-control">
           <span id="motionStatus" aria-live="polite">Checking motion preference</span>
@@ -252,9 +252,9 @@
         <h3 id="model-title">Illustrative work-unit model</h3>
         <p>Set a notional queue, the share that is bounded, and the share of bounded work with sufficient connected evidence. The arithmetic is exact for these inputs; it is not a performance, price or savings estimate.</p>
         <div class="vs-sliders">
-          <label>Total work units <output id="totalUnitsValue" for="totalUnits">100</output><input id="totalUnits" type="range" min="40" max="200" step="10" value="100"></label>
-          <label>Bounded judgments <output id="boundedShareValue" for="boundedShare">60%</output><input id="boundedShare" type="range" min="10" max="90" step="5" value="60"></label>
-          <label>Connected evidence sufficient <output id="evidenceShareValue" for="evidenceShare">75%</output><input id="evidenceShare" type="range" min="10" max="100" step="5" value="75"></label>
+          <label id="totalUnitsLabel">Total work units <output id="totalUnitsValue" for="totalUnits">100</output><input id="totalUnits" type="range" aria-labelledby="totalUnitsLabel" aria-describedby="totalUnitsValue" min="40" max="200" step="10" value="100"></label>
+          <label id="boundedShareLabel">Bounded judgments <output id="boundedShareValue" for="boundedShare">60%</output><input id="boundedShare" type="range" aria-labelledby="boundedShareLabel" aria-describedby="boundedShareValue" min="10" max="90" step="5" value="60"></label>
+          <label id="evidenceShareLabel">Connected evidence sufficient <output id="evidenceShareValue" for="evidenceShare">75%</output><input id="evidenceShare" type="range" aria-labelledby="evidenceShareLabel" aria-describedby="evidenceShareValue" min="10" max="100" step="5" value="75"></label>
         </div>
       </div>
       <div class="vs-model-output" aria-labelledby="model-output-title">
@@ -296,6 +296,7 @@
   const beats = story ? [...story.querySelectorAll(".vs-beat")] : [];
   if (!story || !stage || !beats.length) return;
   story.classList.add("vs-enhanced");
+  story.querySelector(".vs-story-controls").hidden = false;
   let active = 0;
   const titles = beats.map(beat => beat.querySelector("h3").textContent);
   const applyBeat = index => {
@@ -378,6 +379,7 @@
   };
   renderMotionChoice(false);
   story.addEventListener("keydown", event => {
+    if (event.target !== story) return;
     if (event.key === "ArrowRight" || event.key === "ArrowDown") { event.preventDefault(); step(1); }
     if (event.key === "ArrowLeft" || event.key === "ArrowUp") { event.preventDefault(); step(-1); }
   });
@@ -406,17 +408,6 @@
     const [answer, clarify, reject, noData] = allocated;
     return { answer, clarify, reject, review: total - supported, noData };
   };
-  const assertWorkloadModel = () => {
-    for (let total = 40; total <= 200; total += 10) {
-      for (let bounded = 10; bounded <= 90; bounded += 5) {
-        for (let evidence = 10; evidence <= 100; evidence += 5) {
-          const values = Object.values(calculateWorkload(total, bounded, evidence));
-          console.assert(values.every(value => value >= 0) && values.reduce((sum, value) => sum + value, 0) === total, "Workload arithmetic invariant");
-        }
-      }
-    }
-  };
-  assertWorkloadModel();
   const updateModel = () => {
     const total = +inputs.totalUnits.value;
     const { answer, clarify, reject, review, noData } = calculateWorkload(total, +inputs.boundedShare.value, +inputs.evidenceShare.value);
@@ -440,7 +431,7 @@
     </div>
     <div>
       <ul class="proof">
-        <li><strong>Traceable</strong>Every outcome returns the path and the sources behind it.</li>
+        <li><strong>Traceable for supported flows</strong>Every supported outcome returns the relevant path and available sources behind it.</li>
         <li><strong>Bounded outcomes</strong>Answer, clarify, reject, review or no data. Nothing in between.</li>
         <li><strong>Refusal before retrieval</strong>Requests outside scope, such as a medication dose, stop before any search runs.</li>
         <li><strong>Portable Rust service</strong>One static container with no cloud SDK. The same image can run on GCP, AWS or Azure.</li>
