@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::PathBuf;
+use std::process::Command;
 
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
@@ -550,52 +551,84 @@ fn story_accessibility_contracts_do_not_hijack_controls() {
     assert!(!html.contains("console.assert"));
     for id in ["totalUnits", "boundedShare", "evidenceShare"] {
         assert!(
-            html.contains(&format!("id=\"{id}\" type=\"range\""))
+            html.contains(&format!("id=\"{id}\" type=\"range\" disabled")),
+            "range disabled without enhancement: {id}"
+        );
+        assert!(
+            html.contains(&format!("id=\"{id}\" type=\"range\" disabled"))
                 && html.contains(&format!("aria-describedby=\"{id}Value")),
             "descriptive range contract: {id}"
         );
     }
     assert!(html.contains("class=\"vs-story-controls\" hidden"));
+    assert!(html.contains("input.disabled = false"));
+    assert!(html.contains("100 work units route to 32 Answer"));
 }
 
 #[test]
-fn workload_allocation_is_exact_for_all_6137_reachable_inputs() {
-    fn allocate(total: i32, bounded_share: i32, evidence_share: i32) -> [i32; 5] {
-        let bounded = (total * bounded_share + 50) / 100;
-        let supported = (bounded * evidence_share + 50) / 100;
-        let weights = [7, 1, 1, 1];
-        let mut allocated = weights.map(|weight| supported * weight / 10);
-        let mut residual = supported - allocated.iter().sum::<i32>();
-        let mut order = [0, 1, 2, 3];
-        order.sort_by_key(|&index| (-(supported * weights[index] % 10), index));
-        for index in order {
-            if residual == 0 {
-                break;
-            }
-            allocated[index] += 1;
-            residual -= 1;
-        }
-        [
-            allocated[0],
-            allocated[1],
-            allocated[2],
-            total - supported,
-            allocated[3],
-        ]
-    }
+fn shipped_workload_function_is_exact_for_all_5491_reachable_inputs() {
+    let html = page("index.html");
+    let start = html
+        .find("const calculateWorkload =")
+        .expect("shipped calculateWorkload function");
+    let end = html[start..]
+        .find("\n  const updateModel")
+        .map(|offset| start + offset)
+        .expect("end of shipped calculateWorkload function");
+    let function = &html[start..end];
 
-    let mut combinations = 0;
-    for total in (40..=200).step_by(10) {
-        for bounded in (10..=100).step_by(5) {
-            for evidence in (10..=100).step_by(5) {
-                let values = allocate(total, bounded, evidence);
-                assert!(values.iter().all(|value| *value >= 0));
-                assert_eq!(values.iter().sum::<i32>(), total);
-                combinations += 1;
-            }
-        }
-    }
-    assert_eq!(combinations, 6_137);
+    let range = |id: &str| {
+        let marker = format!("id=\"{id}\" type=\"range\"");
+        let start = html.find(&marker).unwrap_or_else(|| panic!("range {id}"));
+        let tag = &html[start..start + html[start..].find('>').expect("range tag")];
+        let value = |name: &str| {
+            let marker = format!("{name}=\"");
+            let start = tag.find(&marker).unwrap_or_else(|| panic!("{id} {name}")) + marker.len();
+            tag[start..start + tag[start..].find('"').expect("attribute end")]
+                .parse::<i32>()
+                .unwrap()
+        };
+        (value("min"), value("max"), value("step"))
+    };
+    let total = range("totalUnits");
+    let bounded = range("boundedShare");
+    let evidence = range("evidenceShare");
+    let script = format!(
+        r#"{function}
+let combinations = 0;
+for (let total = {t0}; total <= {t1}; total += {ts}) {{
+  for (let bounded = {b0}; bounded <= {b1}; bounded += {bs}) {{
+    for (let evidence = {e0}; evidence <= {e1}; evidence += {es}) {{
+      const values = Object.values(calculateWorkload(total, bounded, evidence));
+      if (!values.every(value => value >= 0) || values.reduce((sum, value) => sum + value, 0) !== total) process.exit(2);
+      combinations += 1;
+    }}
+  }}
+}}
+if (combinations !== 5491) process.exit(3);
+if (JSON.stringify(calculateWorkload(100, 60, 75)) !== JSON.stringify({{answer:32, clarify:5, reject:4, review:55, noData:4}})) process.exit(4);
+console.log(combinations);"#,
+        t0 = total.0,
+        t1 = total.1,
+        ts = total.2,
+        b0 = bounded.0,
+        b1 = bounded.1,
+        bs = bounded.2,
+        e0 = evidence.0,
+        e1 = evidence.1,
+        es = evidence.2,
+    );
+    let output = Command::new("node")
+        .arg("-e")
+        .arg(script)
+        .output()
+        .expect("installed node executes shipped workload function");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "5491");
 }
 
 #[test]
@@ -627,6 +660,8 @@ fn migration_and_value_story_css_are_scoped_and_consolidated() {
     );
     assert!(css.contains(".vs-story.vs-enhanced .vs-story-controls{display:flex"));
     assert!(css.contains("min-width:44px") && css.contains("min-height:44px"));
+    assert!(css.contains("grid-template-columns:repeat(4,44px)"));
+    assert!(css.contains("grid-template-rows:repeat(2,44px)"));
 }
 
 #[test]

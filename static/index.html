@@ -252,9 +252,9 @@
         <h3 id="model-title">Illustrative work-unit model</h3>
         <p>Set a notional queue, the share that is bounded, and the share of bounded work with sufficient connected evidence. The arithmetic is exact for these inputs; it is not a performance, price or savings estimate.</p>
         <div class="vs-sliders">
-          <label id="totalUnitsLabel">Total work units <output id="totalUnitsValue" for="totalUnits">100</output><input id="totalUnits" type="range" aria-labelledby="totalUnitsLabel" aria-describedby="totalUnitsValue" min="40" max="200" step="10" value="100"></label>
-          <label id="boundedShareLabel">Bounded judgments <output id="boundedShareValue" for="boundedShare">60%</output><input id="boundedShare" type="range" aria-labelledby="boundedShareLabel" aria-describedby="boundedShareValue" min="10" max="90" step="5" value="60"></label>
-          <label id="evidenceShareLabel">Connected evidence sufficient <output id="evidenceShareValue" for="evidenceShare">75%</output><input id="evidenceShare" type="range" aria-labelledby="evidenceShareLabel" aria-describedby="evidenceShareValue" min="10" max="100" step="5" value="75"></label>
+          <label id="totalUnitsLabel">Total work units <output id="totalUnitsValue" for="totalUnits">100</output><input id="totalUnits" type="range" disabled aria-labelledby="totalUnitsLabel" aria-describedby="totalUnitsValue" min="40" max="200" step="10" value="100"></label>
+          <label id="boundedShareLabel">Bounded judgments <output id="boundedShareValue" for="boundedShare">60%</output><input id="boundedShare" type="range" disabled aria-labelledby="boundedShareLabel" aria-describedby="boundedShareValue" min="10" max="90" step="5" value="60"></label>
+          <label id="evidenceShareLabel">Connected evidence sufficient <output id="evidenceShareValue" for="evidenceShare">75%</output><input id="evidenceShare" type="range" disabled aria-labelledby="evidenceShareLabel" aria-describedby="evidenceShareValue" min="10" max="100" step="5" value="75"></label>
         </div>
       </div>
       <div class="vs-model-output" aria-labelledby="model-output-title">
@@ -398,12 +398,11 @@
   const calculateWorkload = (total, boundedShare, evidenceShare) => {
     const bounded = Math.round(total * boundedShare / 100);
     const supported = Math.round(bounded * evidenceShare / 100);
-    const weighted = [.7, .1, .1, .1].map((weight, index) => ({ index, exact: supported * weight }));
-    const allocated = weighted.map(part => Math.floor(part.exact));
+    const weighted = [7, 1, 1, 1].map((weight, index) => ({ index, numerator: supported * weight }));
+    const allocated = weighted.map(part => Math.floor(part.numerator / 10));
     let residual = supported - allocated.reduce((sum, count) => sum + count, 0);
     weighted
-      .map(part => ({ ...part, fraction: part.exact - Math.floor(part.exact) }))
-      .sort((a, b) => b.fraction - a.fraction || a.index - b.index)
+      .sort((a, b) => b.numerator % 10 - a.numerator % 10 || a.index - b.index)
       .forEach(part => { if (residual > 0) { allocated[part.index] += 1; residual -= 1; } });
     const [answer, clarify, reject, noData] = allocated;
     return { answer, clarify, reject, review: total - supported, noData };
@@ -420,6 +419,7 @@
   };
   Object.values(inputs).forEach(input => input.addEventListener("input", updateModel));
   updateModel();
+  Object.values(inputs).forEach(input => { input.disabled = false; });
 })();
 </script>
 

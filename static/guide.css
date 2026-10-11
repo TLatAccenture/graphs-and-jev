@@ -509,8 +509,8 @@ pre{background:var(--code);border:1px solid var(--line);border-radius:var(--r-sm
   .vs-stage{min-height:0;padding:12px;overflow:visible}
   .vs-stage-head,.vs-lanes{font-size:13px}
   .vs-stage-head{padding-right:0}
-  .vs-progress{position:relative;inset:auto;flex-direction:row;width:100%;height:28px;margin:12px 0 8px}
-  .vs-progress::before{top:50%;bottom:auto;left:10px;right:10px;width:auto;height:1px}
+  .vs-progress{position:relative;inset:auto;display:grid;grid-template-columns:repeat(4,44px);grid-template-rows:repeat(2,44px);justify-content:space-between;width:100%;height:auto;margin:12px 0 8px}
+  .vs-progress::before{display:none}
   .vs-lanes{position:static;margin:16px 0 8px}.vs-lanes span:nth-child(2),.vs-lanes span:nth-child(3){margin-left:0}
   .vs-queue{position:relative;inset:auto;display:grid;grid-template-columns:minmax(0,1fr);gap:8px;min-height:0;padding-bottom:12px}
   .vs-ticket,.vs-ticket:nth-child(n){position:relative;inset:auto;width:100%;min-height:0;transform:none;padding:10px 11px;font-size:15px}
@@ -581,7 +581,7 @@ pre{background:var(--code);border:1px solid var(--line);border-radius:var(--r-sm
 @media (max-width:320px){
   .wrap{--gutter:14px}
   .value-story,.migration-story,.vs-story,.vs-stage,.vs-model,.vs-architecture{min-width:0;max-width:100%}
-  .vs-progress{gap:2px}.vs-ticket,.vs-stage-caption,.migration-story .migration-stage{max-width:100%;overflow-wrap:anywhere}
+  .vs-progress{gap:4px;justify-content:space-between}.vs-ticket,.vs-stage-caption,.migration-story .migration-stage{max-width:100%;overflow-wrap:anywhere}
   .vs-story-controls{display:grid;grid-template-columns:1fr}
   .vs-story-controls button,.vs-motion-control button{width:100%;min-width:0}
   .vs-model-output{padding:14px}
