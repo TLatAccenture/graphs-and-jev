@@ -385,3 +385,160 @@ fn every_page_references_local_favicon() {
         );
     }
 }
+
+#[test]
+fn homepage_leads_with_migration_as_an_ai_accelerator() {
+    let html = page("index.html");
+    assert!(html.contains("Turn data migration into an <em>AI accelerator.</em>"));
+    assert!(html.contains("MCP reaches fragmented source systems"));
+    assert!(html.contains("graphs connect the facts"));
+    assert!(html.contains("decision models bound routine decisions"));
+    assert!(html.contains("reasoning on ambiguity, synthesis, planning and novel work"));
+    for stage in ["Migration", "Modernisation", "Activation", "Acceleration"] {
+        assert!(
+            html.contains(&format!(">{stage}<")),
+            "missing stage: {stage}"
+        );
+    }
+}
+
+#[test]
+fn homepage_keeps_the_approved_value_story_contracts() {
+    let html = page("index.html");
+    assert!(html.contains("Spend reasoning where it creates value."));
+    assert!(html.contains("Illustrative operating model—not a benchmark."));
+    for outcome in ["Answer", "Clarify", "Reject", "Review", "No data"] {
+        assert!(
+            html.contains(&format!(">{outcome}<")),
+            "missing outcome: {outcome}"
+        );
+    }
+    for stage in [
+        "MCP entry",
+        "Evidence",
+        "Relationship",
+        "Decision",
+        "Reasoning",
+        "Assurance",
+    ] {
+        assert!(html.contains(stage), "missing agent-spine stage: {stage}");
+    }
+    for measure in [
+        "useful work per reasoning token",
+        "decision accuracy and calibration",
+        "unsupported-action rate",
+        "escalation precision",
+        "human-review time",
+        "route latency",
+        "cost of incorrect automation",
+    ] {
+        assert!(html.contains(measure), "missing future measure: {measure}");
+    }
+}
+
+#[test]
+fn homepage_exposes_one_accessible_eight_beat_rail_and_exact_model() {
+    let html = page("index.html");
+    assert_eq!(
+        html.matches("data-beat-target=").count(),
+        8,
+        "single 1–8 rail"
+    );
+    assert_eq!(
+        html.matches("class=\"vs-progress\"").count(),
+        1,
+        "one progress rail"
+    );
+    assert!(html.contains("id=\"previousBeat\"") && html.contains("id=\"nextBeat\""));
+    assert!(
+        html.contains("id=\"expandBeats\"")
+            && html.contains("id=\"beatStatus\" aria-live=\"polite\"")
+    );
+    assert!(
+        html.contains("event.key === \"ArrowRight\"")
+            && html.contains("event.key === \"ArrowLeft\"")
+    );
+    assert!(
+        html.contains("id=\"motionToggle\"")
+            && html.contains("Preview motion")
+            && html.contains("Respect reduced motion")
+    );
+    assert!(html.contains("residual = supported - allocated.reduce"));
+    assert!(
+        html.contains("assertWorkloadModel"),
+        "exhaustive arithmetic self-check"
+    );
+}
+
+#[test]
+fn homepage_removes_retired_copy_footer_and_remote_runtime_assets() {
+    let html = page("index.html");
+    let lower = html.to_lowercase();
+    for forbidden in [
+        "the palindrome",
+        "thepalindrome.org",
+        "<footer",
+        "cost savings",
+        "save money",
+        "cheaper by",
+        ">Escalate<",
+        "outcome:\"escalate\"",
+    ] {
+        assert!(
+            !lower.contains(forbidden),
+            "retired or unsupported copy: {forbidden}"
+        );
+    }
+    for tag in tags(&html, "script").into_iter().chain(tags(&html, "link")) {
+        assert!(
+            !tag.contains("src=\"http") && !tag.contains("href=\"http"),
+            "remote runtime asset: {tag}"
+        );
+    }
+}
+
+#[test]
+fn homepage_preserves_demo_use_cases_and_complete_technical_guide() {
+    let html = page("index.html");
+    for contract in [
+        "id=\"example\"",
+        "href=\"/dcceew/\"",
+        "href=\"/parkinsons/\"",
+        "href=\"/little-bunnies/\"",
+        "id=\"spanner-graph-spotlight\"",
+        "id=\"labA\"",
+        "id=\"labB\"",
+        "id=\"labC\"",
+        "id=\"snipTabs\"",
+        "id=\"runList\"",
+        "Sources and caveats",
+        "const E=[",
+        "const SNIPS=[",
+        "const RUNS=[",
+    ] {
+        assert!(
+            html.contains(contract),
+            "missing preserved contract: {contract}"
+        );
+    }
+}
+
+#[test]
+fn value_story_css_has_type_floors_reduced_motion_and_320px_guards() {
+    let css = page("guide.css");
+    for contract in [
+        ".value-story",
+        ".migration-story",
+        "min-block-size:clamp(90svh,96vh,100svh)",
+        ".vs-story.reduce-motion",
+        ".vs-story.force-motion",
+        "@media (max-width:320px)",
+        "overflow-wrap:anywhere",
+        "font-size:max(16px",
+    ] {
+        assert!(
+            css.contains(contract),
+            "missing responsive contract: {contract}"
+        );
+    }
+}
