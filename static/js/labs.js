@@ -179,7 +179,8 @@ function params(k){
 }
 const RENDER={A:renderA,B:renderB,C:renderC,D:renderD};
 function run(k,fn){const out=$(k.toLowerCase()+"Out");
-  try{RENDER[k](fn(...params(k)))}catch(e){out.innerHTML=`<span class="err">Your code threw an error: ${esc(e.message)}. Fix it and run again, or reset the code.</span>`}}
+  try{RENDER[k](fn(...params(k)))}catch(e){out.innerHTML=`<span class="err">Your code threw an error: ${esc(e.message)}. Fix it and run again, or reset the code.</span>`}
+  if(!matchMedia("(prefers-reduced-motion: reduce)").matches)out.animate([{backgroundColor:"#f3e6ff"},{backgroundColor:"transparent"}],{duration:700,easing:"ease-out"})}
 document.querySelectorAll("[data-run]").forEach(b=>b.onclick=()=>run(b.dataset.run,FN[b.dataset.run]));
 document.querySelectorAll("[data-reset]").forEach(b=>b.onclick=()=>{const k=b.dataset.reset;$(k.toLowerCase()+"Code").value=DEFAULT[k];run(k,FN[k])});
 document.querySelectorAll("[data-runedit]").forEach(b=>b.onclick=()=>{const k=b.dataset.runedit,out=$(k.toLowerCase()+"Out");
