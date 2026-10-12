@@ -49,7 +49,7 @@ Open <http://127.0.0.1:8080/>. Readiness and liveness are at `/api/ready` and `/
 
 ## Deploy
 
-Deployment to Cloud Run uses the guarded release script `deploy/deploy.sh` (private candidate, verify, promote). See [docs/deployment/cloud-run.md](docs/deployment/cloud-run.md) for the procedure and the current deployment record.
+Deployment to Cloud Run uses two guarded scripts: `deploy/deploy.sh` builds and checks a zero-traffic candidate without changing live traffic or access, and `deploy/promote.sh` moves traffic to it, keeps the service public and verifies the canonical URL, rolling back on failure. See [docs/deployment/cloud-run.md](docs/deployment/cloud-run.md) for the procedure and the current deployment record.
 
 ## About
 

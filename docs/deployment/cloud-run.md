@@ -61,20 +61,33 @@ Application logs are one JSON object per request with `request_id`, `route`, `st
 
 Do not add raw request text, response evidence bodies, credentials, tokens, or personal data to logs. Monitor request status and latency by route, decision outcomes, revision health, instance count, and cost.
 
+## Release procedure
+
+1. `deploy/deploy.sh [env-file]` runs the preflight, builds the image in Cloud Build and deploys it by digest as a revision tagged `candidate-<sha12>`.
+   - On an existing service the deploy uses `--no-traffic` and no IAM flag. Cloud Run IAM is service-wide, so an IAM flag here would also change access to the live revision. The script records the invoker policy and the serving traffic split first and fails if either changes.
+   - On a new service the first revision is deployed private (`--no-allow-unauthenticated`) at 100% traffic.
+   - The candidate tag URL is checked with an identity token by `deploy/verify.py`: health, readiness, every page, `/config.js`, the retired-page redirects, catalogue answer/clarify/reject and the lineage 501. The canonical URL must still answer anonymously with 200 on a public service, or 401/403 on a new private one.
+   - On a public service the tag URL is reachable without credentials. It is unlisted, not private.
+2. `deploy/promote.sh <revision> [env-file]` re-checks the candidate, moves 100% of traffic to it, grants `allUsers` `roles/run.invoker` (a no-op if already granted), confirms the traffic split and runs `deploy/verify.py` against the canonical URL without credentials. If any step after the traffic switch fails it restores the previous traffic split and IAM policy and exits non-zero.
+
+`tests/test-deploy.sh` covers both scripts with a mocked `gcloud`, including the rollback path.
+
 ## Release verification gates
 
 Do not send production traffic to a candidate until all gates pass:
 
 1. `cargo test` and `cargo build --release` succeed from the committed tree.
 2. The local scratch image builds and `scripts/smoke-container.sh` passes.
-3. The image is addressed by digest and its revision reports the expected account, probes, limits, and zero candidate traffic.
-4. Candidate checks pass for health, readiness, `/config.js`, all static routes, catalogue answer/clarify/reject, and the lineage 501.
+3. The image is addressed by digest and its revision reports the expected account, probes, limits, and zero candidate traffic, with live traffic and service IAM unchanged.
+4. Candidate checks (`deploy/verify.py`) pass for health, readiness, `/config.js`, all static routes, the `/dcceew/` and `/parkinsons/` redirects, catalogue answer/clarify/reject, and the lineage 501.
 5. Boundary checks return the expected 413/422 and 429 responses; logs contain request IDs and no submitted request text.
 6. Desktop and 390 px browser checks have no console errors or horizontal overflow.
-7. Canonical-URL checks pass after the traffic update.
+7. Canonical-URL checks pass anonymously after the traffic update (`deploy/promote.sh`).
 8. Git status is clean and tracked browser assets contain no secret, token, credential, GCP project ID, analytics identifier, authentication code, or raw personal data.
 
 ## Rollback and restore
+
+`deploy/promote.sh` rolls back automatically when promotion fails. To roll back by hand later:
 
 List available revisions:
 
