@@ -479,6 +479,7 @@ Set up Playwright (`@playwright/test`, Chromium only) under `tests/e2e/`. Tests 
 | L11 | BigQuery documentation | https://cloud.google.com/bigquery/docs |
 | L12 | Looker documentation | https://cloud.google.com/looker/docs |
 | L13 | Spanner Graph overview (existing) | https://cloud.google.com/spanner/docs/graph/overview |
+| L14 | TypeSafe Models documentation: Jev context length, 64k tokens per request, 32k tokens for `state` plus the longest question (vendor-reported) | https://docs.typesafe.ai/models |
 
 Do **not** write "sub-100 ms". The vendor's own range is 70 to 500 ms.
 
