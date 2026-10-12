@@ -5,7 +5,7 @@
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Lineage-guarded migration · The MCP Shed</title>
-<meta name="description" content="A migration step checked against lineage before it runs: the graph computes the blast radius, a skill sets the steps, hooks validate them, and a System 1 gate proceeds, asks, escalates or refuses.">
+<meta name="description" content="Each migration step is checked against lineage first. The graph finds the blast radius; a System 1 gate decides.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -32,13 +32,13 @@
   <div class="wrap">
     <div>
       <nav class="crumb" aria-label="Breadcrumb"><a href="../"><span data-brand="name">The MCP Shed</span></a> / <a href="../#use-cases">Use cases</a> / <span aria-current="page">Lineage-guarded migration</span></nav>
-      <p class="eyebrow">Use case · Change without breaking downstream</p>
-      <h1 id="page-title">See the blast radius before the change runs.</h1>
-      <p class="lede">A migration agent that renames a column or drops a table can break a report it never saw. Here every step is checked against a lineage graph first. A migration skill sets the steps, hooks validate them, and a System 1 model such as <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">Jev, TypeSafe's System 1 decision model</a>, decides whether the step runs.</p>
-      <p class="boundary boundary--change"><strong>Illustrative, not a migration tool.</strong>The demo runs on a sample estate in your browser. It never connects to a real system.</p>
+      <p class="eyebrow">Use case · Safe change</p>
+      <h1 id="page-title">See the blast radius first.</h1>
+      <p class="lede">Renaming a column can break a report the agent never saw. Each step is checked against lineage, then a System 1 model such as <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">Jev, TypeSafe's System 1 decision model</a>, decides.</p>
+      <p class="boundary boundary--change"><strong>Illustrative, not a migration tool.</strong>Sample estate, in your browser. No real system is touched.</p>
     </div>
     <div class="page-art">
-      <img src="../assets/lineage-blast-radius.svg" width="640" height="400" alt="Rings spread out from the column KNA1.REGION. One hop away is the BigQuery column customers.region. Two hops away are the Looker dashboards Regional sales and Monthly churn, both owned by Finance.">
+      <img src="../assets/lineage-blast-radius.svg" width="640" height="400" alt="Rings spread from KNA1.REGION: one hop to BigQuery customers.region, two hops to the Finance Looker dashboards Regional sales and Monthly churn.">
     </div>
   </div>
 </section>
@@ -46,10 +46,10 @@
 <section class="band band--tight band--paper" aria-label="Use case summary">
   <div class="wrap">
     <dl class="brief">
-      <div><dt>Business question</dt><dd>Can this migration step run without breaking anything downstream?</dd></div>
-      <div><dt>Graph contribution</dt><dd>Computes the blast radius: every table, job and report that depends on the object being changed.</dd></div>
-      <div><dt>Playbook and hooks</dt><dd>A migration skill sets the steps; hooks validate the schema and block unsafe writes.</dd></div>
-      <div><dt>System 1 gate</dt><dd>Proceeds, asks, refuses or escalates at each step, with a calibrated confidence.</dd></div>
+      <div><dt>Question</dt><dd>Will this step break anything downstream?</dd></div>
+      <div><dt>Graph</dt><dd>Every dependent table, job and report.</dd></div>
+      <div><dt>Playbook and hooks</dt><dd>A skill sets the steps; hooks check the schema and block unsafe writes.</dd></div>
+      <div><dt>System 1 gate</dt><dd>Proceeds, asks, refuses or escalates, with a calibrated confidence.</dd></div>
     </dl>
   </div>
 </section>
@@ -57,15 +57,15 @@
 <section class="band" id="demo" aria-labelledby="demo-title">
   <div class="wrap">
     <div class="section-head">
-      <p class="eyebrow">Interactive demonstration</p>
-      <h2 id="demo-title">Put a migration step through the gate.</h2>
-      <p class="lede">Choose an example or describe a change to the sample estate. The result shows what the gate decided, the lineage behind it, the playbook steps and the eval record.</p>
+      <p class="eyebrow">Demo</p>
+      <h2 id="demo-title">Gate a migration step.</h2>
+      <p class="lede">Pick an example or describe a change.</p>
     </div>
 
     <div class="demo-grid">
       <div>
         <fieldset class="scenarios">
-          <legend>Start with an example</legend>
+          <legend>Examples</legend>
           <button type="button" class="scenario" aria-pressed="false" data-req="Rename KNA1.REGION to SALES_REGION in the BigQuery target"><strong>Rename a mapped column</strong><span>"Rename KNA1.REGION to SALES_REGION in the BigQuery target." Two dashboards read the column.</span></button>
           <button type="button" class="scenario" aria-pressed="false" data-req="Migrate COBOL job CUSTUPD to BigQuery SQL"><strong>Convert a batch job</strong><span>"Migrate COBOL job CUSTUPD to BigQuery SQL." The record layout it reads is ambiguous.</span></button>
           <button type="button" class="scenario" aria-pressed="false" data-req="Drop table KNA1 after cutover"><strong>Retire a source table</strong><span>"Drop table KNA1 after cutover." A downstream report has no owner.</span></button>
@@ -76,13 +76,13 @@
         <form id="askLn" class="demo" aria-describedby="lnStatus">
           <div class="field">
             <label for="lnRequest">Migration request</label>
-            <p class="hint" id="ln-hint">Name an object in the sample estate and the change to make, for example "rename KNA1.REGION". Do not enter real system names or credentials.</p>
+            <p class="hint" id="ln-hint">For example "rename KNA1.REGION". No real names or credentials.</p>
             <textarea id="lnRequest" name="request" maxlength="500" required aria-describedby="ln-hint">Rename KNA1.REGION to SALES_REGION in the BigQuery target</textarea>
           </div>
           <div class="actions">
             <button class="btn btn--purple" type="submit" id="lnSubmit">Check and decide</button>
           </div>
-          <p class="demo-status" id="lnStatus" aria-live="polite" data-state="idle">Ready. Submit a request to see what the gate decides.</p>
+          <p class="demo-status" id="lnStatus" aria-live="polite" data-state="idle">Ready.</p>
         </form>
 
         <section class="result" id="lnResult" aria-labelledby="ln-result-heading" tabindex="-1" hidden>
@@ -110,13 +110,13 @@
       <aside aria-labelledby="read-title">
         <h3 id="read-title">How to read the result</h3>
         <dl class="facts ln-key">
-          <div data-o="answer"><dt>Proceed</dt><dd>The lineage supports the step. It runs, with the blast radius attached.</dd></div>
-          <div data-o="clarify"><dt>Ask</dt><dd>A detail is missing or ambiguous. The agent asks rather than guesses.</dd></div>
-          <div data-o="review"><dt>Escalate</dt><dd>The dependency is known but a fact, such as an owner, is missing. A person decides.</dd></div>
-          <div data-o="reject"><dt>Refuse</dt><dd>The step is unsafe or out of scope. It stops before any tool call.</dd></div>
-          <div data-o="no_data"><dt>No data</dt><dd>The request is clear, but the object is not in the lineage graph.</dd></div>
+          <div data-o="answer"><dt>Proceed</dt><dd>Lineage supports it. It runs, with the blast radius attached.</dd></div>
+          <div data-o="clarify"><dt>Ask</dt><dd>A detail is missing or ambiguous. The agent asks.</dd></div>
+          <div data-o="review"><dt>Escalate</dt><dd>A fact, such as an owner, is missing. A person decides.</dd></div>
+          <div data-o="reject"><dt>Refuse</dt><dd>Unsafe or out of scope. Stops before any tool call.</dd></div>
+          <div data-o="no_data"><dt>No data</dt><dd>The object is not in the lineage graph.</dd></div>
         </dl>
-        <p class="boundary boundary--scope"><strong>How the gate works here</strong>In this demonstration the gate is a short list of in-browser rules that match words in the request. A System 1 model would return the same typed outcomes with a calibrated confidence. The confidence values and the eval record shown here are illustrative.</p>
+        <p class="boundary boundary--scope"><strong>How the gate works here</strong>Here the gate is a few in-browser word rules. A System 1 model adds calibrated confidence. Confidence and eval records are illustrative.</p>
       </aside>
     </div>
   </div>

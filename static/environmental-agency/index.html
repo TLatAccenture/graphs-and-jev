@@ -5,7 +5,7 @@
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Environmental Agency catalogue discovery · The MCP Shed</title>
-<meta name="description" content="Discover the estate before you migrate it: how a fictional Environmental Agency brings its air-quality catalogue within reach through RAG and an MCP shed, connects it in a graph, and lets a System 1 model decide whether the evidence answers the request.">
+<meta name="description" content="Discover the estate before you migrate it. A fictional Environmental Agency reaches its air-quality catalogue through RAG and an MCP shed, links it in a graph, and lets a System 1 model decide.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -31,12 +31,12 @@
   <div class="wrap">
     <div>
       <nav class="crumb" aria-label="Breadcrumb"><a href="../" data-brand="name">The MCP Shed</a> / <a href="../#use-cases">Use cases</a> / <span aria-current="page">Environmental Agency catalogue discovery</span></nav>
-      <p class="eyebrow">Use case · Discover the estate before you migrate it</p>
+      <p class="eyebrow">Use case · Discovery before migration</p>
       <h1 id="page-title">Know what you hold before you move it.</h1>
-      <p class="lede">Before an agency's data estate can be migrated, someone has to establish what exists, where it lives and what depends on it. This demonstration uses the air-quality catalogue of a fictional Environmental Agency. The evidence is spread across documents, tables, catalogue records and reference data. First it has to be brought within reach through the MCP shed. Then it has to be connected in a graph. Then a System 1 model decides whether it is enough to answer.</p>
+      <p class="lede">Migration starts with what exists, where, and what depends on it. The Environmental Agency here is fictional. Its air-quality evidence is scattered. The MCP shed reaches it, a graph connects it, and a System 1 model decides if it is enough.</p>
     </div>
     <div class="page-art">
-      <img src="../assets/environmental-agency-landscape.svg" width="640" height="400" alt="A landscape of monitoring stations under bands of atmosphere. A highlighted path links a pollutant to a place and then to the dataset that measures it.">
+      <img src="../assets/environmental-agency-landscape.svg" width="640" height="400" alt="Monitoring stations under bands of atmosphere. A highlighted path links a pollutant to a place and the dataset that measures it.">
     </div>
   </div>
 </section>
@@ -44,10 +44,10 @@
 <section class="band band--tight band--paper" aria-label="The four layers on this page">
   <div class="wrap">
     <ol class="layers">
-      <li style="--c:var(--rag)"><a href="#reach"><b>Reach</b><span>RAG and MCP bring documents, records and live systems within reach.</span></a></li>
-      <li style="--c:var(--graph)"><a href="#connect"><b>Connect</b><span>The graph shows how pollutant, place, year and dataset fit together.</span></a></li>
-      <li style="--c:var(--jev)"><a href="#decide"><b>Decide</b><span>A System 1 model answers, asks, refuses or hands the request to a person.</span></a></li>
-      <li style="--c:var(--answer)"><a href="#demo"><b>Show</b><span>Try it: every outcome comes back with its path and its datasets.</span></a></li>
+      <li style="--c:var(--rag)"><a href="#reach"><b>Reach</b><span>RAG and MCP reach documents, records and live systems.</span></a></li>
+      <li style="--c:var(--graph)"><a href="#connect"><b>Connect</b><span>The graph links pollutant, place, year and dataset.</span></a></li>
+      <li style="--c:var(--jev)"><a href="#decide"><b>Decide</b><span>A System 1 model answers, asks, refuses or escalates.</span></a></li>
+      <li style="--c:var(--answer)"><a href="#demo"><b>Show</b><span>Every outcome shows its path and datasets.</span></a></li>
     </ol>
   </div>
 </section>
@@ -59,19 +59,19 @@
       <div class="section-head" style="margin:0">
         <p class="eyebrow">01 · The gap</p>
         <h2 id="gap-title">The model can't see your catalogue.</h2>
-        <p>A language model knows a lot about air quality in general. It knows nothing about which datasets you hold, at what breakdown, from which publisher, or how current they are. One request shows how many kinds of evidence a good answer needs.</p>
+        <p>A language model knows air quality in general, not your datasets, breakdowns, publishers or dates. One request needs many kinds of evidence.</p>
       </div>
       <div>
         <p class="ask"><small>The request</small>Annual PM2.5 by country, 2019 to 2024, official sources only.</p>
         <table class="needs">
           <caption class="sr-only">Evidence the request needs, its shape, and where it usually lives</caption>
-          <thead><tr><th scope="col">What a good answer needs</th><th scope="col">Shape</th><th scope="col">Where it usually lives</th></tr></thead>
+          <thead><tr><th scope="col">The answer needs</th><th scope="col">Shape</th><th scope="col">Usually in</th></tr></thead>
           <tbody>
-            <tr><th scope="row">What PM2.5 means, and which pollutant group it belongs to</th><td><span class="shape" style="color:var(--rag)">prose</span></td><td>Methodology documents</td></tr>
-            <tr><th scope="row">Which datasets hold PM2.5, for which countries and years</th><td><span class="shape" style="color:var(--mcp)">tables</span></td><td>Catalogue coverage tables</td></tr>
-            <tr><th scope="row">Who publishes each dataset, and when it was updated</th><td><span class="shape" style="color:var(--mcp)">records</span></td><td>Catalogue metadata</td></tr>
-            <tr><th scope="row">How countries roll up to continents, and years to ranges</th><td><span class="shape" style="color:var(--graph)">relationships</span></td><td>Reference hierarchies</td></tr>
-            <tr><th scope="row">Whether this person may see the source</th><td><span class="shape" style="color:var(--jev)">policy</span></td><td>Access rules</td></tr>
+            <tr><th scope="row">What PM2.5 is, and its pollutant group</th><td><span class="shape" style="color:var(--rag)">prose</span></td><td>Methodology documents</td></tr>
+            <tr><th scope="row">Which datasets hold it, by country and year</th><td><span class="shape" style="color:var(--mcp)">tables</span></td><td>Coverage tables</td></tr>
+            <tr><th scope="row">Publisher and last update</th><td><span class="shape" style="color:var(--mcp)">records</span></td><td>Catalogue metadata</td></tr>
+            <tr><th scope="row">Country to continent, year to range</th><td><span class="shape" style="color:var(--graph)">relationships</span></td><td>Reference hierarchies</td></tr>
+            <tr><th scope="row">Whether this person may see it</th><td><span class="shape" style="color:var(--jev)">policy</span></td><td>Access rules</td></tr>
           </tbody>
         </table>
       </div>
@@ -84,54 +84,54 @@
   <div class="wrap">
     <div class="section-head">
       <p class="eyebrow">02 · Reach</p>
-      <h2 id="reach-title">Two ways to bring evidence within reach.</h2>
-      <p>Both end the same way: material added to the model's context window for this one request. Neither retrains the model. They differ in what they reach and who decides to reach for it.</p>
+      <h2 id="reach-title">Two ways to reach evidence.</h2>
+      <p>Both add context for one request, without retraining. They differ in reach and in who decides.</p>
     </div>
 
     <div class="routes">
       <div style="--c:var(--rag)">
         <h3>RAG</h3>
         <p class="kind">Retrieval-augmented generation · a technique</p>
-        <p>Index the documents ahead of time. When a request arrives, search the index and add the best-matching passages or images to the prompt.</p>
+        <p>Pre-index documents. Add the best matches to the prompt.</p>
         <dl>
-          <dt>Here, it suits</dt><dd>The methodology documents: what PM2.5 is and how it is measured.</dd>
-          <dt>Who decides</dt><dd>Usually your code, before the model starts.</dd>
-          <dt>Fresh as</dt><dd>The last time the index was rebuilt.</dd>
+          <dt>Suits</dt><dd>Methodology: what PM2.5 is.</dd>
+          <dt>Who decides</dt><dd>Your code, before the model runs.</dd>
+          <dt>Fresh as</dt><dd>The last index rebuild.</dd>
         </dl>
       </div>
       <div style="--c:var(--mcp)">
         <h3>MCP</h3>
         <p class="kind">Model Context Protocol · an open standard</p>
-        <p>A standard way for an AI application to connect to servers that offer tools, resources and prompts. The model asks for a tool; the application makes the call and returns the result <a href="#c2">[2]</a>.</p>
+        <p>Connects an AI app to servers of tools, resources and prompts. The model asks; the app calls <a href="#c2">[2]</a>.</p>
         <dl>
-          <dt>Here, it suits</dt><dd>The catalogue itself: query coverage, read metadata, fetch the current record.</dd>
-          <dt>Who decides</dt><dd>For tools, the model, while it works. The application can still ask a person first.</dd>
+          <dt>Suits</dt><dd>The catalogue: coverage, metadata, records.</dd>
+          <dt>Who decides</dt><dd>The model, as it works, or a person.</dd>
           <dt>Fresh as</dt><dd>The system behind the server.</dd>
         </dl>
       </div>
     </div>
-    <p class="joint"><strong>They combine.</strong> A <code>search_methodology</code> tool can be an MCP tool with a RAG index behind it. RAG is a way of finding things; MCP is a way of connecting to things. In a migration programme, these servers sit in the MCP shed: a governed set, with each agent given only the servers its task needs.</p>
+    <p class="joint"><strong>They combine.</strong> A <code>search_methodology</code> MCP tool can sit on a RAG index. The MCP shed governs these servers; each agent gets only what it needs.</p>
 
-    <h3 id="fit-title" class="fit-title">The shape of the data matters as much as where it lives.</h3>
+    <h3 id="fit-title" class="fit-title">Data shape matters as much as location.</h3>
     <table class="fitgrid" aria-labelledby="fit-title">
       <thead><tr><th scope="col">RAG</th><th scope="col"><span class="sr-only">Data shape</span></th><th scope="col">A well-built MCP tool</th></tr></thead>
       <tbody>
-        <tr><td class="r" data-k="RAG"><span class="fit fit--strong">strong</span><br>What it was built for: chunk, embed, rank, cite the passage.</td><th scope="row">Text<small>methodologies, reports</small></th><td class="m" data-k="MCP"><span class="fit">good</span><br>A search tool returns passages, usually from a retrieval index behind the server.</td></tr>
-        <tr><td class="r" data-k="RAG"><span class="fit">good</span><br>Multimodal embeddings or captions make charts, maps and scans findable.</td><th scope="row">Images<small>maps, charts, scans</small></th><td class="m" data-k="MCP"><span class="fit">good</span><br>Can return the original image with its record; finding the right one still takes search.</td></tr>
-        <tr><td class="r" data-k="RAG"><span class="fit fit--weak">weak</span><br>Chunks cut rows from headers, embeddings blur numbers, and a handful of passages can't sum, filter or join.</td><th scope="row">Tables<small>coverage, measurements</small></th><td class="m" data-k="MCP"><span class="fit fit--strong">strong</span><br>The tool runs the query (exact filters, joins and totals) and returns only the rows needed.</td></tr>
-        <tr><td class="r" data-k="RAG"><span class="fit fit--weak">mixed</span><br>Flattening records to text loses field names: fine for "similar datasets", poor for "official, updated since 2024".</td><th scope="row">Records<small>metadata, JSON, logs</small></th><td class="m" data-k="MCP"><span class="fit fit--strong">strong</span><br>Reads fields by name, filters by value, and can return typed results checked against a schema <a href="#c2">[2]</a>.</td></tr>
+        <tr><td class="r" data-k="RAG"><span class="fit fit--strong">strong</span><br>Chunk, embed, rank, cite.</td><th scope="row">Text<small>methodologies, reports</small></th><td class="m" data-k="MCP"><span class="fit">good</span><br>A search tool over an index.</td></tr>
+        <tr><td class="r" data-k="RAG"><span class="fit">good</span><br>Multimodal embeddings or captions.</td><th scope="row">Images<small>maps, charts, scans</small></th><td class="m" data-k="MCP"><span class="fit">good</span><br>Returns the original; still needs search.</td></tr>
+        <tr><td class="r" data-k="RAG"><span class="fit fit--weak">weak</span><br>Chunks split rows from headers. Can't sum, filter or join.</td><th scope="row">Tables<small>coverage, measurements</small></th><td class="m" data-k="MCP"><span class="fit fit--strong">strong</span><br>Exact filters, joins and totals.</td></tr>
+        <tr><td class="r" data-k="RAG"><span class="fit fit--weak">mixed</span><br>Loses field names. Fine for "similar", poor for "official, since 2024".</td><th scope="row">Records<small>metadata, JSON, logs</small></th><td class="m" data-k="MCP"><span class="fit fit--strong">strong</span><br>Filters by field; schema-checked results <a href="#c2">[2]</a>.</td></tr>
       </tbody>
     </table>
-    <p class="annotation" style="margin-top:12px">Ratings are qualitative judgements from common practice, not benchmark scores.</p>
+    <p class="annotation" style="margin-top:12px">Qualitative ratings, not benchmarks.</p>
 
     <ul class="limits" aria-label="Limits of MCP">
-      <li><strong>A connection, not a data engine.</strong>MCP's advantage comes from the server behind it. A server that returns a text dump is no better than a chunk.</li>
-      <li><strong>Only what's exposed.</strong>No aggregate tool, no total. Someone builds, secures and maintains each tool.</li>
-      <li><strong>Wrong queries still run.</strong>If the model writes the filter, a plausible mistake returns a confident, well-formatted wrong answer.</li>
-      <li><strong>Results fill the window.</strong>Large results must be filtered or aggregated on the server, or they crowd out everything else <a href="#c3">[3]</a>.</li>
+      <li><strong>A connection, not a data engine.</strong>A server that dumps text is no better than a chunk.</li>
+      <li><strong>Only what's exposed.</strong>No aggregate tool, no total. Each tool needs upkeep.</li>
+      <li><strong>Wrong queries still run.</strong>A bad filter returns a confident wrong answer.</li>
+      <li><strong>Results fill the window.</strong>Filter on the server <a href="#c3">[3]</a>.</li>
     </ul>
 
-    <p class="handoff">RAG and MCP bring evidence within reach. Neither checks that the pieces <em>fit together</em>, cover the whole request, or are enough to answer it.</p>
+    <p class="handoff">Neither route checks the pieces <em>fit together</em> or are enough.</p>
   </div>
 </section>
 
@@ -140,8 +140,8 @@
   <div class="wrap">
     <div class="section-head">
       <p class="eyebrow">03 · Before any request</p>
-      <h2 id="prepare-title">Raw storage has to be sifted before either route works.</h2>
-      <p>Connect Amazon S3, Azure Blob Storage or Google Cloud Storage and you get millions of objects with no schema: PDFs beside CSV exports, JSON logs, scanned forms and maps. A bucket server can list and fetch objects, but a file name doesn't say what is inside or whether it matters. Embed everything and the CSVs are indexed as prose, noise and all.</p>
+      <h2 id="prepare-title">Sift raw storage first.</h2>
+      <p>Amazon S3, Azure Blob Storage and Google Cloud Storage hold millions of schemaless files. Names don't say what's inside. Embed it all and CSVs become noisy prose.</p>
     </div>
     <p class="tag">Production pattern · not part of this demo</p>
     <figure style="margin:0">
@@ -155,18 +155,18 @@
         <div class="node-box node-box--jev" style="--c:var(--jev)">
           <b>Sift · bounded decisions</b>
           <strong>A System 1 decision model</strong>
-          <ul><li>Is it relevant to this domain?</li><li>What shape is it?</li><li>May it be shown, and to whom?</li><li>Where should it go?</li></ul>
-          <p>Each call returns a confidence. Below the threshold, the answer is review.</p>
+          <ul><li>Relevant?</li><li>What shape?</li><li>Who may see it?</li><li>Where does it go?</li></ul>
+          <p>Each call has a confidence. Below threshold means review.</p>
         </div>
         <div class="arrow" aria-hidden="true">→</div>
         <div class="outlets">
           <div class="node-box" style="--c:var(--rag)"><b>Text and images</b><strong>Index for RAG</strong></div>
-          <div class="node-box" style="--c:var(--mcp)"><b>Tables and records</b><strong>Queryable store behind MCP tools</strong></div>
+          <div class="node-box" style="--c:var(--mcp)"><b>Tables and records</b><strong>Store behind MCP tools</strong></div>
           <div class="node-box" style="--c:var(--graph)"><b>Links between them</b><strong>Graph: pollutant, place, dataset, publisher, permission</strong></div>
           <div class="node-box node-box--review"><b>Unsure or sensitive</b><strong>Review queue, or skip</strong></div>
         </div>
       </div>
-      <figcaption class="annotation" style="margin-top:18px">Sifting is millions of narrow yes-or-no and pick-one calls, not open-ended reading, so it suits a System 1 model better than a bigger model. This happens when data arrives, not when a question is asked. The demo below starts after this point: its catalogue graph is already built.</figcaption>
+      <figcaption class="annotation" style="margin-top:18px">Millions of narrow calls suit a System 1 model, not a bigger one. Sifting runs on arrival. The demo's graph is already built.</figcaption>
     </figure>
   </div>
 </section>
@@ -176,17 +176,17 @@
   <div class="wrap">
     <div class="section-head">
       <p class="eyebrow">04 · Connect</p>
-      <h2 id="connect-title">Access isn't understanding. The graph shows how the pieces fit.</h2>
-      <p>Each route returns a fragment. The graph holds the relationships between fragments, so a coverage question can be checked instead of guessed.</p>
+      <h2 id="connect-title">Access isn't understanding.</h2>
+      <p>Each route returns a fragment. The graph links them, so coverage is checked, not guessed.</p>
     </div>
     <div class="trio">
-      <div style="--c:var(--rag)"><b>RAG returns a passage</b><q>"PM2.5: fine particulate matter, 2.5 micrometres or less…"</q><p>True, but it says nothing about which datasets hold it.</p></div>
-      <div style="--c:var(--mcp)"><b>An MCP tool returns a record</b><q>European Air Emissions Reporting · official · updated 2025</q><p>Accurate, but it doesn't say whether it covers this request.</p></div>
-      <div style="--c:var(--graph)"><b>The graph adds the links</b><q>PM2.5 → by country, by year → held by this dataset → from this publisher</q><p>That's what turns two fragments into one answer.</p></div>
+      <div style="--c:var(--rag)"><b>RAG returns a passage</b><q>"PM2.5: fine particulate matter, 2.5 micrometres or less…"</q><p>True, but names no dataset.</p></div>
+      <div style="--c:var(--mcp)"><b>MCP returns a record</b><q>European Air Emissions Reporting · official · updated 2025</q><p>Accurate, but silent on coverage.</p></div>
+      <div style="--c:var(--graph)"><b>The graph adds links</b><q>PM2.5 → by country, by year → held by this dataset → from this publisher</q><p>Two fragments become one answer.</p></div>
     </div>
 
     <div class="chain-wrap">
-      <h3>The worked request, as a path through the catalogue graph</h3>
+      <h3>The worked request as a graph path</h3>
       <ol class="evidence-path" aria-label="Evidence path">
         <li><span class="n">Request</span></li><li><span class="e">asks for</span></li>
         <li><span class="n">PM2.5</span></li><li><span class="e">broken down by</span></li>
@@ -194,11 +194,11 @@
         <li><span class="n">European Air Emissions Reporting</span></li><li><span class="e">published by</span></li>
         <li><span class="n">Official publisher</span></li>
       </ol>
-      <p class="annotation" style="margin:16px 0 0">Because coverage is stored as relationships, the graph can answer: does every requested country and year have a source? If no single dataset covers them, can two combine? Does a country-level source roll up to continents? The path above is what the demo returns for this request.</p>
+      <p class="annotation" style="margin:16px 0 0">The graph checks every country and year has a source, whether datasets combine, and roll-ups to continents.</p>
     </div>
     <details class="inline">
-      <summary>Graph traversal is not the same as Microsoft GraphRAG</summary>
-      <p style="margin-top:10px">This demo follows explicit, typed links in a catalogue graph. Microsoft GraphRAG is a specific method: it extracts an entity graph from text, groups it into communities and summarises them, and improved some whole-corpus questions over a vector-RAG baseline <a href="#c4">[4]</a>. Both use graphs; they solve different problems.</p>
+      <summary>Graph traversal is not Microsoft GraphRAG</summary>
+      <p style="margin-top:10px">This demo follows typed catalogue links. GraphRAG builds and summarises an entity graph from text; it beat vector RAG on some whole-corpus questions <a href="#c4">[4]</a>.</p>
     </details>
   </div>
 </section>
@@ -209,17 +209,17 @@
     <div class="split">
       <div class="section-head" style="margin:0">
         <p class="eyebrow">05 · Decide</p>
-        <h2 id="decide-title">Connected evidence still needs a decision.</h2>
-        <p>Jev, TypeSafe's System 1 decision model <a href="#c6">[6]</a>, is the bounded decision layer. At each step it answers one narrow question from a fixed set of answers, with a confidence, and the pipeline acts only on answers that clear the threshold.</p>
-        <p>It isn't a retriever, a protocol or a database. It stores no facts. It decides what the agent may do with them.</p>
+        <h2 id="decide-title">Evidence still needs a decision.</h2>
+        <p>Jev, TypeSafe's System 1 decision model <a href="#c6">[6]</a>, is the decision layer. Each step picks from fixed answers, with a confidence. The pipeline acts only above threshold.</p>
+        <p>Not a retriever, protocol or database. It stores no facts; it decides what the agent may do with them.</p>
       </div>
       <div>
         <ol class="asks">
-          <li><strong>Can this catalogue answer the request?</strong><span>answer · clarify · reject</span></li>
-          <li><strong>Which pollutants does it mean?</strong><span>yes or no for each graph candidate</span></li>
+          <li><strong>Can the catalogue answer?</strong><span>answer · clarify · reject</span></li>
+          <li><strong>Which pollutants?</strong><span>yes or no per graph candidate</span></li>
           <li><strong>At what breakdown?</strong><span>one level per dimension</span></li>
-          <li><strong>Which valid option best fits the preference?</strong><span>a ranked fit, only among options the graph proved</span></li>
-          <li><strong>Is any of these too uncertain?</strong><span>below threshold → review</span></li>
+          <li><strong>Best fit to preference?</strong><span>ranked, only among graph-proven options</span></li>
+          <li><strong>Too uncertain?</strong><span>below threshold → review</span></li>
         </ol>
         <ul class="outcomes" aria-label="The five possible outcomes">
           <li>Answer</li><li>Clarify</li><li>Reject</li><li>Review</li><li>No data</li>
@@ -234,29 +234,29 @@
   <div class="wrap">
     <div class="section-head">
       <p class="eyebrow">06 · Try it</p>
-      <h2 id="demo-title">Ask the Environmental Agency catalogue.</h2>
-      <p class="lede">Deterministic catalogue rules evaluate illustrative catalogue data, either in your browser or on the same-origin Rust service. The technical details under each result say which one decided. Start with an example, or write your own request.</p>
+      <h2 id="demo-title">Ask the catalogue.</h2>
+      <p class="lede">Deterministic rules over illustrative data, in your browser or on the Rust service. Pick an example or write your own.</p>
     </div>
 
     <div class="demo-grid">
       <div>
         <fieldset class="scenarios">
           <legend>Start with an example</legend>
-          <button type="button" class="scenario" aria-pressed="false" data-q="Annual PM2.5 by country, 2019 to 2024" data-p="official sources only"><strong>Annual PM2.5 by country, 2019 to 2024 · official sources only</strong><span>The worked example. The graph checks coverage; Jev ranks the valid options.</span></button>
-          <button type="button" class="scenario" aria-pressed="false" data-q="Particulate matter by region" data-p="official sources only"><strong>Particulate matter by region, official sources only</strong><span>A pollutant group. The graph expands it into its members before discovery.</span></button>
-          <button type="button" class="scenario" aria-pressed="false" data-q="Emissions" data-p=""><strong>Emissions</strong><span>Too vague. Jev asks for a pollutant and a breakdown before any search runs.</span></button>
-          <button type="button" class="scenario" aria-pressed="false" data-q="Hourly ozone by street in 1990" data-p=""><strong>Hourly ozone by street in 1990</strong><span>Outside what the catalogue holds. Jev refuses before searching.</span></button>
+          <button type="button" class="scenario" aria-pressed="false" data-q="Annual PM2.5 by country, 2019 to 2024" data-p="official sources only"><strong>Annual PM2.5 by country, 2019 to 2024 · official sources only</strong><span>The worked example. Graph checks coverage; Jev ranks.</span></button>
+          <button type="button" class="scenario" aria-pressed="false" data-q="Particulate matter by region" data-p="official sources only"><strong>Particulate matter by region, official sources only</strong><span>A group. The graph expands it to its members.</span></button>
+          <button type="button" class="scenario" aria-pressed="false" data-q="Emissions" data-p=""><strong>Emissions</strong><span>Too vague. Jev asks for pollutant and breakdown.</span></button>
+          <button type="button" class="scenario" aria-pressed="false" data-q="Hourly ozone by street in 1990" data-p=""><strong>Hourly ozone by street in 1990</strong><span>Outside the catalogue. Jev refuses before searching.</span></button>
         </fieldset>
 
         <form id="ask" class="demo" aria-describedby="status">
           <div class="field">
             <label for="request">Your request</label>
-            <p class="hint" id="request-hint">Name a pollutant and how you want it broken down, for example by country and year.</p>
+            <p class="hint" id="request-hint">Name a pollutant and a breakdown, such as country and year.</p>
             <textarea id="request" name="request" maxlength="500" required aria-describedby="request-hint">Annual PM2.5 by country, 2019 to 2024</textarea>
           </div>
           <div class="field">
             <label for="preference">Preference <span class="hint">(optional)</span></label>
-            <p class="hint" id="preference-hint">In plain words, what makes one dataset better than another for you? For example: official sources only.</p>
+            <p class="hint" id="preference-hint">What makes one dataset better for you? For example: official sources only.</p>
             <input id="preference" name="preference" maxlength="300" aria-describedby="preference-hint" placeholder="official sources only" value="official sources only">
           </div>
           <div class="actions">
@@ -268,9 +268,9 @@
         <section class="result" id="result" aria-labelledby="result-heading" tabindex="-1" hidden>
           <h3 class="outcome" id="result-heading"><span id="outcome"></span></h3>
           <p class="answer" id="answer"></p>
-          <h3>Path through the pipeline</h3>
+          <h3>Pipeline path</h3>
           <ol class="evidence-path trail" id="trail" aria-label="Stages run, in order"></ol>
-          <h3>Why Jev decided this</h3>
+          <h3>Why this outcome</h3>
           <ul id="why"></ul>
           <h3>Matched datasets</h3>
           <ol id="datasets"></ol>
@@ -283,16 +283,16 @@
       </div>
 
       <aside aria-labelledby="read-title">
-        <h3 id="read-title">How to read the result</h3>
+        <h3 id="read-title">Reading the result</h3>
         <dl class="facts">
-          <div><dt>Answer</dt><dd>The graph found datasets that hold the requested pollutants at the requested breakdown.</dd></div>
-          <div><dt>Clarify</dt><dd>The request is missing a detail Jev needs. It asks rather than guessing.</dd></div>
-          <div><dt>Reject</dt><dd>The catalogue cannot hold what was asked, so Jev stops before searching.</dd></div>
-          <div><dt>Review</dt><dd>A decision fell below the confidence threshold. A person should check it.</dd></div>
-          <div><dt>No data</dt><dd>The request was clear, but no combination of sources covers it.</dd></div>
+          <div><dt>Answer</dt><dd>Datasets hold the pollutants at the breakdown asked.</dd></div>
+          <div><dt>Clarify</dt><dd>A detail is missing. Jev asks, not guesses.</dd></div>
+          <div><dt>Reject</dt><dd>Outside the catalogue. Jev stops before searching.</dd></div>
+          <div><dt>Review</dt><dd>Below the confidence threshold. A person checks.</dd></div>
+          <div><dt>No data</dt><dd>Clear request, but no sources cover it.</dd></div>
         </dl>
         <p class="annotation"><strong style="color:var(--graph)">Graph</strong> stages find and check evidence. <strong style="color:var(--purple-mid)">Decision</strong> stages are Jev's bounded calls.</p>
-        <p class="boundary boundary--scope"><strong>Scope</strong>A demonstration catalogue of illustrative sources. The decision stages follow Jev's bounded-decision contract and are answered by deterministic catalogue rules, in your browser or on the Rust service: no hosted model is called and request text is not logged.</p>
+        <p class="boundary boundary--scope"><strong>Scope</strong>Illustrative sources. Decision stages follow Jev's bounded-decision contract, answered by deterministic rules in your browser or on the Rust service. No hosted model is called; request text is not logged.</p>
         <p class="annotation" id="catalogue-summary"></p>
       </aside>
     </div>
@@ -304,46 +304,46 @@
   <div class="wrap">
     <div class="section-head">
       <p class="eyebrow">What this proves</p>
-      <h2 id="scope-title">What runs today, and what production adds.</h2>
+      <h2 id="scope-title">Today, and in production.</h2>
     </div>
     <div class="now-next">
       <section aria-labelledby="now-title">
-        <h3 id="now-title">Running in this demo</h3>
+        <h3 id="now-title">In this demo</h3>
         <ul>
-          <li>A catalogue graph of eight illustrative sources, held in memory.</li>
-          <li>Graph coverage checks, including combined sources and roll-ups.</li>
-          <li>Five bounded outcomes, with refusal and clarification before any search.</li>
-          <li>A traceable result: stages run, datasets matched, and why.</li>
-          <li>The same page running from in-browser rules or from the portable Rust service.</li>
+          <li>An in-memory graph of eight illustrative sources.</li>
+          <li>Coverage checks, including combined sources and roll-ups.</li>
+          <li>Five outcomes; refusal and clarification before search.</li>
+          <li>Traceable results: stages, datasets and reasons.</li>
+          <li>In-browser rules or the portable Rust service.</li>
         </ul>
       </section>
       <section aria-labelledby="next-title">
         <h3 id="next-title">Added in production</h3>
         <ul>
-          <li>A RAG index over methodology documents, maps and charts.</li>
-          <li>An MCP shed in front of the catalogue, object storage and source systems, with delegated, short-lived access.</li>
+          <li>A RAG index over methodology, maps and charts.</li>
+          <li>An MCP shed over catalogue, storage and source systems, with short-lived delegated access.</li>
           <li>Ingestion and sifting from object storage.</li>
-          <li>A persistent graph database instead of the in-memory graph.</li>
-          <li>A System 1 model such as Jev with calibrated thresholds, and a human review queue.</li>
+          <li>A persistent graph database.</li>
+          <li>A System 1 model such as Jev, calibrated thresholds and human review.</li>
         </ul>
       </section>
     </div>
 
     <details class="tech" style="margin-top:clamp(40px,6vw,64px)">
-      <summary>RAG and MCP: where each one fails<small>Failure modes paired by kind, for technical advisers.</small></summary>
+      <summary>Where RAG and MCP fail<small>Failure modes by kind, for technical advisers.</small></summary>
       <div class="body">
         <table>
           <thead><tr><th scope="col">Kind</th><th scope="col">RAG fails when…</th><th scope="col">MCP fails when…</th></tr></thead>
           <tbody>
-            <tr><th scope="row">Finding</th><td>The right passage is never retrieved.</td><td>The model picks the wrong tool or passes bad arguments.</td></tr>
-            <tr><th scope="row">Attention</th><td>Too many chunks dilute the window; text in the middle of long prompts is used less well <a href="#c5">[5]</a>.</td><td>Long tool lists and big results crowd the window <a href="#c3">[3]</a>.</td></tr>
-            <tr><th scope="row">Freshness</th><td>The index lags the source documents.</td><td>The server reads a cache or a lagging copy.</td></tr>
-            <tr><th scope="row">Access</th><td>Chunks reach people who may not see the source.</td><td>Servers rely on long-lived keys instead of delegated access.</td></tr>
-            <tr><th scope="row">Blast radius</th><td>A wrong answer, stated confidently.</td><td>A tool with side effects runs on a bad decision.</td></tr>
-            <tr><th scope="row">Both</th><td colspan="2">Untrusted text in a document or a tool result can carry instructions. MCP adds one more route: tool descriptions are read by the model too.</td></tr>
+            <tr><th scope="row">Finding</th><td>The right passage is never retrieved.</td><td>Wrong tool or bad arguments.</td></tr>
+            <tr><th scope="row">Attention</th><td>Too many chunks; mid-prompt text is used less well <a href="#c5">[5]</a>.</td><td>Long tool lists and big results crowd the window <a href="#c3">[3]</a>.</td></tr>
+            <tr><th scope="row">Freshness</th><td>The index lags the source.</td><td>The server reads a stale copy.</td></tr>
+            <tr><th scope="row">Access</th><td>Chunks reach people barred from the source.</td><td>Long-lived keys, not delegated access.</td></tr>
+            <tr><th scope="row">Blast radius</th><td>A confident wrong answer.</td><td>A side-effecting tool runs on a bad decision.</td></tr>
+            <tr><th scope="row">Both</th><td colspan="2">Untrusted text in documents or tool results can carry instructions. In MCP, tool descriptions can too.</td></tr>
           </tbody>
         </table>
-        <p class="annotation" style="margin-top:12px">Jev's place in this table: it cannot make retrieval find the right passage, but it can refuse to answer, ask for detail or send the case to a person when the evidence doesn't support an answer.</p>
+        <p class="annotation" style="margin-top:12px">Jev can't fix retrieval. It can refuse, ask for detail or escalate when evidence falls short.</p>
       </div>
     </details>
     <details class="tech" id="sources">
@@ -356,7 +356,7 @@
           <li id="c4">Edge, D. et al. "From Local to Global: A GraphRAG Approach to Query-Focused Summarization." 2024. <a href="https://arxiv.org/abs/2404.16130">arxiv.org/abs/2404.16130</a></li>
           <li id="c5">Liu, N. F. et al. "Lost in the Middle: How Language Models Use Long Contexts." TACL 12, 2024. <a href="https://aclanthology.org/2024.tacl-1.9/">aclanthology.org/2024.tacl-1.9</a></li>
           <li id="c6">TypeSafe. "Introducing System One models and Jev." <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">typesafe.ai</a></li>
-          <li>The worked request, the catalogue and its sources are illustrative. The storage-sifting flow is an architecture pattern, not a feature of this demo.</li>
+          <li>The worked request, catalogue and sources are illustrative. Storage sifting is an architecture pattern, not a demo feature.</li>
         </ol>
       </div>
     </details>
