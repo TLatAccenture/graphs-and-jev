@@ -87,6 +87,8 @@ Day 2 evening     Lead agent releases through deploy/deploy.sh: private candidat
 | WS7 Verification | `tests/e2e/**`, `tests/static-checks.sh`, `tests/browser_dcceew_race.py` (delete after porting), `package.json`, `package-lock.json`, `playwright.config.ts` | Everything else (files defects instead) |
 | Lead agent | `AGENTS.md`, this handover, `docs/deployment/cloud-run.md`, merges into `mcp-shed`, the release | |
 
+Each page's owner also owns that page's `<head>` text: the `<title>` page title and `<meta name="description">` (rewrite every description for the new framing). WS0 only adds the `config.js` and `js/api.js` script tags and the `data-page-title` attribute.
+
 If you need a change in a file you do not own, write it in your PR description under "Requests for other workstreams". Do not make it yourself.
 
 ---
@@ -410,7 +412,7 @@ Response shape: Section 9.3 `lineage` schema. Every fixture response sets `backe
 
 `docs/design.md`: replace with a one-page summary of this handover's architecture (Sections 1.2, 4, 9).
 
-`docs/plans/2026-10-12-mcp-shed-revamp.md`: change only the Status line to "Superseded by 2026-10-12-mcp-shed-cursor-handover.md".
+`docs/plans/2026-10-12-mcp-shed-revamp.md`, `docs/plans/2026-10-12-migration-first-homepage-design.md`, `docs/plans/2026-10-12-migration-first-homepage.md`: change only the Status line (add one if missing) to "Superseded by 2026-10-12-mcp-shed-cursor-handover.md". `docs/implementation-plan.md`: replace with a pointer to the handover (it describes the retired DCCEEW and Parkinson's pages). WS5 owns these files.
 
 ### WS6 Server and deployment (existing Rust service on Cloud Run)
 
@@ -445,6 +447,8 @@ Container and release (`Dockerfile`, `.dockerignore`, `.gcloudignore`, `deploy/*
 - Keep the `Dockerfile` unless a removed dependency changes the build. Update `scripts/smoke-container.sh`: drop the live-retrieval check; add `/config.js` (reflects env vars passed to `docker run`) and a catalogue pipeline answer through `domain: "catalogue"`; keep the root-filesystem allowlist, static-ELF and UID checks.
 - Extend `deploy/deploy.sh` so the env file can carry the app variables above and they are passed to the Cloud Run revision (for example via `--update-env-vars` built from an allowlist of exactly these keys). Keep every existing preflight, the private candidate, digest pinning and promotion flow. Update `deploy/cloud-run.env.example` and `tests/test-deploy.sh` to cover the new keys. Never put credentials in the env file.
 - **Do not run `deploy/deploy.sh` against GCP.** The lead agent runs the release after the final review.
+
+Keep `POST /api/decide` (existing route, covered by `tests/api_boundary.rs`) and document it in the contract. When rewriting `tests/static_frontend.rs`, keep every assertion from the merged value-story work that still holds for the new pages, and replace the rest; say in your report which ones you dropped and why.
 
 `docs/api-contract.md`: write up Section 9 for a backend team, including CORS: if `API_BASE_URL` is a different origin, that API must return `Access-Control-Allow-Origin` for the site's origin and allow `GET`, and `POST` with `Content-Type: application/json`. Same origin (this Rust service) needs no CORS.
 
@@ -531,6 +535,7 @@ check "sub-path prefix"   grep -rn "/graphs-and-jev/" static
 check "removed topics"    grep -rniE "dcceew|department of climate|parkinson|levodopa|clinical|RLCD" static README.md docs/design.md src
 check "em dash"           grep -rn "—" static README.md docs/design.md docs/api-contract.md
 check "sub-100 claim"     grep -rn "sub-100" static README.md
+check "old brand"         grep -rn "Graphs + Jev" static README.md docs/design.md
 check "fetch outside api" bash -c 'grep -rln "fetch(" static | grep -v "^static/js/api.js$"'
 check "US spelling"       grep -rniE "\b(organiz|moderniz|optimiz|behavior|catalog\b)" static --include=*.html
 exit "$fail"
@@ -560,4 +565,5 @@ Playwright (each at `/` and `/sub/path/` in fixtures mode, and at `/` on the Rus
 - Section 10 passes in full; screenshots of every page at 1280px and 390px attached to the final PR.
 - `cargo test`, `cargo audit`, the container smoke test and `tests/test-deploy.sh` pass; the server makes no outbound calls.
 - Remaining known gaps listed honestly in the final PR (for example: lineage domain has no live backend yet).
-- Release (lead agent, after the PR is approved and merged): `deploy/deploy.sh` builds a private candidate; verify it against Section 10 items 1, 5, 6, 8 and 10; promote; update `docs/deployment/cloud-run.md` with the new revision, digest and settings.
+- Every page has a rewritten `<meta name="description">`; no "Graphs + Jev" brand text remains (the ideas of graphs and Jev stay, as pillars).
+- Release (lead agent, after the PR is approved and merged): update the GitHub repository description to the new framing (homepage URL unchanged); `deploy/deploy.sh` builds a private candidate; verify it against Section 10 items 1, 5, 6, 8 and 10; promote; update `docs/deployment/cloud-run.md` with the new revision, digest and settings.
