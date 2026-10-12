@@ -1,4 +1,4 @@
-/* Graphs + Jev showcase. Black, white and Accenture purple carry the identity;
+/* The MCP Shed design system. Black, white and Accenture purple carry the identity;
    blue, green, amber and red carry meaning (evidence, answer, review, reject) and
    always appear with a text label. */
 :root{
@@ -180,7 +180,7 @@ button{cursor:pointer}
 .evidence-path li{display:flex;align-items:center;margin:0}
 .evidence-path .n{background:var(--white);border:1.5px solid var(--evidence);color:var(--ink);padding:5px 10px;font-weight:600;font-size:.95rem}
 .evidence-path .e{color:var(--evidence);font:600 var(--tiny)/1 var(--mono);text-transform:uppercase;letter-spacing:.06em;padding:0 8px}
-.evidence-path .e::before{content:"— "}.evidence-path .e::after{content:" →"}
+.evidence-path .e::before{content:"\2013  "}.evidence-path .e::after{content:" →"}
 .paths{display:grid;gap:10px}
 
 /* Demo status */
@@ -339,7 +339,7 @@ pre{background:var(--code);border:1px solid var(--line);border-radius:var(--r-sm
 .runlist{display:grid;gap:18px}
 .runlist > *{min-width:0}
 
-/* Context story (DCCEEW): teal is RAG, raspberry is MCP, blue is the graph, purple is Jev */
+/* Context story (Environmental Agency): teal is RAG, raspberry is MCP, blue is the graph, purple is Jev */
 .ctx{--rag:#00737a;--rag-wash:#e0f2f1;--mcp:#a3165a;--mcp-wash:#fbe7f0;--graph:var(--evidence);--jev:var(--purple-mid)}
 .layers{display:grid;gap:0;margin:0;padding:0;list-style:none;max-width:none;counter-reset:layer}
 @media (min-width:860px){.layers{grid-template-columns:repeat(4,minmax(0,1fr))}}
