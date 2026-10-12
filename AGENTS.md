@@ -2,7 +2,7 @@
 
 This repository is being converted into "The MCP Tool Shed", a thought piece on agentic migration and modernisation.
 
-**Before any work, read `docs/plans/2026-10-12-mcp-shed-cursor-handover.md` in full.** It defines the workstreams, who owns which files, the shared copy, the configuration and API contracts, and the acceptance tests. If anything conflicts with it, the handover wins.
+**Before any work, read `docs/plans/2026-10-12-mcp-shed-cursor-handover.md` in full.** It defines the workstreams, who owns which files, the shared copy, the configuration and API contracts, and the acceptance tests. If anything conflicts with it, the handover wins. Then read `docs/plans/2026-10-13-presentation-readiness.md`, which records the presentation fixes; where it differs from the handover, it wins.
 
 ## Non-negotiable rules
 
@@ -21,3 +21,5 @@ This repository is being converted into "The MCP Tool Shed", a thought piece on 
 13. Commit as the repository's configured `TLatAccenture` identity. No co-author trailers.
 14. Never run `deploy/deploy.sh` or any `gcloud` command that changes GCP. The lead agent releases.
 15. Never commit secrets, tokens, GCP credentials or local environment files.
+16. No request may leave the site. Fonts are served from `static/assets/fonts/`; never add Google Fonts or any other third-party asset.
+17. When the reader asks for a result or opens a panel, bring it on screen with `siteUi.reveal` from `static/js/ui.js`. Never move keyboard focus to do it.

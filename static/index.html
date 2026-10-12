@@ -10,6 +10,7 @@
 <link rel="stylesheet" href="styles/landing.css">
 <script src="config.js"></script>
 <script src="js/api.js"></script>
+<script src="js/ui.js"></script>
 </head>
 <body data-page-title="">
 <a class="skip" href="#main">Skip to content</a>
@@ -69,29 +70,29 @@
       <p>It starts with the stack you already run. The MCP Tool Shed connects to it. A System 1 model gates every action. Agents on Gemini Enterprise Agent Platform do the work, with Spanner Graph as their context fabric. The Modernisation Springboard in BigQuery is where the estate lands, and where every step is measured.</p>
       <p class="annotation">Select a layer to open it.</p>
     </div>
-    <ol class="stack" aria-label="The five layers, from the existing stack upwards">
+    <ol class="stack" aria-label="The five layers, starting from the existing stack">
       <li data-pillar="estate">
-        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-estate"><b>00 · Today</b><strong>Existing Stack</strong><span>Decades of systems, all still running.</span></button>
+        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-estate"><b>00&nbsp;·&nbsp;Today</b><strong>Existing Stack</strong><span>Decades of systems, all still running.</span></button>
         <div class="stack-detail" id="pillar-estate" hidden>
           <p>Storage in AWS and Azure, SAP, Salesforce, Databricks, ServiceNow, Atlassian and years of Word, Excel and PowerPoint files in Microsoft 365. Nothing is ripped out on day one. Every layer above reaches it where it is.</p>
         </div>
       </li>
       <li data-pillar="connect">
-        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-connect"><b>01 · Connectivity</b><strong>MCP Tool Shed</strong><span>One governed door to every system.</span></button>
+        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-connect"><b>01&nbsp;·&nbsp;Connectivity</b><strong>MCP Tool Shed</strong><span>One governed door to every system.</span></button>
         <div class="stack-detail" id="pillar-connect" hidden>
           <p>Every system sits behind an MCP server with scoped, short-lived credentials and an audit trail. No passwords in scripts, no bespoke integration per project. Each agent gets only the servers its task needs, which also keeps its context lean.</p>
           <p><a class="go-deeper" href="technical-guide/#connectivity">Go deeper: MCP Tool Shed</a></p>
         </div>
       </li>
       <li data-pillar="reflex">
-        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-reflex"><b>02 · Reflexes</b><strong>System 1 (Jev)</strong><span>A decision in milliseconds, before every action.</span></button>
+        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-reflex"><b>02&nbsp;·&nbsp;Reflexes</b><strong>System 1 (Jev)</strong><span>A decision in milliseconds, before every action.</span></button>
         <div class="stack-detail" id="pillar-reflex" hidden>
           <p>Jev, TypeSafe's System 1 decision model, returns a typed decision with a calibrated confidence in 70 to 500 ms (<a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">TypeSafe, vendor-reported</a>). It routes requests, classifies data and gates every tool call without slowing the work. It does not stop a model hallucinating; it stops an unsure output becoming an action.</p>
           <p><a class="go-deeper" href="technical-guide/#reflexes">Go deeper: System 1</a></p>
         </div>
       </li>
       <li data-pillar="logic">
-        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-logic"><b>03 · Logic and context</b><strong>Gemini Enterprise Agent Platform</strong><span>Agents that follow the playbook and know what a change touches.</span></button>
+        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-logic"><b>03&nbsp;·&nbsp;Logic and context</b><strong>Gemini Enterprise Agent Platform</strong><span>Agents that follow the playbook and know what a change touches.</span></button>
         <div class="stack-detail" id="pillar-logic" hidden>
           <p>Migration agents run on <a href="https://docs.cloud.google.com/agent-builder/overview">Gemini Enterprise Agent Platform</a>. Skills give them a tested playbook for each migration pattern. Hooks run around each tool call to validate schemas, block unsafe actions and ask for approval where it matters. The hundredth migration follows the same steps as the first.</p>
           <p><strong>Context fabric: <a href="https://cloud.google.com/spanner/docs/graph/overview">Spanner Graph</a>.</strong> It records what feeds what, and what each business term means. Agents check upstream and downstream before they change anything, so a fix in one place does not break a report in another.</p>
@@ -99,7 +100,7 @@
         </div>
       </li>
       <li data-pillar="visibility">
-        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-visibility"><b>04 · Visibility and cost</b><strong>Modernisation Springboard</strong><span>Where the estate lands, and the proof of how it got there.</span></button>
+        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-visibility"><b>04&nbsp;·&nbsp;Visibility and cost</b><strong>Modernisation Springboard</strong><span>Where the estate lands, and the proof of how it got there.</span></button>
         <div class="stack-detail" id="pillar-visibility" hidden>
           <p><a href="https://cloud.google.com/bigquery/docs">BigQuery</a> is the destination lakehouse for migrated data, and the store for telemetry and audit logs. Every agent step writes an eval record: decision, confidence, tools, tokens, latency, outcome. <a href="https://cloud.google.com/looker/docs">Looker</a> turns those records into reporting your teams already use, including cost per migrated object. You see the spend today and the run cost tomorrow.</p>
           <p><a class="go-deeper" href="technical-guide/#visibility-and-cost">Go deeper: Modernisation Springboard</a></p>
@@ -149,7 +150,7 @@
           <p id="exampleWhy" class="why"></p>
         </div>
       </div>
-      <div>
+      <div class="guided-graph">
         <div class="graph-stage">
           <svg id="heroGraph" viewBox="0 0 400 380" role="group" aria-label="Sample estate lineage graph. Nodes on the lineage path are blue. Select a node to explore from it."></svg>
         </div>
@@ -305,11 +306,16 @@
 <script src="js/estate-graph.js"></script>
 <script>
 "use strict";
-/* ---------- Pillar stack: each layer is a disclosure button ---------- */
-document.querySelectorAll(".stack-layer").forEach(btn => btn.addEventListener("click", () => {
+/* ---------- Layers: each is a disclosure button, and one is open at a time ---------- */
+const layers = [...document.querySelectorAll(".stack-layer")];
+layers.forEach(btn => btn.addEventListener("click", () => {
   const open = btn.getAttribute("aria-expanded") !== "true";
-  btn.setAttribute("aria-expanded", String(open));
-  document.getElementById(btn.getAttribute("aria-controls")).hidden = !open;
+  for (const layer of layers) {
+    const show = layer === btn && open;
+    layer.setAttribute("aria-expanded", String(show));
+    document.getElementById(layer.getAttribute("aria-controls")).hidden = !show;
+  }
+  if (open) siteUi.reveal(document.getElementById(btn.getAttribute("aria-controls")), {opener: btn});
 }));
 
 /* ---------- Guided example on the shared sample estate ---------- */
@@ -359,12 +365,12 @@ function drawHero(){
     const i=pathOrder.indexOf([a,r,b].join("|")),lit=i>=0;
     const g=el("g",{class:"edge"+(lit?" path":"")+((d[a]!==undefined&&d[b]!==undefined)||lit?"":" dim"),style:`--i:${i}`},svg);
     el("line",{x1:A.x,y1:A.y,x2:B.x,y2:B.y,pathLength:1},g);
-    const t=el("text",{x:(A.x+B.x)/2,y:(A.y+B.y)/2-3,"text-anchor":"middle"},g);t.textContent=r.toLowerCase();}
+    const t=el("text",{x:(A.x+B.x)/2,y:(A.y+B.y)/2-3,"text-anchor":"middle"},g);t.textContent=r.toLowerCase().replace(/_/g," ");}
   for(const n of G.nodes){const on=d[n.id]!==undefined||pathNodes.has(n.id);
     const g=el("g",{class:"node"+(on?"":" dim"),style:`--hop:${d[n.id]??0}`,tabindex:0,role:"button","data-id":n.id,"aria-label":n.label+(pathNodes.has(n.id)?", on the lineage path":"")},svg);
     el("circle",{cx:n.x,cy:n.y,r:n.id===heroSel?13:10,fill:pathNodes.has(n.id)?"var(--evidence)":G.colours[n.type]},g);
     if(d[n.id]>0){const b=el("text",{x:n.x,y:n.y+3,"text-anchor":"middle",class:"hopbadge"},g);b.textContent=d[n.id]}
-    labelLines(n.label).forEach((line,i)=>{const t=el("text",{x:n.x,y:n.y+22+i*11,"text-anchor":"middle"},g);t.textContent=line});
+    labelLines(n.label).forEach((line,i)=>{const t=el("text",{x:n.x,y:n.y+22+i*12,"text-anchor":"middle"},g);t.textContent=line});
     const pick=()=>{heroSel=n.id;active=null;markScenario(null);drawHero();
       document.getElementById("exampleResult").hidden=true;
       svg.querySelector(`[data-id="${n.id}"]`).focus();
@@ -384,10 +390,11 @@ function renderScenario(s){
   document.getElementById("exampleWhy").textContent=s.why;
   box.getAnimations({subtree:true}).forEach(a=>{a.cancel();a.play()});
 }
-function choose(key){const s=SCENARIOS[key];active=s;heroSel=s.start;setHop(s.hops);markScenario(key);drawHero();renderScenario(s);
+function choose(key,reveal){const s=SCENARIOS[key];active=s;heroSel=s.start;setHop(s.hops);markScenario(key);drawHero();renderScenario(s);
   exampleStatus.dataset.state="done";
-  exampleStatus.textContent=`${s.q} The path reaches ${reachText()}. Outcome: ${OUTCOME_LABEL[s.outcome]}.`}
-document.querySelectorAll("[data-scenario]").forEach(b=>b.addEventListener("click",()=>choose(b.dataset.scenario)));
+  exampleStatus.textContent=`${s.q} The path reaches ${reachText()}. Outcome: ${OUTCOME_LABEL[s.outcome]}.`;
+  if(reveal)siteUi.reveal(document.getElementById("exampleResult"),{sticky:document.querySelector(".guided-graph")})}
+document.querySelectorAll("[data-scenario]").forEach(b=>b.addEventListener("click",()=>choose(b.dataset.scenario,true)));
 document.querySelectorAll("[data-hop]").forEach(b=>b.addEventListener("click",()=>{setHop(+b.dataset.hop);drawHero();
   exampleStatus.textContent=`Hop depth ${heroHop}: ${reachText()} from ${G.node(heroSel).label}.`+(active&&heroHop<active.hops?" The evidence path needs more hops than this, so the agent would not proceed.":"")}));
 choose("region");

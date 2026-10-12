@@ -6,14 +6,12 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Lineage-guarded migration · The MCP Tool Shed</title>
 <meta name="description" content="Each migration step is checked against lineage first. The graph finds the blast radius; a System 1 gate decides.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../guide.css">
 <link rel="stylesheet" href="../styles/lineage.css">
 <script src="../config.js"></script>
 <script src="../js/api.js"></script>
 <script src="../fixtures/lineage.js"></script>
+<script src="../js/ui.js"></script>
 </head>
 <body data-page-title="Lineage-guarded migration">
 <a class="skip" href="#main">Skip to content</a>
@@ -233,6 +231,7 @@ function render(body) {
   $("#lnRaw").textContent = JSON.stringify(body, null, 2);
   result.hidden = false;
   result.getAnimations({ subtree: true }).forEach(a => { a.cancel(); a.play(); });
+  siteUi.reveal(result);
   return OUTCOME_LABEL[outcome];
 }
 

@@ -13,7 +13,9 @@
 /* Guided example */
 .result .why{margin:0}
 .hop-note{margin-top:12px}
-.graph-stage .node text{font-size:9.5px}
+/* Graph labels, in the graph's own units: about 12px and 15px on a 1920 screen */
+.graph-stage .node text{font-size:10.5px}
+.graph-stage .edge text{font-size:8.5px}
 .graph-stage .node text:not(.hopbadge),.graph-stage .edge text{paint-order:stroke;stroke:var(--white);stroke-width:3px;stroke-linejoin:round}
 .outcome-key{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px 18px;font:600 var(--tiny)/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase}
 .outcome-key li{display:inline-flex;align-items:center;gap:8px}
@@ -46,3 +48,27 @@
 /* Existing Stack: the base layer is the estate itself, drawn in neutral grey */
 .stack>[data-pillar="estate"]{--c:var(--muted)}
 .stack-layer b{min-width:11ch}
+
+/* Presenting on wide, tall screens: the graph stays on screen while the result scrolls in beside it.
+   The cap keeps the whole column (graph, hop buttons, note and key) below the header. */
+@media (min-width:980px) and (min-height:700px){
+  .guided-graph{position:sticky;top:calc(var(--header-offset) + 12px)}
+  .guided-graph .graph-stage svg{max-height:calc(100vh - var(--header-offset) - 12px - 200px)}
+}
+
+/* Wide screens: the five layers read left to right in the order of the architecture slide.
+   Each li becomes display:contents, so its button joins the row and its detail spans the full
+   width below it; opening a layer never moves the row. */
+@media (min-width:1100px){
+  .stack{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:0 28px}
+  .stack>li{display:contents}
+  .stack-layer{grid-row:1;position:relative;flex-direction:column;flex-wrap:nowrap;align-items:flex-start;gap:8px;padding:18px 18px 22px;border-left:0;border-top:8px solid var(--c)}
+  .stack-layer b{min-width:0;min-height:2.6em;letter-spacing:.06em}
+  .stack-layer strong{font-size:clamp(1.05rem,1.35vw,1.35rem)}
+  .stack-layer span{flex:none;font-size:var(--small);line-height:1.45}
+  .stack>li+li>.stack-layer::before{content:"";position:absolute;left:-21px;top:50%;width:11px;height:11px;border-top:2px solid var(--muted);border-right:2px solid var(--muted);transform:translateY(-50%) rotate(45deg)}
+  .stack-detail{grid-column:1/-1;margin-top:14px;border-left:0;border-top:6px solid var(--c);padding:20px 24px 22px}
+}
+@media screen and (min-width:1100px) and (prefers-reduced-motion:no-preference){
+  .stack-layer:hover{transform:translateY(-3px)}
+}

@@ -1,6 +1,15 @@
 /* The MCP Tool Shed design system. Black, white and Accenture purple carry the identity;
    blue, green, amber and red carry meaning (evidence, answer, review, reject) and
    always appear with a text label. */
+/* Fonts are served by the site itself, so every page renders the same type with no request to
+   another host: Instrument Sans and JetBrains Mono, Latin subset, from Fontsource 5.3.0 under the
+   SIL Open Font Licence 1.1 (assets/fonts/OFL-*.txt). */
+@font-face{font-family:"Instrument Sans";font-style:normal;font-weight:400;font-display:swap;src:url("assets/fonts/instrument-sans-latin-400-normal.woff2") format("woff2")}
+@font-face{font-family:"Instrument Sans";font-style:normal;font-weight:600;font-display:swap;src:url("assets/fonts/instrument-sans-latin-600-normal.woff2") format("woff2")}
+@font-face{font-family:"Instrument Sans";font-style:normal;font-weight:700;font-display:swap;src:url("assets/fonts/instrument-sans-latin-700-normal.woff2") format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-weight:400;font-display:swap;src:url("assets/fonts/jetbrains-mono-latin-400-normal.woff2") format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-weight:600;font-display:swap;src:url("assets/fonts/jetbrains-mono-latin-600-normal.woff2") format("woff2")}
+@font-face{font-family:"JetBrains Mono";font-style:normal;font-weight:700;font-display:swap;src:url("assets/fonts/jetbrains-mono-latin-700-normal.woff2") format("woff2")}
 :root{
   color-scheme:light;
   --black:#000;--white:#fff;--paper:#f6f4ef;--ink:#0a0a0a;--muted:#4a4a4a;--line:#d6d3cc;--rule:#0a0a0a;
@@ -29,6 +38,9 @@ img,svg{max-width:100%;height:auto;display:block}
 a{color:var(--purple-mid);text-underline-offset:3px;text-decoration-thickness:1px}
 a:hover{color:var(--purple-deep)}
 h1,h2,h3{margin:0;font-weight:700;letter-spacing:-.025em;line-height:1.02}
+/* No single word left alone on a heading's last line; browsers without support ignore these. */
+h1,h2{text-wrap:balance}
+.lede,.section-head p{text-wrap:pretty}
 h1{font-size:var(--display);letter-spacing:-.04em}
 h2{font-size:var(--h2)}
 h3{font-size:var(--h3);letter-spacing:-.015em;line-height:1.15}
@@ -64,7 +76,6 @@ code,pre,textarea,kbd{font-family:var(--mono);font-size:.86em}
 
 /* Page frame */
 .wrap{max-width:var(--wide);margin:0 auto;padding:0 var(--gutter)}
-section{scroll-margin-top:var(--header-offset)}
 .band{padding:clamp(64px,10vw,128px) 0}
 .band + .band{border-top:1px solid var(--line)}
 .band--paper{background:var(--paper)}
@@ -339,8 +350,10 @@ pre{background:var(--code);border:1px solid var(--line);border-radius:var(--r-sm
 .runlist{display:grid;gap:18px}
 .runlist > *{min-width:0}
 
-/* Context story (Environmental Agency): teal is RAG, raspberry is MCP, blue is the graph, purple is Jev */
-.ctx{--rag:#00737a;--rag-wash:#e0f2f1;--mcp:#a3165a;--mcp-wash:#fbe7f0;--graph:var(--evidence);--jev:var(--purple-mid)}
+/* Context story (Environmental Agency), in the landing page's layer colours: MCP is the MCP Tool Shed
+   teal, the graph is the context-fabric blue and Jev is the System 1 purple. RAG is not one of the
+   five layers, so it is neutral grey; raspberry stays with Gemini Enterprise Agent Platform. */
+.ctx{--rag:var(--muted);--rag-wash:#ededeb;--mcp:var(--connect);--mcp-wash:#e0f2f1;--graph:var(--context);--jev:var(--reflex)}
 .layers{display:grid;gap:0;margin:0;padding:0;list-style:none;max-width:none;counter-reset:layer}
 @media (min-width:860px){.layers{grid-template-columns:repeat(4,minmax(0,1fr))}}
 .layers li{border-top:4px solid var(--c);padding:18px 24px 8px 0;counter-increment:layer}
@@ -478,6 +491,43 @@ pre{background:var(--code);border:1px solid var(--line);border-radius:var(--r-sm
 @media (max-width:320px){.wrap{--gutter:14px}}
 /* Print and "Save as PDF" never scroll, so nothing may wait for an animation to become visible. */
 @media print{*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* Print and "Save as PDF". Browsers drop background colours unless the reader opts in, so nothing
+   may depend on one: dark bands, the footer and filled controls become dark text on white, and the
+   few colour marks that carry meaning are printed exactly. Every layer's detail prints. */
+@page{margin:14mm}
+@media print{
+  html{font-size:14px}
+  .skip,.site-nav,.toc,.hops,.copy,.lab .params,.lab details{display:none!important}
+  .site-header{position:static;border-bottom:1px solid var(--rule)}
+  .site-header .in{min-height:0;padding-top:8px;padding-bottom:8px}
+  .band,.band--tight{padding:22px 0}
+  .hero,.page-hero{padding:18px 0 22px}
+  .section-head{margin-bottom:18px}
+  .band--paper{background:none}
+  .band--black,.band--black *,.site-footer,.site-footer *{background:none!important;color:var(--ink)!important}
+  .band--black .outcomes li{border-color:var(--ink)}
+  .site-footer{padding:14px 0;border-top:1px solid var(--rule)}
+  .btn,.btn--purple,.stack-layer[aria-expanded="true"],.stack-layer[aria-pressed="true"],.scenario[aria-pressed="true"]{background:none!important;color:var(--ink)!important}
+  .btn{border-color:var(--ink)!important;min-height:0;padding:6px 12px}
+  .stack-detail[hidden]{display:block!important}
+  .hero .wrap,.page-hero .wrap{grid-template-columns:minmax(0,3fr) minmax(0,2fr)}
+  .hero-art{border:0;padding:0}
+  .feature{grid-template-columns:minmax(0,2fr) minmax(0,3fr);gap:20px;padding:18px 0}
+  .feature .feature-art{order:0}
+  .feature h3{font-size:1.4rem;margin-bottom:10px}
+  .steps{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .steps li+li{padding-left:16px;border-left:1px solid var(--line)}
+  .steps li::before{font-size:2.2rem;margin-bottom:8px}
+  .proof{grid-template-columns:1fr 1fr}
+  .proof li:nth-child(even){padding-left:16px;border-left:1px solid var(--line)}
+  .graph-stage{max-width:440px}
+  h1,h2,h3,h4,.eyebrow,legend,.section-head{break-after:avoid}
+  .section-head,.feature,.stack>li,.proof li,.steps li,.defs>div,figure,table,pre,.result,.brief>div,.facts>div,
+  .routes>div,.trio>div,.layers li,.node-box,.asks li,.now-next>section,.spotlight-fit section,.scenario,.chain-wrap{break-inside:avoid}
+  .bars .bar,.bars .rng,.pill,.fit--strong,.heat td,.legend span::before,.outcome::before,.outcome-key li::before,
+  .reach .meter span,.demo-status::before{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+}
 
 /* Motion. Only for people who have not asked their system for reduced motion. */
 @keyframes draw{to{stroke-dashoffset:0}}

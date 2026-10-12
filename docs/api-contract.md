@@ -177,7 +177,7 @@ Response:
 ## Response headers (Rust service)
 
 - `X-Content-Type-Options: nosniff` and `Referrer-Policy: strict-origin-when-cross-origin` on every response.
-- `Content-Security-Policy` on every response: `default-src 'self'`; scripts from `'self'` plus `'unsafe-inline'` (the pages' inline scripts and handlers) and, only on `/technical-guide/` and `/technical-guide/index.html`, `'unsafe-eval'` (the labs run edited code); styles from `'self'`, `'unsafe-inline'` and `https://fonts.googleapis.com`; fonts from `https://fonts.gstatic.com`; images from `'self'` and `data:`; `connect-src 'self'` plus the origin of `API_BASE_URL` when set; `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`.
+- `Content-Security-Policy` on every response: `default-src 'self'`; scripts from `'self'` plus `'unsafe-inline'` (the pages' inline scripts and handlers) and, only on `/technical-guide/` and `/technical-guide/index.html`, `'unsafe-eval'` (the labs run edited code); styles from `'self'` and `'unsafe-inline'`; fonts from `'self'` only (the site serves its own fonts); images from `'self'` and `data:`; `connect-src 'self'` plus the origin of `API_BASE_URL` when set; `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`.
 - `Cache-Control: no-cache` for HTML pages and `/config.js`; `public, max-age=604800` for `/assets/`.
 
 ## CORS

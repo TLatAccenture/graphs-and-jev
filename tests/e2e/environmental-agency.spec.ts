@@ -12,15 +12,19 @@ const pipelineCalls = (page: Page) => {
 };
 
 // Section 10 item 5 (fixtures), and item 8's unmocked check against the Rust service (TARGET=live).
-const EXPECTED = ["Answer", "Answer", "Clarify", "Reject"];
+// The mode is read from the page as served: the Rust service defaults the catalogue to the live API,
+// and an event build (API_MODE_CATALOGUE=fixtures, presentation plan item 2) keeps it in the browser.
+const EXPECTED = ["Answer", "Answer", "Ask", "Refuse"];
 for (const [i, label] of EXPECTED.entries()) {
-  test(`example ${i + 1} returns ${label} (${isLive ? "live API" : "fixtures"})`, async ({ page }) => {
+  test(`example ${i + 1} returns ${label}`, async ({ page }) => {
     const calls = pipelineCalls(page);
     await page.goto(PAGE);
     await expect(examples(page)).toHaveCount(4);
+    const live = await page.evaluate(() => (window as any).siteApi.mode("catalogue") === "live");
+    if (!isLive) expect(live, "static targets serve in-browser fixtures").toBe(false);
     await expectOutcome(page, CATALOGUE_LABELS, label, () => examples(page).nth(i).click());
-    await expect(page.locator("main")).toContainText(isLive ? "live API at" : "in-browser fixtures");
-    if (isLive) {
+    await expect(page.locator("main")).toContainText(live ? "live API at" : "in-browser fixtures");
+    if (live) {
       expect(calls.map(c => c.status)).toEqual([200]);
     } else {
       expect(calls, "fixtures mode must not call the API").toEqual([]);
