@@ -326,6 +326,8 @@ Sections in order (ids are fixed, other pages link to them):
 
 Remove the Spanner spotlight, engine grades, labs, snippets and local runs from the landing page (WS0 moves them; WS1 deletes any leftovers).
 
+Baseline: `mcp-shed` already contains the migration-first homepage from branch `design/value-story` (see `docs/plans/2026-10-12-migration-first-homepage*.md`). Reuse its structure, components and CSS wherever they serve the sections above. Where its copy or section order differs from Sections 5 and 6, this handover wins. `static/guide.css` gained value-story styles in that merge; WS1 moves any landing-only rules it needs into `styles/landing.css` through a request to WS0 rather than editing `guide.css`.
+
 **Done when:** all four scenarios produce their outcomes in Section 6.1; layer clicks work by mouse and keyboard; no horizontal scroll at 390px; Lighthouse accessibility 95 or higher.
 
 ### WS2 Technical guide (`technical-guide/index.html`)
