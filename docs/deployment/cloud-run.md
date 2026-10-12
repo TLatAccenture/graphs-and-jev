@@ -57,7 +57,7 @@ Run `IMAGE=graphs-and-jev:test scripts/smoke-container.sh` to repeat the root-fi
 
 ## Logging and monitoring
 
-Application logs are one JSON object per request with `request_id`, `route`, `status`, `latency_ms`, and `outcome`. The API returns the request ID in `x-request-id`. Tests assert that request and preference text do not enter structured logs,. Cloud Run platform request logs remain separate from these application records.
+Application logs are one JSON object per request with `request_id`, `route`, `status`, `latency_ms`, and `outcome`. The API returns the request ID in `x-request-id`. Tests assert that request and preference text do not enter structured logs. Cloud Run platform request logs remain separate from these application records.
 
 Do not add raw request text, response evidence bodies, credentials, tokens, or personal data to logs. Monitor request status and latency by route, decision outcomes, revision health, instance count, and cost.
 
