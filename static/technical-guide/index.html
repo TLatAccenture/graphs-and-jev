@@ -5,8 +5,9 @@
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Technical guide · The MCP Shed</title>
-<meta name="description" content="For technical advisers: how each pillar of the MCP shed works, with runnable labs, graph-engine grades and costs, and sources.">
+<meta name="description" content="For technical advisers: how each of the five MCP shed pillars works, from governed MCP servers and lineage graphs to System 1 gates and eval records, with runnable labs, graph-engine grades and sources.">
 <link rel="stylesheet" href="../guide.css">
+<link rel="stylesheet" href="../styles/tech.css">
 <script src="../config.js"></script>
 <script src="../js/api.js"></script>
 </head>
@@ -23,18 +24,96 @@
 </div></header>
 <main id="main">
 
-<section id="technical-guide" class="band" aria-labelledby="tech-title">
+<section class="page-hero" aria-labelledby="page-title">
+  <div class="wrap">
+    <div>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="../"><span data-brand="name">The MCP Shed</span></a> / <span aria-current="page">Technical guide</span></nav>
+      <p class="eyebrow">Technical guide</p>
+      <h1 id="page-title">Technical guide</h1>
+      <p class="lede">For technical advisers: how each pillar works, with runnable labs, graph-engine grades and costs, and the sources behind every figure.</p>
+    </div>
+    <ol class="pillar-key" aria-label="The five pillars, bottom of the stack first">
+      <li style="--c:var(--connect)"><span>1</span>Connectivity</li>
+      <li style="--c:var(--context)"><span>2</span>Relational context</li>
+      <li style="--c:var(--logic)"><span>3</span>Logic</li>
+      <li style="--c:var(--reflex)"><span>4</span>Reflexes</li>
+      <li style="--c:var(--visibility)"><span>5</span>Visibility and cost</li>
+    </ol>
+  </div>
+</section>
+
+<nav class="toc" aria-label="On this page">
+  <ol>
+    <li><a href="#connectivity" style="--c:var(--connect)">Connectivity</a></li>
+    <li><a href="#relational-context" style="--c:var(--context)">Relational context</a></li>
+    <li><a href="#logic" style="--c:var(--logic)">Logic</a></li>
+    <li><a href="#reflexes" style="--c:var(--reflex)">Reflexes</a></li>
+    <li><a href="#visibility-and-cost" style="--c:var(--visibility)">Visibility and cost</a></li>
+  </ol>
+</nav>
+
+<!-- ================= 1. Connectivity ================= -->
+<section id="connectivity" class="band pillar" style="--c:var(--connect)" aria-labelledby="connectivity-title">
   <div class="wrap">
     <div class="section-head">
-      <span class="eyebrow">Technical guide</span>
-      <h2 id="tech-title">For technical advisers: engines, labs and queries.</h2>
-      <p>Graph database grades and costs, runnable retrieval and decision labs, the same query in five dialects, and local-run commands. Covers Neo4j, FalkorDB, Memgraph, Amazon Neptune, Spanner Graph, PuppyGraph, Microsoft Fabric Graph, MongoDB Atlas, Azure Cosmos DB and Kuzu.</p>
+      <span class="eyebrow">Pillar 1 · Connectivity</span>
+      <h2 id="connectivity-title">Standard, governed MCP servers replace brittle one-off scripts.</h2>
+      <p>Each system in the estate is reached through an MCP server with scoped, short-lived credentials and an audit trail. Agents receive only the servers their task needs, which keeps tool definitions out of the context window and secrets out of scripts.</p>
+    </div>
+
+    <h3>The MCP shed catalogue</h3>
+    <p class="note">Official servers for the systems in a typical estate, checked against each vendor's own documentation on 12 October 2026. A system is listed with a server only where we opened a working official page; otherwise the row says none was found. Most are new or in preview, so check the linked page before you rely on a detail.</p>
+    <div class="panel scroll mcp-table-wrap">
+      <table class="mcp-table">
+        <caption class="sr-only">Official MCP servers by system, with transport, authentication, scope, source and date checked</caption>
+        <thead><tr><th scope="col">System</th><th scope="col">Official MCP server</th><th scope="col">Remote or local</th><th scope="col">Auth model</th><th scope="col">Typical read and write scope</th><th scope="col">Source</th><th scope="col">Checked</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">AWS (S3)</th><td><span class="kind">Vendor</span> AWS MCP Server, which calls S3 and other AWS APIs through a small fixed set of tools</td><td>Remote (managed)</td><td>OAuth 2.1, or IAM SigV4 through the local MCP Proxy for AWS</td><td>Any AWS API the IAM principal may call; IAM condition keys can restrict agent actions, and SigV4 offers a read-only mode</td><td><a href="https://docs.aws.amazon.com/aws-mcp/latest/userguide/getting-started-aws-mcp-server.html">AWS documentation</a></td><td>12 October 2026</td></tr>
+          <tr><th scope="row">Azure (Blob Storage)</th><td><span class="kind">Vendor</span> Azure MCP Server, Storage tools</td><td>Local (self-hosted deployment also documented)</td><td>Microsoft Entra ID through the Azure Identity library; Azure RBAC</td><td>Create, get, list and upload storage resources, within the caller's RBAC role</td><td><a href="https://learn.microsoft.com/en-us/azure/developer/azure-mcp-server/tools/azure-storage">Microsoft Learn</a></td><td>12 October 2026</td></tr>
+          <tr><th scope="row">Google Cloud (BigQuery)</th><td><span class="kind">Vendor</span> BigQuery remote MCP server; a local server through MCP Toolbox for Databases also exists</td><td>Remote</td><td>Google Cloud IAM, with centralised audit logging</td><td>Run queries, get metadata, list resources</td><td><a href="https://cloud.google.com/bigquery/docs/use-bigquery-mcp">Google Cloud documentation</a></td><td>12 October 2026</td></tr>
+          <tr><th scope="row">SAP</th><td><span class="kind kind--none">None ready-made</span> No ready-made official server for SAP business data found as of 12 October 2026. SAP's route is the MCP Gateway in SAP Integration Suite, which exposes the SAP APIs you choose as MCP tools</td><td>Remote (gateway)</td><td>OAuth 2.0 with OIDC; the user's identity is propagated into SAP</td><td>Only the APIs and operations you publish, under the signed-in user's SAP authorisations</td><td><a href="https://architecture.learning.sap.com/docs/ref-arch/d2e34e">SAP Architecture Center</a></td><td>12 October 2026</td></tr>
+          <tr><th scope="row">Salesforce</th><td><span class="kind">Vendor</span> Salesforce Hosted MCP Servers</td><td>Remote</td><td>Per-user OAuth 2.0 with PKCE</td><td>Read, create, update and delete records, respecting field-level security and sharing rules; admins choose which servers are enabled</td><td><a href="https://developer.salesforce.com/docs/platform/hosted-mcp-servers/guide/hosted-mcp-servers-overview.html">Salesforce Developers</a></td><td>12 October 2026</td></tr>
+          <tr><th scope="row">Databricks</th><td><span class="kind">Vendor</span> Databricks managed MCP servers (public preview)</td><td>Remote</td><td>OAuth, including on behalf of the user; Databricks data permissions always apply</td><td>Genie servers are read-only; the Databricks SQL server reads and writes; AI Search queries indexes</td><td><a href="https://docs.databricks.com/aws/en/generative-ai/mcp/managed-mcp">Databricks documentation</a></td><td>12 October 2026</td></tr>
+          <tr><th scope="row">ServiceNow</th><td><span class="kind">Vendor</span> MCP Server Console, with a pre-configured Quickstart Server</td><td>Remote (Streamable HTTP; stdio not supported)</td><td>OAuth 2.0 authorisation code grant; third-party identity providers supported</td><td>Only the tools an administrator packages; existing access controls and roles apply</td><td><a href="https://www.servicenow.com/community/servicenow-otto-articles/mcp-server-console-faq/ta-p/3550125">ServiceNow FAQ</a></td><td>12 October 2026</td></tr>
+          <tr><th scope="row">Atlassian (Jira, Confluence)</th><td><span class="kind">Vendor</span> Atlassian Rovo MCP Server</td><td>Remote</td><td>OAuth 2.1; API token optional</td><td>Search and summarise Jira and Confluence; create and update work items and pages, within the user's permissions</td><td><a href="https://support.atlassian.com/atlassian-rovo-mcp-server/docs/getting-started-with-the-atlassian-remote-mcp-server/">Atlassian Support</a></td><td>12 October 2026</td></tr>
+          <tr><th scope="row">Microsoft 365 (SharePoint, OneDrive, Word, Excel, PowerPoint files)</th><td><span class="kind">Vendor</span> Work IQ MCP servers (preview), including SharePoint, OneDrive and Word servers</td><td>Remote</td><td>Microsoft Entra ID; admins allow or block servers centrally; needs a Microsoft 365 Copilot licence</td><td>SharePoint: files of 5 MB or less, lists and sharing; OneDrive: the user's own files; Word: create and read documents</td><td><a href="https://learn.microsoft.com/en-us/microsoft-agent-365/tooling-servers-overview">Work IQ overview</a>, <a href="https://learn.microsoft.com/en-us/microsoft-agent-365/mcp-server-reference/sharepoint">SharePoint reference</a></td><td>12 October 2026</td></tr>
+          <tr><th scope="row">Looker</th><td><span class="kind">Vendor</span> Looker-managed MCP server (preview); MCP Toolbox for Databases for customer-hosted instances</td><td>Remote (instance URL plus /mcp)</td><td>OAuth 2.1; the agent inherits the signed-in user's Looker roles</td><td>Every tool is disabled until an admin enables it; then queries, Looks and dashboards the user can already see</td><td><a href="https://docs.cloud.google.com/looker/docs/mcp">Google Cloud documentation</a></td><td>12 October 2026</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Text names only; product names and marks belong to their owners. Excel and PowerPoint files are reached through the SharePoint and OneDrive servers as files; we found no dedicated Excel or PowerPoint server.</p>
+
+    <div class="panel lab" id="labD">
+      <h3>Lab 4: tool scoping</h3>
+      <p class="note">Loading every tool definition into every request costs context before the agent has done anything <a href="https://www.anthropic.com/engineering/code-execution-with-mcp">[L5]</a>. A System 1 router that picks the servers for the task keeps that cost proportional to the task. Every input below is an assumption, not a measurement; set them to match your estate.</p>
+      <div class="params">
+        <label>MCP servers in the shed (assumption) <input id="dServers" type="number" min="1" max="500" value="11"></label>
+        <label>Tools per server (assumption) <input id="dTools" type="number" min="1" max="1000" value="36"></label>
+        <label>Tokens per tool definition (assumption) <input id="dTokens" type="number" min="1" max="10000" value="150"></label>
+        <label>Servers the task needs (assumption) <input id="dNeed" type="number" min="0" max="500" value="2"></label>
+        <label>Context window, tokens (assumption) <input id="dWindow" type="number" min="1000" max="10000000" step="1000" value="200000"></label>
+        <button class="primary" type="button" data-run="D">Run</button>
+      </div>
+      <details><summary>View and edit the code</summary><label class="sr-only" for="dCode">Lab 4 code</label><textarea id="dCode" spellcheck="false"></textarea>
+        <div class="controls"><button type="button" data-runedit="D">Run edited code</button><button type="button" data-reset="D">Reset code</button></div></details>
+      <div class="out" id="dOut" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 2. Relational context ================= -->
+<section id="relational-context" class="band pillar" style="--c:var(--context)" aria-labelledby="context-title">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Pillar 2 · Relational context</span>
+      <h2 id="context-title">A graph holds lineage and the enterprise ontology.</h2>
+      <p>Spanner Graph, or another graph engine, records which tables, jobs, files and reports feed which others, and what each business term means. Before an agent changes anything, it can see what sits upstream and downstream, so a change in one place does not silently break another.</p>
     </div>
 
     <article id="spanner-graph-spotlight" class="spotlight" aria-labelledby="spanner-title">
       <div class="spotlight-main">
         <div class="spotlight-copy">
-          <span class="eyebrow">GCP event spotlight</span>
+          <span class="eyebrow">Spotlight</span>
           <p class="spotlight-product"><img src="../assets/engine-logos/google-cloud-spanner.svg" alt="" width="32" height="32">Google Cloud Spanner Graph</p>
           <h3 id="spanner-title">One database. Relational and graph views.</h3>
           <p class="spotlight-lede">Spanner Graph maps Spanner tables or SQL views into a property graph without creating a separate copy of the data. Teams can use GQL for graph patterns, SQL for relational work, and combine both when a decision needs connected and tabular context.</p>
@@ -44,7 +123,7 @@
             <li>GoogleSQL can read graph matches through <code>GRAPH_TABLE</code>, so graph and relational results meet in one query.</li>
             <li>The graph inherits Spanner&rsquo;s scale, availability and strong consistency.</li>
           </ul>
-          <p class="annotation">Capabilities are summarised from Google Cloud documentation. The grades and scores below are this site&rsquo;s independent judgement; this spotlight does not change them.</p>
+          <p class="annotation">Capabilities are summarised from Google Cloud documentation. The grades and scores below are this site&rsquo;s independent judgement; this spotlight does not change them, and Spanner Graph keeps its evidence-based B grade. Jev, TypeSafe's System 1 decision model, is not a Google Cloud product.</p>
           <ul class="spotlight-links" aria-label="Google Cloud documentation">
             <li><a href="https://cloud.google.com/spanner/docs/graph/overview">Spanner Graph overview</a></li>
             <li><a href="https://cloud.google.com/spanner/docs/graph/schema-overview">Graph schema overview</a></li>
@@ -84,18 +163,18 @@
     <details class="tech" open>
       <summary><span>Engine grades and scores<small>Each engine graded against the job it is built for.</small></span></summary>
       <div class="body">
-        <p>An embedded library and a clustered service do different jobs. Weights: traversal depth 30%, operations 25%, total cost 20%, vendor viability 15%, fit for decision-model state 10%.</p>
+        <p>An embedded library and a clustered service do different jobs. Weights, which are the author's judgement: traversal depth 30%, operations 25%, total cost 20%, vendor viability 15%, fit for decision-model state 10%.</p>
         <div class="controls" role="group" aria-label="Choose job">
-  <button id="jobShared" aria-pressed="true">Shared production service</button>
-  <button id="jobEmbed">Embedded or per-session memory</button>
-</div>
-<div class="legend">
-  <span style="--c:var(--native)">Native graph store</span>
-  <span style="--c:var(--over)">Graph over existing data</span>
-  <span style="--c:var(--doc)">Document store with graph features</span>
-  <span style="--c:var(--embed)">Embedded</span>
-</div>
-<div class="panel chart" id="gradeChart"></div>
+          <button type="button" id="jobShared" aria-pressed="true">Shared production service</button>
+          <button type="button" id="jobEmbed">Embedded or per-session memory</button>
+        </div>
+        <div class="legend">
+          <span style="--c:var(--native)">Native graph store</span>
+          <span style="--c:var(--over)">Graph over existing data</span>
+          <span style="--c:var(--doc)">Document store with graph features</span>
+          <span style="--c:var(--embed)">Embedded</span>
+        </div>
+        <div class="panel chart" id="gradeChart"></div>
         <h3 style="margin:32px 0 8px">Scores by criterion</h3>
         <p>Scores are out of 5 and are judgement, not measurement. PuppyGraph's depth score rests on vendor figures that have not been independently verified.</p>
         <div class="panel scroll"><table class="heat" id="heat"></table></div>
@@ -105,67 +184,49 @@
     <details class="tech">
       <summary><span>Entry production cost<small>Approximate monthly list prices in USD, as at 25 September 2026; Spanner Graph checked 2 October 2026.</small></span></summary>
       <div class="body">
-        <p>The paler bar shows a range. Duplication and sync costs for native stores are not included, and are often the larger number.</p>
+        <p>The paler bar shows a range. Duplication and sync costs for native stores are not included, and are often the larger number. Vendor pricing pages are listed under <a href="#sources">Sources and caveats</a>.</p>
         <div class="panel chart" id="costChart"></div>
       </div>
     </details>
 
-    <details class="tech">
-      <summary><span>Browser labs<small>Hybrid text against graph retrieval, token budgets, and calibrated thresholds.</small></span></summary>
-      <div class="body">
-        <p>Each lab runs in your browser on the same sample graph as the guided example. Change the settings, or open the code, edit it and run your version.</p>
-        <div class="panel lab" id="labA">
-  <h3>Lab 1: hybrid text retrieval against graph retrieval</h3>
-  <p class="note">The text baseline is what most teams already run: BM25 over each node's text, fused with dense similarity from a small embedding model (all-MiniLM-L6-v2) by reciprocal rank fusion. Dense similarities are precomputed for the questions in the list; for a question you type yourself, the text side falls back to BM25 alone. Graph retrieval starts at the entities named in the question and follows relationships.</p>
-  <div class="params">
-    <label style="flex:1 1 100%">Question <input id="aQ" style="width:100%;font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink)" value="What is Example Person's role in ACME's renewable energy projects?" list="aQList"></label>
-    <datalist id="aQList"><option value="What is Example Person's role in ACME's renewable energy projects?"></option><option value="Which customers were affected by Outage 14?"></option><option value="Which clause governs the supplier of Wind Project Beta?"></option><option value="What does the 2025 strategic plan cover?"></option></datalist>
-    <label>Hops <input id="aK" type="number" min="1" max="4" value="2" style="width:64px"></label>
-    <button class="primary" data-run="A">Run</button>
-  </div>
-  <details><summary>View and edit the code</summary><textarea id="aCode" spellcheck="false"></textarea>
-    <div class="controls"><button data-runedit="A">Run edited code</button><button data-reset="A">Reset code</button></div></details>
-  <div class="out" id="aOut"></div>
-</div>
+    <h3 class="sub">Browser labs on the sample estate</h3>
+    <p>Both labs run in your browser on the 15-fact sample estate used by the guided example on the landing page: SAP, BigQuery, Databricks, Looker, Salesforce and SharePoint objects joined by lineage edges. Change the settings, or open the code, edit it and run your version.</p>
 
-<div class="panel lab" id="labB">
-  <h3>Lab 2: fit the best context into a token budget</h3>
-  <p class="note">Personalised PageRank ranks nodes by how central they are to a starting entity, then the highest-ranked text is packed into the budget. Jev takes about 64,000 tokens a request, of which about 32,000 for the state and the longest question; this example graph is tiny, so the budget is scaled down.</p>
-  <div class="params">
-    <label>Start at <select id="bSeed"></select></label>
-    <label>Budget <input id="bBudget" type="range" min="20" max="200" step="5" value="70"> <strong id="bBudgetV">70</strong> tokens</label>
-    <button class="primary" data-run="B">Run</button>
-  </div>
-  <details><summary>View and edit the code</summary><textarea id="bCode" spellcheck="false"></textarea>
-    <div class="controls"><button data-runedit="B">Run edited code</button><button data-reset="B">Reset code</button></div></details>
-  <div class="out" id="bOut"></div>
-</div>
-
-<div class="panel lab" id="labC">
-  <h3>Lab 3: calibrated decisions with per-action thresholds</h3>
-  <p class="note">A simulation of the decision loop described in the paper. No model is called. Each case gets a stated confidence; the case is decided automatically if confidence clears that action's threshold, otherwise it goes to review at a cost of 1. Raise overconfidence to see what happens when stated probabilities stop matching reality.</p>
-  <div class="params">
-    <label>Overconfidence <input id="cOver" type="range" min="0" max="0.6" step="0.05" value="0"> <strong id="cOverV">0.00</strong></label>
-    <label>Approve payment threshold <input id="cT0" type="number" min="0.5" max="1" step="0.01" value="0.97" style="width:80px"></label>
-    <label>Route ticket threshold <input id="cT1" type="number" min="0.5" max="1" step="0.01" value="0.70" style="width:80px"></label>
-    <label>Flag for review threshold <input id="cT2" type="number" min="0.5" max="1" step="0.01" value="0.80" style="width:80px"></label>
-    <button class="primary" data-run="C">Run</button>
-  </div>
-  <details><summary>View and edit the code</summary><textarea id="cCode" spellcheck="false"></textarea>
-    <div class="controls"><button data-runedit="C">Run edited code</button><button data-reset="C">Reset code</button></div></details>
-  <div class="out" id="cOut"></div>
-</div>
+    <div class="panel lab" id="labA">
+      <h3>Lab 1: hybrid text retrieval against graph retrieval</h3>
+      <p class="note">The text baseline is what most teams already run: BM25 over each node's text, fused by reciprocal rank fusion with dense similarity from a small embedding model (all-MiniLM-L6-v2). Dense similarities for the four preset questions are precomputed by <code>scripts/dense.py</code>; for a question you type yourself, the text side falls back to BM25 alone. Graph retrieval starts at the entities named in the question and follows relationships.</p>
+      <div class="params">
+        <label class="wide">Question <input id="aQ" value="Which dashboards use KNA1.REGION?" list="aQList"></label>
+        <datalist id="aQList"><option value="Which dashboards use KNA1.REGION?"></option><option value="What feeds the regulatory return?"></option><option value="Which workbook is the source of the price list?"></option><option value="What does customer_sync write?"></option></datalist>
+        <label>Hops <input id="aK" type="number" min="1" max="4" value="2"></label>
+        <button class="primary" type="button" data-run="A">Run</button>
       </div>
-    </details>
+      <details><summary>View and edit the code</summary><label class="sr-only" for="aCode">Lab 1 code</label><textarea id="aCode" spellcheck="false"></textarea>
+        <div class="controls"><button type="button" data-runedit="A">Run edited code</button><button type="button" data-reset="A">Reset code</button></div></details>
+      <div class="out" id="aOut" aria-live="polite"></div>
+    </div>
 
-    <details class="tech">
-      <summary><span>One question, five dialects<small>Which projects does Example Person lead, and who owns them?</small></span></summary>
-      <div class="body">
-        <div class="tabs" id="snipTabs" role="tablist"></div>
-<div class="snip"><pre><code id="snipCode"></code></pre><button class="copy" id="snipCopy">Copy</button></div>
-<p class="note" id="snipNote"></p>
+    <div class="panel lab" id="labB">
+      <h3>Lab 2: fit the best context into a token budget</h3>
+      <p class="note">Personalised PageRank ranks nodes by how central they are to a starting entity, then the highest-ranked text is packed into the budget. TypeSafe documents a context length for Jev 1.13 of 64k tokens per request, of which 32k covers the state plus the longest question <a href="https://docs.typesafe.ai/models">[TypeSafe models]</a>. This sample graph is tiny, so the budget here is scaled down. Token counts assume 1.3 tokens per word.</p>
+      <div class="params">
+        <label>Start at <select id="bSeed"></select></label>
+        <label>Budget <input id="bBudget" type="range" min="20" max="200" step="5" value="70"> <strong id="bBudgetV">70</strong> tokens</label>
+        <button class="primary" type="button" data-run="B">Run</button>
       </div>
-    </details>
+      <details><summary>View and edit the code</summary><label class="sr-only" for="bCode">Lab 2 code</label><textarea id="bCode" spellcheck="false"></textarea>
+        <div class="controls"><button type="button" data-runedit="B">Run edited code</button><button type="button" data-reset="B">Reset code</button></div></details>
+      <div class="out" id="bOut" aria-live="polite"></div>
+    </div>
+
+    <div class="dialects">
+      <h3 class="sub">One question, five dialects</h3>
+      <p>Which dashboards use KNA1.REGION? The same two-hop lineage query, from the SAP column through its BigQuery mapping to the Looker dashboards that read it.</p>
+      <div class="tabs" id="snipTabs" role="tablist" aria-label="Query dialect"></div>
+      <div class="snip"><pre><code id="snipCode"></code></pre><button class="copy" type="button" id="snipCopy">Copy</button></div>
+      <p class="note" id="snipNote" aria-live="polite"></p>
+      <p class="note">MongoDB behaviour: <a href="https://www.mongodb.com/docs/manual/reference/operator/aggregation/graphLookup/">$graphLookup documentation</a>.</p>
+    </div>
 
     <details class="tech">
       <summary><span>Run it on your laptop<small>Local options for the engines that have them.</small></span></summary>
@@ -174,12 +235,169 @@
         <div class="runlist" id="runList"></div>
       </div>
     </details>
+  </div>
+</section>
 
-    <div style="margin-top:clamp(40px,6vw,64px)">
-      <h3>Sources and caveats</h3>
-      <p class="annotation">Prices are vendor list prices checked on 25 September 2026 and change often; confirm with each vendor's calculator before quoting to a client. Memgraph was checked on 30 September 2026. Spanner Graph was checked on 2 October 2026: Enterprise edition in us-central1 is $0.41 per replica hour, three replicas per regional node, so $1.23 per node hour; over 730 hours that is about $90 for 100 processing units and $898 for one node, before storage, backups and network. Performance claims for PuppyGraph, FalkorDB and Jev are vendor-reported. Kuzu was archived in October 2025; the forks named here are community-maintained. Grades are the author's judgement against the stated weights.</p>
-      <p class="annotation">Vendor pages: <a href="https://neo4j.com/pricing/">Neo4j</a>, <a href="https://www.falkordb.com/plans/">FalkorDB</a>, <a href="https://memgraph.com/pricing">Memgraph</a> (<a href="https://github.com/memgraph/memgraph/blob/master/licenses/BSL.txt">Community licence</a>: BSL 1.1, production use for internal purposes, no database-as-a-service; each version becomes Apache 2.0 on the change date in its licence, at most four years after its release), <a href="https://aws.amazon.com/neptune/pricing/">Neptune</a>, <a href="https://cloud.google.com/spanner/pricing">Spanner pricing</a> (capabilities: <a href="https://cloud.google.com/spanner/docs/graph/overview">Spanner Graph overview</a>, <a href="https://cloud.google.com/spanner/docs/graph/queries-overview">graph queries</a>, <a href="https://cloud.google.com/discover/what-is-a-graph-database">what is a graph database</a>), <a href="https://www.puppygraph.com/pricing">PuppyGraph</a>, <a href="https://learn.microsoft.com/en-us/fabric/graph/overview">Fabric graph</a>, <a href="https://www.mongodb.com/pricing">MongoDB</a>, <a href="https://www.puppygraph.com/blog/what-is-kuzudb">Kuzu status</a>.</p>
+<!-- ================= 3. Logic ================= -->
+<section id="logic" class="band pillar" style="--c:var(--logic)" aria-labelledby="logic-title">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Pillar 3 · Logic</span>
+      <h2 id="logic-title">Skills and hooks turn migration playbooks into enforced steps.</h2>
+      <p>Skills give agents a prescriptive playbook for each migration pattern. Hooks run before and after tool calls to validate schemas, block unsafe actions and require approval where needed. Together they reduce drift, broken code and malformed schemas.</p>
     </div>
+    <div class="logic-grid">
+      <figure class="code-fig">
+        <figcaption><strong>A skill</strong> <span class="tag">Illustrative</span><br>A short <code>SKILL.md</code> an agent loads for one migration pattern. The steps are prescriptive, so two runs of the same task follow the same path.</figcaption>
+<pre><code>---
+name: migrate-sap-table-to-bigquery
+description: Migrate one SAP table to BigQuery without breaking downstream reports.
+---
+# Migrate an SAP table to BigQuery
+
+1. Read lineage. Ask the lineage graph for every column, job
+   and report downstream of the table. If the table is not in
+   the graph, stop and ask.
+2. Generate DDL. Write the BigQuery CREATE TABLE statement
+   from the SAP data dictionary, using the agreed type map.
+3. Generate view aliases. For every renamed column, create a
+   view that keeps the old name so downstream reports still work.
+4. Validate against the target schema. Fail on a missing
+   column, a type mismatch or a changed key.
+5. Write the eval record: decision, confidence, tools called,
+   tokens, latency and outcome.</code></pre>
+      </figure>
+      <figure class="code-fig">
+        <figcaption><strong>A pre-tool-call hook</strong> <span class="tag">Illustrative</span><br>Pseudo-code that runs before every tool call and can block it. The agent cannot talk its way past a hook.</figcaption>
+<pre><code>def before_tool_call(call, context):
+    # Block writes to production unless a person has approved them
+    if call.is_write and call.target_env == "production":
+        if not context.has_valid_approval_token(call):
+            return block("Writes to production need an approval token.")
+
+    # Check generated DDL against the target schema before it runs
+    if call.tool == "bigquery.execute_ddl":
+        problems = validate_ddl(call.args["ddl"],
+                                target_schema(call.args["table"]))
+        if problems:
+            return block("DDL does not match the target schema: "
+                         + "; ".join(problems))
+
+    return allow()</code></pre>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 4. Reflexes ================= -->
+<section id="reflexes" class="band pillar" style="--c:var(--reflex)" aria-labelledby="reflexes-title">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Pillar 4 · Reflexes</span>
+      <h2 id="reflexes-title">System 1 models route, classify and gate in milliseconds, not seconds.</h2>
+      <p>A System 1 model is a small, fast model that returns a typed decision with a calibrated confidence instead of free text. TypeSafe calls this class System One models <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">[L8]</a>. Jev takes a state and a set of typed questions, and returns typed answers with probabilities and a confidence that code can branch on <a href="https://docs.typesafe.ai/introduction">[L9]</a>.</p>
+    </div>
+    <div class="latency">
+      <p>A System 1 model such as Jev returns a typed decision with a calibrated confidence. TypeSafe reports end-to-end response times of 70 to 500 ms <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">[L8]</a> <span class="tag">Vendor-reported</span>, against seconds for a frontier model, fast enough to sit in front of every tool call. It does not make a model stop hallucinating; it stops an uncalibrated output from becoming an action.</p>
+      <p>An independent review measured a 524 ms median for a hosted round trip <a href="https://hackernoon.com/inside-jev-how-decision-models-trade-text-generation-for-typed-calibrated-answers">[L10]</a>.</p>
+    </div>
+
+    <div class="panel lab" id="labC">
+      <h3>Lab 3: calibrated decisions with per-action thresholds</h3>
+      <p class="note">A simulation of a confidence-gated decision loop. No model is called. Each case gets a stated confidence; it is decided automatically if the confidence clears that action's threshold, otherwise it goes to review at a cost of 1. The error costs (50, 2 and 5), the review cost and the 3,000 cases are illustrative; the thresholds are assumptions you can edit. Raise overconfidence to see what happens when stated probabilities stop matching reality.</p>
+      <div class="params">
+        <label>Overconfidence <input id="cOver" type="range" min="0" max="0.6" step="0.05" value="0"> <strong id="cOverV">0.00</strong></label>
+        <label>Approve schema change threshold (assumption) <input id="cT0" type="number" min="0.5" max="1" step="0.01" value="0.97"></label>
+        <label>Route migration ticket threshold (assumption) <input id="cT1" type="number" min="0.5" max="1" step="0.01" value="0.70"></label>
+        <label>Flag for review threshold (assumption) <input id="cT2" type="number" min="0.5" max="1" step="0.01" value="0.80"></label>
+        <button class="primary" type="button" data-run="C">Run</button>
+      </div>
+      <details><summary>View and edit the code</summary><label class="sr-only" for="cCode">Lab 3 code</label><textarea id="cCode" spellcheck="false"></textarea>
+        <div class="controls"><button type="button" data-runedit="C">Run edited code</button><button type="button" data-reset="C">Reset code</button></div></details>
+      <div class="out" id="cOut" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 5. Visibility and cost ================= -->
+<section id="visibility-and-cost" class="band pillar" style="--c:var(--visibility)" aria-labelledby="visibility-title">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Pillar 5 · Visibility and cost</span>
+      <h2 id="visibility-title">Evals show what agents did; BigQuery and Looker show users the result and the cost.</h2>
+      <p>Every agent step writes an eval record: decision, confidence, tools called, tokens, latency and outcome. Engineers use the records to find failure patterns. BigQuery and Looker turn them into production reporting for users, including cost per migrated object, so the spend today and the run cost tomorrow are both visible.</p>
+    </div>
+    <div class="logic-grid">
+      <figure class="code-fig">
+        <figcaption><strong>One eval record</strong> <span class="tag">Illustrative</span><br>One JSON object per agent step. The values are made up for the example. <code>cost_usd</code> is left null here because it depends on your contracted model and platform rates; compute it from tokens and those rates.</figcaption>
+<pre><code>{
+  "run_id": "run-2026-10-12-0042",
+  "step": "validate_schema",
+  "agent": "migration-agent",
+  "skill": "migrate-sap-table-to-bigquery",
+  "tools_called": ["lineage.read", "bigquery.get_table_schema"],
+  "decision": "proceed",
+  "confidence": 0.94,
+  "outcome": "answer",
+  "tokens_in": 1820,
+  "tokens_out": 140,
+  "latency_ms": 310,
+  "cost_usd": null,
+  "object_id": "sap:KNA1",
+  "timestamp": "2026-10-12T04:15:00Z"
+}</code></pre>
+      </figure>
+      <figure class="code-fig">
+        <figcaption><strong>The BigQuery table</strong> <span class="tag">Illustrative</span><br>Partitioned by day, so reports scan only the dates they need, and clustered by skill and outcome for the tiles below <a href="https://cloud.google.com/bigquery/docs">[L11]</a>.</figcaption>
+<pre><code>CREATE TABLE IF NOT EXISTS migration_evals.eval_records (
+  run_id       STRING    NOT NULL,
+  step         STRING    NOT NULL,
+  agent        STRING,
+  skill        STRING,
+  tools_called ARRAY&lt;STRING&gt;,
+  decision     STRING,
+  confidence   FLOAT64,
+  outcome      STRING,
+  tokens_in    INT64,
+  tokens_out   INT64,
+  latency_ms   INT64,
+  cost_usd     NUMERIC,
+  object_id    STRING,
+  timestamp    TIMESTAMP NOT NULL
+)
+PARTITION BY DATE(timestamp)
+CLUSTER BY skill, outcome
+OPTIONS (description = "One row per agent step");</code></pre>
+      </figure>
+    </div>
+    <h3 class="sub">Three Looker tiles, in words</h3>
+    <p>Built in Looker over the table above <a href="https://cloud.google.com/looker/docs">[L12]</a>. No figures are shown because none have been measured.</p>
+    <ol class="tiles">
+      <li><strong>Cost per migrated object.</strong> Sum of <code>cost_usd</code> divided by the count of distinct <code>object_id</code> values whose final step ended in <code>answer</code>, by week. It shows whether migration is getting cheaper per object as skills and thresholds improve.</li>
+      <li><strong>Outcomes by step.</strong> A stacked bar of step counts by <code>step</code>, split by <code>outcome</code> code (answer, clarify, reject, review, no_data, shown to users as Proceed, Ask, Refuse, Escalate and No data). It shows where in the playbook agents stop, and why.</li>
+      <li><strong>Escalation rate by skill.</strong> The share of steps with outcome <code>review</code> for each <code>skill</code>, with the median <code>confidence</code> alongside. A rising rate points to a playbook or threshold that needs attention.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ================= Sources ================= -->
+<section id="sources" class="band band--paper" aria-labelledby="sources-title">
+  <div class="wrap">
+    <h2 id="sources-title">Sources and caveats</h2>
+    <p class="annotation">Prices are vendor list prices checked on 25 September 2026 and change often; confirm with each vendor's calculator before quoting to a client. Memgraph was checked on 30 September 2026. Spanner Graph was checked on 2 October 2026: Enterprise edition in us-central1 is $0.41 per replica hour, three replicas per regional node, so $1.23 per node hour; over 730 hours that is about $90 for 100 processing units and $898 for one node, before storage, backups and network. Performance claims for PuppyGraph, FalkorDB and Jev are vendor-reported. Kuzu was archived in October 2025; the forks named here are community-maintained. Grades are the author's judgement against the stated weights. The MCP server catalogue and the TypeSafe context-length figure were checked on 12 October 2026.</p>
+    <p class="annotation">Vendor pages: <a href="https://neo4j.com/pricing/">Neo4j</a>, <a href="https://www.falkordb.com/plans/">FalkorDB</a>, <a href="https://memgraph.com/pricing">Memgraph</a> (<a href="https://github.com/memgraph/memgraph/blob/master/licenses/BSL.txt">Community licence</a>: BSL 1.1, production use for internal purposes, no database-as-a-service; each version becomes Apache 2.0 on the change date in its licence, at most four years after its release), <a href="https://aws.amazon.com/neptune/pricing/">Neptune</a>, <a href="https://cloud.google.com/spanner/pricing">Spanner pricing</a> (capabilities: <a href="https://cloud.google.com/spanner/docs/graph/overview">Spanner Graph overview</a>, <a href="https://cloud.google.com/spanner/docs/graph/queries-overview">graph queries</a>, <a href="https://cloud.google.com/discover/what-is-a-graph-database">what is a graph database</a>), <a href="https://www.puppygraph.com/pricing">PuppyGraph</a>, <a href="https://learn.microsoft.com/en-us/fabric/graph/overview">Fabric graph</a>, <a href="https://www.mongodb.com/pricing">MongoDB</a>, <a href="https://www.puppygraph.com/blog/what-is-kuzudb">Kuzu status</a>.</p>
+    <ul class="annotation src-list">
+      <li>[L5] Anthropic, <a href="https://www.anthropic.com/engineering/code-execution-with-mcp">Code execution with MCP</a>: the token cost of tool definitions and results.</li>
+      <li>[L7] <a href="https://modelcontextprotocol.io/specification/2026-07-28/server">MCP specification, server features</a>.</li>
+      <li>[L8] TypeSafe, <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">Introducing System One models and Jev</a>: 70 to 500 ms end-to-end, vendor-reported.</li>
+      <li>[L9] <a href="https://docs.typesafe.ai/introduction">TypeSafe documentation</a>, and the <a href="https://docs.typesafe.ai/models">Models page</a> for Jev 1.13's context length.</li>
+      <li>[L10] HackerNoon, <a href="https://hackernoon.com/inside-jev-how-decision-models-trade-text-generation-for-typed-calibrated-answers">Inside Jev</a>: 524 ms median for a hosted round trip.</li>
+      <li>[L11] <a href="https://cloud.google.com/bigquery/docs">BigQuery documentation</a>.</li>
+      <li>[L12] <a href="https://cloud.google.com/looker/docs">Looker documentation</a>.</li>
+      <li>[L13] <a href="https://cloud.google.com/spanner/docs/graph/overview">Spanner Graph overview</a>.</li>
+      <li>MongoDB <a href="https://www.mongodb.com/docs/manual/reference/operator/aggregation/graphLookup/">$graphLookup</a>: memory behaviour above 100 MB.</li>
+      <li>MCP server sources are linked in each row of the catalogue table above.</li>
+    </ul>
   </div>
 </section>
 </main>
@@ -190,263 +408,7 @@
     <p><a href="../environmental-agency/">Environmental Agency catalogue discovery</a> · <a href="../lineage-migration/">Lineage-guarded migration</a> · <a href="../little-bunnies/">Little Bunnies</a> · <a href="../technical-guide/">Technical guide</a></p>
   </div>
 </footer>
-
-<script>
-/* ---------- Example graph shared by the hero and the labs ---------- */
-const G = {
-  nodes: [
-    {id:"john",label:"Example Person",type:"Person",x:55,y:55,text:"Example Person is a programme director based in Sydney."},
-    {id:"solar",label:"Solar Farm Alpha",type:"Project",x:180,y:35,text:"Solar Farm Alpha is a 120 MW site commissioned in 2024."},
-    {id:"acme",label:"ACME",type:"Company",x:305,y:60,text:"ACME is an infrastructure company."},
-    {id:"wind",label:"Wind Project Beta",type:"Project",x:180,y:140,text:"Wind Project Beta is an offshore site in planning."},
-    {id:"renew",label:"Renewable energy",type:"Theme",x:305,y:165,text:"Renewable energy is a strategic theme."},
-    {id:"plan",label:"2025 strategic plan",type:"Document",x:300,y:265,text:"The 2025 strategic plan sets targets for renewable energy growth."},
-    {id:"supplier",label:"Supplier X",type:"Company",x:55,y:165,text:"Supplier X manufactures turbine components."},
-    {id:"clause",label:"Clause 7.2",type:"Clause",x:45,y:255,text:"Clause 7.2 allows termination after two missed deliveries."},
-    {id:"api",label:"Grid API",type:"Service",x:180,y:245,text:"Grid API publishes live output data."},
-    {id:"outage",label:"Outage 14",type:"Incident",x:100,y:325,text:"Outage 14 took the Grid API offline for six hours."},
-    {id:"custy",label:"Customer Y",type:"Company",x:220,y:325,text:"Customer Y buys output data."},
-    {id:"custz",label:"Customer Z",type:"Company",x:320,y:325,text:"Customer Z buys output data."}
-  ],
-  edges: [
-    ["john","LEADS","solar"],["john","ADVISES","wind"],["acme","OWNS","solar"],["acme","OWNS","wind"],
-    ["solar","PART_OF","renew"],["wind","PART_OF","renew"],["plan","COVERS","renew"],["acme","AUTHORED","plan"],
-    ["supplier","SUPPLIES","wind"],["clause","GOVERNS","supplier"],["wind","DEPENDS_ON","api"],
-    ["outage","AFFECTED","api"],["api","SERVES","custy"],["api","SERVES","custz"]
-  ],
-  node(id){return this.nodes.find(n=>n.id===id)},
-  neighbours(id){const out=[];for(const [a,r,b] of this.edges){if(a===id)out.push({id:b,rel:r,dir:"out"});if(b===id)out.push({id:a,rel:r,dir:"in"});}return out},
-  tokens(n){return Math.ceil(n.text.split(/\s+/).length*1.3)}
-};
-
-/* ---------- Engine data ---------- */
-const GV={"A":4,"A-":3.7,"B+":3.3,"B":3,"B-":2.7,"C+":2.3,"C":2,"C-":1.7,"D":1,"F":0};
-const E=[
- {n:"Neo4j",logo:"../assets/engine-logos/neo4j.svg",initials:"N4",cat:"native",shared:"A-",embed:null,d:5,o:5,c:2,v:5,cost:4670,note:"Business Critical, 32 GB"},
- {n:"FalkorDB",logo:"../assets/engine-logos/falkordb.png",initials:"FK",cat:"native",shared:"B+",embed:"B",d:4,o:3,c:4,v:3,cost:350,note:"Pro, 8 GB with HA"},
- {n:"Memgraph",logo:"../assets/engine-logos/memgraph.svg",initials:"MG",cat:"native",shared:"B",embed:null,d:4,o:3,c:3,v:3,cost:null,note:"Community free for internal use (BSL); Enterprise on request; Cloud priced by calculator"},
- {n:"Neptune",displayName:"Amazon Neptune",logo:null,initials:"AN",cat:"native",shared:"B",embed:null,d:3,o:5,c:3,v:5,cost:460,note:"Two db.r6g.large, before storage and I/O"},
- {n:"Spanner Graph",displayName:"Google Cloud Spanner Graph",logo:"../assets/engine-logos/google-cloud-spanner.svg",initials:"SG",cat:"over",shared:"B",embed:null,d:3,o:5,c:3,v:5,cost:90,hi:898,note:"Enterprise edition, us-central1, 100 processing units to 1 node; compute only"},
- {n:"PuppyGraph",logo:"../assets/engine-logos/puppygraph.svg",initials:"PG",cat:"over",shared:"B",prov:true,embed:null,d:4,o:3,c:4,v:3,cost:null,note:"Priced on server CPU and memory; quote only"},
- {n:"Fabric graph",displayName:"Microsoft Fabric Graph",logo:"../assets/engine-logos/microsoft-fabric.svg",initials:"FG",cat:"over",shared:"C+",embed:null,d:3,o:3,c:3,v:4,cost:1300,note:"Always on, pay-as-you-go estimate"},
- {n:"MongoDB Atlas",logo:"../assets/engine-logos/mongodb.svg",initials:"MA",cat:"doc",shared:"C",embed:null,d:2,o:5,c:4,v:5,cost:394,note:"M30 cluster"},
- {n:"Cosmos DB Gremlin",displayName:"Azure Cosmos DB for Apache Gremlin",logo:"../assets/engine-logos/azure-cosmos-db.svg",initials:"CD",cat:"doc",shared:"D",embed:null,d:2,o:4,c:2,v:2,cost:null,note:"Throughput-based; depends on load"},
- {n:"Kuzu forks",logo:null,initials:"KF",cat:"embed",shared:null,embed:"B-",d:4,o:1,c:5,v:2,cost:0,note:"Open source; your own compute"},
- {n:"Kuzu 0.11.3",logo:null,initials:"KZ",cat:"embed",shared:null,embed:"C",d:4,o:1,c:5,v:0,cost:0,note:"Archived; pin only for existing use"}
-];
-const CV=c=>`var(--${c})`;
-/* Engine label: a verified local mark when available, otherwise a blank alignment slot, plus the visible product name. Only trusted static data from E reaches this markup. */
-document.addEventListener("error",ev=>{if(ev.target.matches?.(".emark img"))ev.target.remove()},true);
-function engineLabel(e,pill){
-  const name=e.displayName||e.n;
-  const mark=`<span class="emark" data-initials="${e.initials}" aria-hidden="true">${e.logo?`<img src="${e.logo}" alt="" width="60" height="22" loading="lazy" decoding="async">`:""}</span>`;
-  const label=pill?`<span class="pill" style="--c:${CV(e.cat)}">${name}</span>`:`<span class="ename">${name}</span>`;
-  return `<span class="elabel${e.logo?'':' elabel--text'}">${mark}<span class="etext">${label}</span></span>`;
-}
-
-/* ---------- Grade chart ---------- */
-let job="shared";
-function drawGrades(){
-  const rows=E.filter(e=>e[job]);
-  let h='<div class="bars">';
-  for(const e of rows){const w=GV[e[job]]/4*72;
-    h+=`<div class="blab">${engineLabel(e)}</div><div class="track"><div class="bar" style="--c:${CV(e.cat)};width:${Math.max(w,1)}%"></div><span class="val">${e[job]}${e.prov?" (prov.)":""}</span></div>`}
-  document.getElementById("gradeChart").innerHTML=h+'</div><p class="note" style="margin:10px 0 0">Scale runs from F to A.</p>';
-}
-document.getElementById("jobShared").onclick=e=>{job="shared";e.target.setAttribute("aria-pressed",true);document.getElementById("jobEmbed").setAttribute("aria-pressed",false);drawGrades()};
-document.getElementById("jobEmbed").onclick=e=>{job="embed";e.target.setAttribute("aria-pressed",true);document.getElementById("jobShared").setAttribute("aria-pressed",false);drawGrades()};
-drawGrades();
-
-/* ---------- Heat table ---------- */
-(function(){
-  const shade=v=>`color-mix(in srgb, var(--native) ${20+v*16}%, var(--paper))`;
-  let h=`<thead><tr><th>Engine</th><th>Depth</th><th>Ops</th><th>Cost</th><th>Viability</th><th>Grade</th></tr></thead><tbody>`;
-  for(const e of E){h+=`<tr><td>${engineLabel(e,true)}</td>`;
-    for(const k of ["d","o","c","v"]){const v=e[k];h+=`<td class="num" style="background:${shade(v)};color:${v>=3?"#fff":"var(--ink)"}">${v}</td>`}
-    h+=`<td>${e.shared?e.shared+(e.prov?" (prov.)":"")+" shared":""}${e.shared&&e.embed?", ":""}${e.embed?e.embed+" embedded":""}</td></tr>`}
-  document.getElementById("heat").innerHTML=h+"</tbody>";
-})();
-
-/* ---------- Cost chart ---------- */
-(function(){
-  const rows=[...E].sort((a,b)=>((b.hi||b.cost)??-1)-((a.hi||a.cost)??-1)),max=5000,pct=v=>v/max*70;
-  const fmt=v=>"$"+v.toLocaleString("en-GB");
-  let h='<div class="bars">';
-  for(const e of rows){h+=`<div class="blab">${engineLabel(e)}</div><div class="track">`;
-    if(e.cost===null)h+=`<span class="val soft">${e.note}</span>`;
-    else if(e.cost===0)h+=`<span class="val soft">$0 licence, own compute</span>`;
-    else{h+=`<div class="bar" style="--c:${CV(e.cat)};width:${pct(e.cost)}%"></div>`;
-      if(e.hi)h+=`<div class="rng" style="--c:${CV(e.cat)};width:${pct(e.hi-e.cost)}%"></div>`;
-      h+=`<span class="val">${e.hi?fmt(e.cost)+" to "+fmt(e.hi):fmt(e.cost)}</span>`}
-    h+='</div>'}
-  document.getElementById("costChart").innerHTML=h+'</div><p class="note" style="margin:10px 0 0">USD per month. Bars scaled to $5,000.</p>';
-})();
-
-/* ---------- Labs ---------- */
-// Cosine similarity of each node's text to the preset questions (all-MiniLM-L6-v2), precomputed.
-const DENSE={"What is Example Person's role in ACME's renewable energy projects?":{"john":0.565,"solar":0.308,"acme":0.559,"wind":0.28,"renew":0.551,"plan":0.387,"supplier":0.281,"clause":0.01,"api":0.036,"outage":0.042,"custy":0.089,"custz":0.075},"Which customers were affected by Outage 14?":{"john":-0.026,"solar":0.159,"acme":0.136,"wind":0.055,"renew":-0.024,"plan":-0.01,"supplier":0.148,"clause":0.324,"api":0.104,"outage":0.578,"custy":0.327,"custz":0.341},"Which clause governs the supplier of Wind Project Beta?":{"john":0.139,"solar":0.334,"acme":0.229,"wind":0.613,"renew":0.317,"plan":0.309,"supplier":0.458,"clause":0.207,"api":0.047,"outage":0.115,"custy":0.115,"custz":0.127},"What does the 2025 strategic plan cover?":{"john":0.087,"solar":0.251,"acme":0.189,"wind":0.357,"renew":0.431,"plan":0.718,"supplier":0.123,"clause":0.114,"api":-0.019,"outage":-0.01,"custy":0.145,"custz":0.162}};
-function labA(G, question, hops){
-  // Hybrid text retrieval: BM25 over each node's text, fused with dense similarity by
-  // reciprocal rank fusion (1 / (60 + rank) from each ranking). DENSE holds similarities from
-  // all-MiniLM-L6-v2 for the preset questions; for any other question only BM25 is used.
-  const stop=new Set(["what","is","the","in","of","and","a","s","which","by","does","were","was","to"]);
-  const tok=s=>(s.toLowerCase().replace(/'s\b/g,"").match(/[a-z0-9]+/g)||[]).filter(w=>!stop.has(w));
-  const docs=G.nodes.map(n=>tok(n.text)),q=tok(question),N=docs.length;
-  const avg=docs.reduce((s,d)=>s+d.length,0)/N,df=w=>docs.filter(d=>d.includes(w)).length;
-  const bm25=docs.map(d=>q.reduce((s,w)=>{const tf=d.filter(x=>x===w).length;if(!tf)return s;
-    const idf=Math.log(1+(N-df(w)+0.5)/(df(w)+0.5));return s+idf*tf*2.5/(tf+1.5*(0.25+0.75*d.length/avg))},0));
-  const dense=DENSE[question]||null;
-  const ranks=sc=>{const r={};sc.map((s,i)=>[s,i]).filter(x=>x[0]>0).sort((a,b)=>b[0]-a[0]).forEach(([,i],k)=>r[i]=k+1);return r};
-  const rb=ranks(bm25),rd=dense?ranks(G.nodes.map(n=>dense[n.id]||0)):{};
-  const text=G.nodes.map((n,i)=>({n,s:(rb[i]?1/(60+rb[i]):0)+(rd[i]?1/(60+rd[i]):0)})).filter(x=>x.s>0)
-    .sort((a,b)=>b.s-a.s).slice(0,5).map(x=>`${x.n.label}: ${x.n.text}`);
-
-  // Graph retrieval: start at entities named in the question, follow edges
-  const seeds=G.nodes.filter(n=>question.toLowerCase().includes(n.label.toLowerCase())).map(n=>n.id);
-  const paths=[];const seen=new Set(seeds);
-  let frontier=seeds.map(id=>({id,prev:null,path:G.node(id).label}));
-  for(let h=0;h<hops;h++){const next=[];
-    for(const f of frontier)for(const nb of G.neighbours(f.id)){
-      if(nb.id===f.prev)continue;
-      const step=nb.dir==="out"?` -${nb.rel}-> `:` <-${nb.rel}- `;
-      const p=f.path+step+G.node(nb.id).label;paths.push(p);
-      if(!seen.has(nb.id)){seen.add(nb.id);next.push({id:nb.id,prev:f.id,path:p})}}
-    frontier=next}
-  return {seeds:seeds.map(id=>G.node(id).label),text,hybrid:!!dense,paths:[...new Set(paths)]};
-}
-function labB(G, seed, budget){
-  // Personalised PageRank from the seed node, then pack text into the budget
-  const ids=G.nodes.map(n=>n.id),damp=0.85;let r=Object.fromEntries(ids.map(i=>[i,i===seed?1:0]));
-  for(let it=0;it<40;it++){const nr=Object.fromEntries(ids.map(i=>[i,i===seed?1-damp:0]));
-    for(const i of ids){const nb=G.neighbours(i);for(const n of nb)nr[n.id]+=damp*r[i]/nb.length}r=nr}
-  const ranked=ids.map(i=>({node:G.node(i),score:r[i],tokens:G.tokens(G.node(i))})).sort((a,b)=>b.score-a.score);
-  let used=0;for(const x of ranked){x.included=used+x.tokens<=budget;if(x.included)used+=x.tokens}
-  return {ranked,used,budget};
-}
-function labC(thresholds, overconfidence, cases=3000, seed=42){
-  // Seeded random numbers so runs are repeatable
-  let s=seed;const rnd=()=>{s|=0;s=s+0x6D2B79F5|0;let t=Math.imul(s^s>>>15,1|s);t=t+Math.imul(t^t>>>7,61|t)^t;return((t^t>>>14)>>>0)/4294967296};
-  const actions=[{name:"Approve payment",errorCost:50},{name:"Route ticket",errorCost:2},{name:"Flag for review",errorCost:5}];
-  const escalationCost=1;
-  const stats=actions.map(a=>({...a,n:0,auto:0,wrong:0,cost:0}));let autoAllCost=0;
-  for(let i=0;i<cases;i++){
-    const k=Math.floor(rnd()*3),st=stats[k];st.n++;
-    const stated=0.5+0.5*rnd();                         // what the model says
-    const real=stated-overconfidence*(stated-0.5);        // what is actually true
-    const correct=rnd()<real;
-    if(!correct)autoAllCost+=st.errorCost;
-    if(stated>=thresholds[k]){st.auto++;if(!correct){st.wrong++;st.cost+=st.errorCost}}
-    else st.cost+=escalationCost;}
-  const total=stats.reduce((t,x)=>t+x.cost,0);
-  return {stats,total,escalateAll:cases*escalationCost,autoAll:autoAllCost};
-}
-
-const DEFAULT={A:labA.toString(),B:labB.toString(),C:labC.toString()};
-const FN={A:labA,B:labB,C:labC};
-["A","B","C"].forEach(k=>document.getElementById(k.toLowerCase()+"Code").value=DEFAULT[k]);
-
-const esc=s=>String(s).replace(/[&<>]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;"}[c]));
-function renderA(r){
-  document.getElementById("aOut").innerHTML=
-   `<strong>${r.hybrid?"Hybrid text retrieval (BM25 and dense)":"BM25 text retrieval"}</strong> returned its top ${r.text.length} fragment${r.text.length===1?"":"s"}:`+r.text.map(x=>`<span class="path">${esc(x)}</span>`).join("")+
-   `<p class="note" style="margin-top:8px">These are the fragments that look most like the question. None states a relationship that spans two facts, such as who leads a project another company owns; that lives in the edges, not in any one text.</p>`+
-   `<strong>Graph retrieval</strong> from ${esc(r.seeds.join(", ")||"no named entities")} found ${r.paths.length} paths:`+r.paths.map(x=>`<span class="path">${esc(x)}</span>`).join("");
-}
-function renderB(r){
-  let h=`<p><strong>${r.used}</strong> of ${r.budget} tokens used.</p><div class="scroll"><table><tr><th>Rank</th><th>Node</th><th>Score</th><th>Tokens</th><th>In context</th></tr>`;
-  r.ranked.forEach((x,i)=>h+=`<tr><td>${i+1}</td><td>${esc(x.node.label)}</td><td>${x.score.toFixed(3)}</td><td>${x.tokens}</td><td>${x.included?"Yes":"No"}</td></tr>`);
-  document.getElementById("bOut").innerHTML=h+"</table></div>";
-}
-function renderC(r){
-  let h=`<div class="scroll"><table><tr><th>Action</th><th>Cost of error</th><th>Decided automatically</th><th>Error rate when automatic</th><th>Cost</th></tr>`;
-  for(const s of r.stats)h+=`<tr><td>${s.name}</td><td>${s.errorCost}</td><td>${(s.auto/s.n*100).toFixed(0)}%</td><td>${s.auto?(s.wrong/s.auto*100).toFixed(1):"0.0"}%</td><td>${s.cost.toLocaleString("en-GB")}</td></tr>`;
-  h+=`</table></div><p style="margin-top:8px">Total cost with thresholds: <strong>${r.total.toLocaleString("en-GB")}</strong>. Review everything: ${r.escalateAll.toLocaleString("en-GB")}. Decide everything automatically: ${r.autoAll.toLocaleString("en-GB")}.</p>`;
-  document.getElementById("cOut").innerHTML=h;
-}
-function params(k){
-  if(k==="A")return [G,document.getElementById("aQ").value,Math.min(4,Math.max(1,+document.getElementById("aK").value||2))];
-  if(k==="B")return [G,document.getElementById("bSeed").value,+document.getElementById("bBudget").value];
-  return [[+cT0.value,+cT1.value,+cT2.value],+cOver.value];
-}
-const RENDER={A:renderA,B:renderB,C:renderC};
-function run(k,fn){const out=document.getElementById(k.toLowerCase()+"Out");
-  try{RENDER[k](fn(...params(k)))}catch(e){out.innerHTML=`<span class="err">Your code threw an error: ${esc(e.message)}. Fix it and run again, or reset the code.</span>`}}
-document.querySelectorAll("[data-run]").forEach(b=>b.onclick=()=>run(b.dataset.run,FN[b.dataset.run]));
-document.querySelectorAll("[data-reset]").forEach(b=>b.onclick=()=>{const k=b.dataset.reset;document.getElementById(k.toLowerCase()+"Code").value=DEFAULT[k];run(k,FN[k])});
-document.querySelectorAll("[data-runedit]").forEach(b=>b.onclick=()=>{const k=b.dataset.runedit,out=document.getElementById(k.toLowerCase()+"Out");
-  let fn;try{fn=new Function("return ("+document.getElementById(k.toLowerCase()+"Code").value+")")()}
-  catch(e){out.innerHTML=e instanceof EvalError?`<span class="err">This page's security settings block running edited code. Copy the code into your browser console or a Node.js file to experiment.</span>`:`<span class="err">Your code has a syntax error: ${esc(e.message)}</span>`;return}
-  run(k,fn)});
-
-const bSeed=document.getElementById("bSeed");G.nodes.forEach(n=>bSeed.add(new Option(n.label,n.id,n.id==="wind",n.id==="wind")));
-const bBudget=document.getElementById("bBudget");bBudget.oninput=()=>{document.getElementById("bBudgetV").textContent=bBudget.value;run("B",FN.B)};
-bSeed.onchange=()=>run("B",FN.B);
-const cOver=document.getElementById("cOver"),cT0=document.getElementById("cT0"),cT1=document.getElementById("cT1"),cT2=document.getElementById("cT2");
-cOver.oninput=()=>{document.getElementById("cOverV").textContent=(+cOver.value).toFixed(2);run("C",FN.C)};
-[cT0,cT1,cT2].forEach(i=>i.onchange=()=>run("C",FN.C));
-run("A",FN.A);run("B",FN.B);run("C",FN.C);
-
-/* ---------- Snippets ---------- */
-const SNIPS=[
- {t:"Cypher",who:"Neo4j, FalkorDB, Memgraph, Kuzu, Neptune (openCypher), PuppyGraph",c:`MATCH (p:Person {name: 'Example Person'})-[:LEADS]->(proj:Project)<-[:OWNS]-(c:Company)
-RETURN p.name, proj.name, c.name;`},
- {t:"Gremlin",who:"Neptune, Cosmos DB, PuppyGraph",c:`g.V().has('Person', 'name', 'Example Person')
-  .out('LEADS').as('project')
-  .in('OWNS').as('owner')
-  .select('project', 'owner').by('name')`},
- {t:"GQL",who:"Spanner Graph needs the GRAPH line. Fabric graph runs against the graph you have open.",c:`GRAPH ProjectGraph
-MATCH (p:Person {name: 'Example Person'})-[:LEADS]->(proj:Project)<-[:OWNS]-(c:Company)
-RETURN p.name AS person, proj.name AS project, c.name AS owner`},
- {t:"MongoDB",who:"MongoDB Atlas. Keep maxDepth low; $graphLookup has a 100 MB memory limit per stage.",c:`db.entities.aggregate([
-  { $match: { name: "Example Person" } },
-  { $graphLookup: {
-      from: "entities",
-      startWith: "$links",
-      connectFromField: "links",
-      connectToField: "_id",
-      maxDepth: 1,
-      depthField: "hops",
-      as: "network"
-  } }
-])`},
- {t:"Kuzu (Python)",who:"Embedded. Runs in memory with no server. Works the same on the community forks.",c:`import kuzu
-
-db = kuzu.Database(":memory:")
-conn = kuzu.Connection(db)
-
-conn.execute("CREATE NODE TABLE Person(name STRING PRIMARY KEY)")
-conn.execute("CREATE NODE TABLE Project(name STRING PRIMARY KEY)")
-conn.execute("CREATE REL TABLE LEADS(FROM Person TO Project)")
-conn.execute("CREATE (:Person {name: 'Example Person'})")
-conn.execute("CREATE (:Project {name: 'Solar Farm Alpha'})")
-conn.execute("""
-  MATCH (p:Person {name: 'Example Person'}), (x:Project {name: 'Solar Farm Alpha'})
-  CREATE (p)-[:LEADS]->(x)
-""")
-
-r = conn.execute("MATCH (p:Person)-[:LEADS]->(x:Project) RETURN p.name, x.name")
-while r.has_next():
-    print(r.get_next())`}
-];
-const tabs=document.getElementById("snipTabs");let cur=0;
-function showSnip(i){cur=i;document.getElementById("snipCode").textContent=SNIPS[i].c;document.getElementById("snipNote").textContent=SNIPS[i].who;
-  [...tabs.children].forEach((b,j)=>{b.setAttribute("aria-pressed",j===i);b.setAttribute("aria-selected",j===i)})}
-SNIPS.forEach((s,i)=>{const b=document.createElement("button");b.textContent=s.t;b.setAttribute("role","tab");b.onclick=()=>showSnip(i);tabs.appendChild(b)});
-showSnip(0);
-async function copyText(text,btn){try{await navigator.clipboard.writeText(text);btn.textContent="Copied"}catch(e){btn.textContent="Select and copy"}setTimeout(()=>btn.textContent="Copy",1600)}
-document.getElementById("snipCopy").onclick=e=>copyText(SNIPS[cur].c,e.target);
-
-/* ---------- Local runs ---------- */
-const RUNS=[
- {n:"Neo4j",cat:"native",c:"docker run -p 7474:7474 -p 7687:7687 -e NEO4J_AUTH=neo4j/change-me neo4j:5",note:"Browser UI on localhost:7474."},
- {n:"FalkorDB",cat:"native",c:"docker run -p 6379:6379 -p 3000:3000 -it --rm falkordb/falkordb:latest",note:"Browser UI on localhost:3000."},
- {n:"Memgraph",cat:"native",c:"docker run -p 7687:7687 -p 7444:7444 --name memgraph memgraph/memgraph-mage",note:"Includes the MAGE algorithms. The Memgraph Lab UI is a separate image: docker run -d -p 3000:3000 --name lab memgraph/lab. On Mac and Windows add -e QUICK_CONNECT_MG_HOST=host.docker.internal."},
- {n:"MongoDB",cat:"doc",c:"docker run -p 27017:27017 mongo:8",note:"Local server; Atlas Vector Search needs Atlas or the Atlas CLI local deployment."},
- {n:"Kuzu",cat:"embed",c:"pip install kuzu==0.11.3",note:"Final upstream release. Use a community fork for anything you will keep."},
- {n:"PuppyGraph",cat:"over",c:"docker run -p 8081:8081 -p 8182:8182 -p 7687:7687 -d --name puppy --rm puppygraph/puppygraph:stable",note:"Free Developer edition, single node. Check docs.puppygraph.com for the current image tag."}
-];
-document.getElementById("runList").innerHTML=RUNS.map((r,i)=>`<div><span class="pill" style="--c:${CV(r.cat)}">${r.n}</span><div class="snip" style="margin-top:6px"><pre><code>${esc(r.c)}</code></pre><button class="copy" data-copyrun="${i}">Copy</button></div><p class="note" style="margin-top:4px">${r.note}</p></div>`).join("");
-document.querySelectorAll("[data-copyrun]").forEach(b=>b.onclick=()=>copyText(RUNS[+b.dataset.copyrun].c,b));
-</script>
+<script src="../js/estate-graph.js"></script>
+<script src="../js/labs.js"></script>
 </body>
 </html>
