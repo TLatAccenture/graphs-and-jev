@@ -1,5 +1,6 @@
 use std::fs;
 use std::path::PathBuf;
+use std::process::Command;
 
 use axum::body::Body;
 use axum::http::{Request, StatusCode};
@@ -382,6 +383,303 @@ fn every_page_references_local_favicon() {
         assert!(
             page(rel).contains(r#"<link rel="icon" href="/favicon.svg" type="image/svg+xml">"#),
             "{rel}: local favicon"
+        );
+    }
+}
+
+#[test]
+fn homepage_leads_with_migration_as_an_ai_accelerator() {
+    let html = page("index.html");
+    assert!(html.contains("Turn data migration into an <em>AI accelerator.</em>"));
+    assert!(html.contains("MCP reaches fragmented source systems"));
+    assert!(html.contains("graphs connect the facts"));
+    assert!(html.contains("decision models bound routine decisions"));
+    assert!(html.contains("reasoning on ambiguity, synthesis, planning and novel work"));
+    for stage in ["Migration", "Modernisation", "Activation", "Acceleration"] {
+        assert!(
+            html.contains(&format!(">{stage}<")),
+            "missing stage: {stage}"
+        );
+    }
+}
+
+#[test]
+fn homepage_keeps_the_approved_value_story_contracts() {
+    let html = page("index.html");
+    assert!(html.contains("Spend reasoning where it creates value."));
+    assert!(html.contains("Illustrative operating model—not a benchmark."));
+    for outcome in ["Answer", "Clarify", "Reject", "Review", "No data"] {
+        assert!(
+            html.contains(&format!(">{outcome}<")),
+            "missing outcome: {outcome}"
+        );
+    }
+    for stage in [
+        "MCP entry",
+        "Evidence",
+        "Relationship",
+        "Decision",
+        "Reasoning",
+        "Assurance",
+    ] {
+        assert!(html.contains(stage), "missing agent-spine stage: {stage}");
+    }
+    for measure in [
+        "useful work per reasoning token",
+        "decision accuracy and calibration",
+        "unsupported-action rate",
+        "escalation precision",
+        "human-review time",
+        "route latency",
+        "cost of incorrect automation",
+    ] {
+        assert!(html.contains(measure), "missing future measure: {measure}");
+    }
+}
+
+#[test]
+fn homepage_exposes_one_accessible_eight_beat_rail_and_exact_model() {
+    let html = page("index.html");
+    assert_eq!(
+        html.matches("data-beat-target=").count(),
+        8,
+        "single 1–8 rail"
+    );
+    assert_eq!(
+        html.matches("class=\"vs-progress\"").count(),
+        1,
+        "one progress rail"
+    );
+    assert!(html.contains("id=\"previousBeat\"") && html.contains("id=\"nextBeat\""));
+    assert!(
+        html.contains("id=\"expandBeats\"")
+            && html.contains("id=\"beatStatus\" aria-live=\"polite\"")
+    );
+    assert!(
+        html.contains("event.key === \"ArrowRight\"")
+            && html.contains("event.key === \"ArrowLeft\"")
+    );
+    assert!(
+        html.contains("id=\"motionToggle\"")
+            && html.contains("Preview motion")
+            && html.contains("Respect reduced motion")
+    );
+    assert!(html.contains("residual = supported - allocated.reduce"));
+}
+
+#[test]
+fn homepage_removes_retired_copy_footer_and_remote_runtime_assets() {
+    let html = page("index.html");
+    let lower = html.to_lowercase();
+    for forbidden in [
+        "the palindrome",
+        "thepalindrome.org",
+        "<footer",
+        "cost savings",
+        "save money",
+        "cheaper by",
+        ">escalate<",
+        "outcome:\"escalate\"",
+    ] {
+        assert!(
+            !lower.contains(forbidden),
+            "retired or unsupported copy: {forbidden}"
+        );
+    }
+    for tag in tags(&html, "script").into_iter().chain(tags(&html, "link")) {
+        assert!(
+            !tag.contains("src=\"http") && !tag.contains("href=\"http"),
+            "remote runtime asset: {tag}"
+        );
+    }
+}
+
+#[test]
+fn homepage_preserves_demo_use_cases_and_complete_technical_guide() {
+    let html = page("index.html");
+    for contract in [
+        "id=\"example\"",
+        "href=\"/dcceew/\"",
+        "href=\"/parkinsons/\"",
+        "href=\"/little-bunnies/\"",
+        "id=\"spanner-graph-spotlight\"",
+        "id=\"labA\"",
+        "id=\"labB\"",
+        "id=\"labC\"",
+        "id=\"snipTabs\"",
+        "id=\"runList\"",
+        "Sources and caveats",
+        "const E=[",
+        "const SNIPS=[",
+        "const RUNS=[",
+    ] {
+        assert!(
+            html.contains(contract),
+            "missing preserved contract: {contract}"
+        );
+    }
+}
+
+#[test]
+fn review_copy_places_products_and_qualifies_claims() {
+    let html = page("index.html");
+    assert!(html.contains(">The case in one minute<"));
+    assert_eq!(html.matches("Traceable for supported flows").count(), 2);
+    assert!(html.contains(
+        "Every supported outcome returns the relevant path and available sources behind it."
+    ));
+    assert!(html.contains("Index candidate"));
+    assert!(html.contains("Analytical data"));
+    assert!(html.contains("Relationship data"));
+    assert!(html.contains("Archive · redact · review"));
+    let scene = html.split("class=\"migration-scene\"").nth(1).unwrap();
+    let modernisation = scene.split("migration-stage--sift").nth(1).unwrap();
+    let before_landing = modernisation
+        .split("migration-stage--landing")
+        .next()
+        .unwrap();
+    assert!(!before_landing.contains("BigQuery") && !before_landing.contains("Spanner Graph"));
+    assert!(html.contains("Little Bunnies: two hops in this sample"));
+    assert!(html.contains("In this sample small-world graph"));
+}
+
+#[test]
+fn story_accessibility_contracts_do_not_hijack_controls() {
+    let html = page("index.html");
+    assert!(html.contains("if (event.target !== story) return;"));
+    assert!(!html.contains("assertWorkloadModel"));
+    assert!(!html.contains("console.assert"));
+    for id in ["totalUnits", "boundedShare", "evidenceShare"] {
+        assert!(
+            html.contains(&format!("id=\"{id}\" type=\"range\" disabled")),
+            "range disabled without enhancement: {id}"
+        );
+        assert!(
+            html.contains(&format!("id=\"{id}\" type=\"range\" disabled"))
+                && html.contains(&format!("aria-describedby=\"{id}Value")),
+            "descriptive range contract: {id}"
+        );
+    }
+    assert!(html.contains("class=\"vs-story-controls\" hidden"));
+    assert!(html.contains("input.disabled = false"));
+    assert!(html.contains("100 work units route to 32 Answer"));
+}
+
+#[test]
+fn shipped_workload_function_is_exact_for_all_5491_reachable_inputs() {
+    let html = page("index.html");
+    let start = html
+        .find("const calculateWorkload =")
+        .expect("shipped calculateWorkload function");
+    let end = html[start..]
+        .find("\n  const updateModel")
+        .map(|offset| start + offset)
+        .expect("end of shipped calculateWorkload function");
+    let function = &html[start..end];
+
+    let range = |id: &str| {
+        let marker = format!("id=\"{id}\" type=\"range\"");
+        let start = html.find(&marker).unwrap_or_else(|| panic!("range {id}"));
+        let tag = &html[start..start + html[start..].find('>').expect("range tag")];
+        let value = |name: &str| {
+            let marker = format!("{name}=\"");
+            let start = tag.find(&marker).unwrap_or_else(|| panic!("{id} {name}")) + marker.len();
+            tag[start..start + tag[start..].find('"').expect("attribute end")]
+                .parse::<i32>()
+                .unwrap()
+        };
+        (value("min"), value("max"), value("step"))
+    };
+    let total = range("totalUnits");
+    let bounded = range("boundedShare");
+    let evidence = range("evidenceShare");
+    let script = format!(
+        r#"{function}
+let combinations = 0;
+for (let total = {t0}; total <= {t1}; total += {ts}) {{
+  for (let bounded = {b0}; bounded <= {b1}; bounded += {bs}) {{
+    for (let evidence = {e0}; evidence <= {e1}; evidence += {es}) {{
+      const values = Object.values(calculateWorkload(total, bounded, evidence));
+      if (!values.every(value => value >= 0) || values.reduce((sum, value) => sum + value, 0) !== total) process.exit(2);
+      combinations += 1;
+    }}
+  }}
+}}
+if (combinations !== 5491) process.exit(3);
+if (JSON.stringify(calculateWorkload(100, 60, 75)) !== JSON.stringify({{answer:32, clarify:5, reject:4, review:55, noData:4}})) process.exit(4);
+console.log(combinations);"#,
+        t0 = total.0,
+        t1 = total.1,
+        ts = total.2,
+        b0 = bounded.0,
+        b1 = bounded.1,
+        bs = bounded.2,
+        e0 = evidence.0,
+        e1 = evidence.1,
+        es = evidence.2,
+    );
+    let output = Command::new("node")
+        .arg("-e")
+        .arg(script)
+        .output()
+        .expect("installed node executes shipped workload function");
+    assert!(
+        output.status.success(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    assert_eq!(String::from_utf8_lossy(&output.stdout).trim(), "5491");
+}
+
+#[test]
+fn migration_and_value_story_css_are_scoped_and_consolidated() {
+    let css = page("guide.css");
+    assert!(css.contains(".migration-story .migration-scene"));
+    for selector in [
+        ".migration-scene{",
+        ".migration-stage{",
+        ".source-pool{",
+        ".sift-fan{",
+        ".activate-rail{",
+        ".google-plane{",
+    ] {
+        assert!(
+            !css.contains(&format!("\n{selector}")),
+            "unscoped selector: {selector}"
+        );
+    }
+    assert_eq!(
+        css.matches(".vs-progress button{").count(),
+        1,
+        "one progress rule"
+    );
+    assert_eq!(
+        css.matches(".vs-stage[data-beat=\"5\"] .vs-queue").count(),
+        2,
+        "one base and one mobile operating-mark queue rule"
+    );
+    assert!(css.contains(".vs-story.vs-enhanced .vs-story-controls{display:flex"));
+    assert!(css.contains("min-width:44px") && css.contains("min-height:44px"));
+    assert!(css.contains("grid-template-columns:repeat(4,44px)"));
+    assert!(css.contains("grid-template-rows:repeat(2,44px)"));
+}
+
+#[test]
+fn value_story_css_has_type_floors_reduced_motion_and_320px_guards() {
+    let css = page("guide.css");
+    for contract in [
+        ".value-story",
+        ".migration-story",
+        "min-block-size:clamp(90svh,96vh,100svh)",
+        ".vs-story.reduce-motion",
+        ".vs-story.force-motion",
+        "@media (max-width:320px)",
+        "overflow-wrap:anywhere",
+        "font-size:max(16px",
+    ] {
+        assert!(
+            css.contains(contract),
+            "missing responsive contract: {contract}"
         );
     }
 }

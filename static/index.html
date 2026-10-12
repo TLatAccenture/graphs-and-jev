@@ -4,11 +4,8 @@
 <meta charset="utf-8">
 <link rel="icon" href="/favicon.svg" type="image/svg+xml">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Graphs + Jev: connected evidence, bounded decisions</title>
-<meta name="description" content="How graphs keep connected evidence and Jev decides whether an agent may answer, ask, refuse or escalate.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<title>Graphs + Jev: turn migration into an AI accelerator</title>
+<meta name="description" content="How source-side sifting, graphs and bounded decisions turn data migration into an AI accelerator.">
 <link rel="stylesheet" href="/guide.css">
 </head>
 <body>
@@ -30,24 +27,42 @@
   <div class="wrap">
     <div>
       <span class="eyebrow">Graphs + Jev</span>
-      <h1 id="hero-title">Turn connected evidence into <em>bounded decisions.</em></h1>
-      <p class="lede">Graphs keep the relationships between facts. Jev decides, from that evidence, whether an agent may answer, must ask, must refuse, or must hand the question to a person.</p>
+      <h1 id="hero-title">Turn data migration into an <em>AI accelerator.</em></h1>
+      <p class="lede">MCP reaches fragmented source systems. Source-side sifting reduces blind movement. Google Cloud governs what lands. Then graphs connect the facts, decision models bound routine decisions, and Gemini can focus reasoning on ambiguity, synthesis, planning and novel work.</p>
       <div class="actions">
-        <a class="btn" href="#how-it-works">See how it works</a>
-        <a class="btn btn--ghost" href="#use-cases">Explore a use case</a>
+        <a class="btn" href="#how-it-works">See the migration path</a>
+        <a class="btn btn--ghost" href="#example">Try one decision</a>
       </div>
     </div>
     <figure class="hero-art" style="margin:0">
-      <img src="/assets/evidence-path.svg" width="480" height="540" alt="A question passes through connected facts. A two-hop path from Example Person to ACME is highlighted, Jev chooses Answer, and the answer returns with its path and sources.">
+      <img src="/assets/evidence-path.svg" width="480" height="540" alt="Connected evidence flows into a bounded decision, preserving the path and sources for review.">
     </figure>
+  </div>
+</section>
+
+<section id="migration-value-story" class="band band--paper migration-story" aria-labelledby="migration-story-title">
+  <div class="wrap">
+    <header class="section-head">
+      <span class="eyebrow">Migration → Modernisation → Activation → Acceleration</span>
+      <h2 id="migration-story-title">Move less blindly. Activate what connects. Accelerate what merits reasoning.</h2>
+      <p class="migration-core"><strong>MCP reaches the source estate. Decision models sift it before movement. Cloud Storage provides governed landing. BigQuery and Spanner Graph activate connected evidence. Gemini earns its place at synthesis.</strong></p>
+      <p>Different sifts want different engines. A source-side deterministic sift handles narrow pre-migration triage without egress; Sensitive Data Protection and Dataplex complement it after governed landing. This placement is architectural, not a benchmark or a claim that one engine replaces another.</p>
+    </header>
+    <div class="migration-scene" role="img" aria-label="Cloud-neutral sources connect through MCP to a source-side sift, fan into index candidate, analytical data, relationship data, or archive-redact-review, land in governed Cloud Storage, activate through BigQuery, Spanner Graph and Jev, then accelerate with Vertex AI Gemini inside Google Cloud.">
+      <section class="migration-stage migration-stage--sources"><b><span>Migration</span></b><h3>Cloud-neutral source estate</h3><div class="source-pool"><span>Object storage</span><span>Databases</span><span>APIs</span><span>File shares</span></div><i class="connector connector--down"></i><strong class="mcp-node">MCP entry</strong></section>
+      <section class="migration-stage migration-stage--sift"><b><span>Modernisation</span></b><h3>Source-side sift before movement</h3><p>Rules classify shape, sensitivity and destination without sending every object to a general model.</p><div class="sift-fan"><span>Index candidate</span><span>Analytical data</span><span>Relationship data</span><span>Archive · redact · review</span></div></section>
+      <section class="migration-stage migration-stage--landing"><b>Governed landing</b><h3>Cloud Storage</h3><p>Sensitive Data Protection + Dataplex complement the sift <strong>after landing</strong> with managed discovery, classification and governance.</p></section>
+      <section class="migration-stage migration-stage--activate"><b><span>Activation</span></b><h3>Connected evidence becomes bounded action</h3><div class="activate-rail"><span>BigQuery<small>facts</small></span><span>Spanner Graph<small>relationships</small></span><span class="jev-node">Jev<small>decisions</small></span></div></section>
+      <section class="migration-stage migration-stage--accelerate"><b><span>Acceleration</span></b><h3>Google Cloud</h3><div class="google-plane"><span>Vertex AI</span><strong>Gemini</strong><small>Filtered, cited evidence for exceptions, synthesis, planning and novel problems</small></div></section>
+    </div>
   </div>
 </section>
 
 <section id="how-it-works" class="band band--paper" aria-labelledby="how-title">
   <div class="wrap">
     <div class="section-head">
-      <span class="eyebrow">The concept in 60 seconds</span>
-      <h2 id="how-title">Three steps from a question to a decision you can check.</h2>
+      <span class="eyebrow">The case in one minute</span>
+      <h2 id="how-title">Connect the facts. Bound the decision. Show the evidence.</h2>
       <p>Before any of this, the evidence has to be within reach. RAG retrieves indexed documents; MCP connects an AI application to governed tools and live systems. Both put material in front of the model, but neither shows how the pieces relate or whether they are enough to answer. That is where graphs and Jev come in. <a href="/dcceew/#reach">See all four layers in the DCCEEW story</a>.</p>
     </div>
     <ol class="steps">
@@ -64,7 +79,7 @@
       <li>
         <h3>Show the reasoning</h3>
         <p class="q">Why should anyone trust the result?</p>
-        <p>Every outcome comes back with the short path and the sources behind it, so a reviewer can see exactly which facts led to the decision.</p>
+        <p><strong>Traceable for supported flows.</strong> Every supported outcome returns the relevant path and available sources behind it.</p>
       </li>
     </ol>
     <dl class="defs" style="margin-top:clamp(40px,6vw,72px)">
@@ -80,8 +95,8 @@
 <section id="example" class="band" aria-labelledby="example-title">
   <div class="wrap">
     <div class="section-head">
-      <span class="eyebrow">Guided example</span>
-      <h2 id="example-title">Follow one question through the graph.</h2>
+      <span class="eyebrow">One decision, end to end</span>
+      <h2 id="example-title">See evidence become action.</h2>
       <p>Choose a question. The graph highlights the facts that connect it, and the result shows what Jev decides and why. This runs in your browser on a twelve-fact sample graph; no model or database is called.</p>
     </div>
     <div class="guided">
@@ -120,7 +135,7 @@
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">Use cases</span>
-      <h2 id="uses-title">Three demonstrations of the same pattern.</h2>
+      <h2 id="uses-title">Three applications. One governed pattern.</h2>
       <p>Each one asks a real question, builds or reads a graph, and lets Jev decide what to return. DCCEEW uses deterministic Rust catalogue rules, Parkinson’s retrieves live public evidence, and Little Bunnies explains why short graph neighbourhoods are enough.</p>
     </div>
 
@@ -157,10 +172,10 @@
       <div class="feature-art"><img src="/assets/small-world.svg" width="640" height="400" alt=""></div>
       <div>
         <span class="label">Small-world context</span>
-        <h3 id="uc-sw">Little Bunnies: why two hops are usually enough</h3>
+        <h3 id="uc-sw">Little Bunnies: two hops in this sample</h3>
         <dl class="facts">
           <div><dt>Business question</dt><dd>How much connected context does an agent need before it can decide?</dd></div>
-          <div><dt>What the graph adds</dt><dd>Short paths. In a small-world network, a few hops reach most of the graph.</dd></div>
+          <div><dt>What the graph adds</dt><dd>In this sample small-world graph, two hops expose enough connected context for the demonstration. Other graphs need their own measured bound.</dd></div>
           <div><dt>What Jev controls</dt><dd>Keeps the decision state inside a fixed token budget, so context stays bounded.</dd></div>
         </dl>
         <a class="btn" href="/little-bunnies/">Open Little Bunnies</a>
@@ -169,15 +184,254 @@
   </div>
 </section>
 
+<section id="value-story" class="band value-story" aria-labelledby="value-story-title">
+  <div class="wrap">
+    <header class="vs-intro">
+      <span class="eyebrow">Decision value story</span>
+      <h2 id="value-story-title">Spend reasoning where it creates value.</h2>
+      <p class="vs-claim">Handle bounded, high-volume judgments with explicit rules and connected evidence, so agents can reserve open-ended reasoning for ambiguity, synthesis, planning and novel work.</p>
+      <p class="annotation"><strong>Illustrative operating model—not a benchmark.</strong> Filtering reduces reasoning work only when the workflow avoids or reduces general-model calls.</p>
+    </header>
+
+    <div class="vs-story" id="reasoningStory" tabindex="0" aria-label="Eight-beat value story. Use the left and right arrow keys to step through it.">
+      <div class="vs-stage" aria-label="Agent work queue becomes a routed decision trace">
+        <div class="vs-stage-head"><span>Agent work queue</span><span id="beatCounter">Beat 1 of 8</span></div>
+        <ol class="vs-progress" aria-label="Value story progress">
+          <li aria-current="step"><button type="button" data-beat-target="0" aria-label="Go to beat 1: Start with familiar work">1</button></li>
+          <li><button type="button" data-beat-target="1" aria-label="Go to beat 2: Separate the judgment shapes">2</button></li>
+          <li><button type="button" data-beat-target="2" aria-label="Go to beat 3: Connect the evidence">3</button></li>
+          <li><button type="button" data-beat-target="3" aria-label="Go to beat 4: Make a bounded decision">4</button></li>
+          <li><button type="button" data-beat-target="4" aria-label="Go to beat 5: Route reasoning">5</button></li>
+          <li><button type="button" data-beat-target="5" aria-label="Go to beat 6: Reuse work as operating marks">6</button></li>
+          <li><button type="button" data-beat-target="6" aria-label="Go to beat 7: Translate architecture into outcomes">7</button></li>
+          <li><button type="button" data-beat-target="7" aria-label="Go to beat 8: Measure useful work">8</button></li>
+        </ol>
+        <div class="vs-lanes" aria-hidden="true"><span>IN</span><span>BOUNDED</span><span>REASONING</span></div>
+        <div class="vs-queue" id="workQueue">
+          <div class="vs-ticket" data-kind="bounded"><b>W-104</b><span>Validate account state</span><small>bounded judgment</small></div>
+          <div class="vs-ticket" data-kind="bounded"><b>W-105</b><span>Check policy eligibility</span><small>bounded judgment</small></div>
+          <div class="vs-ticket" data-kind="uncertain"><b>W-106</b><span>Resolve conflicting evidence</span><small>uncertain case</small></div>
+          <div class="vs-ticket" data-kind="reasoning"><b>W-107</b><span>Plan a novel response</span><small>open-ended reasoning</small></div>
+          <div class="vs-ticket" data-kind="bounded"><b>W-108</b><span>Confirm source coverage</span><small>bounded judgment</small></div>
+        </div>
+        <div class="vs-path" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+        <div class="vs-machine" aria-hidden="true">
+          <span class="vs-evidence">Connected evidence</span>
+          <span class="vs-decision">Jev decision plane</span>
+          <span class="vs-reasoning">Agent reasoning</span>
+        </div>
+        <div class="vs-outcome-set" aria-label="Production outcomes: Answer, Clarify, Reject, Review, No data">
+          <span data-outcome="answer">Answer</span><span data-outcome="clarify">Clarify</span><span data-outcome="reject">Reject</span><span data-outcome="review">Review</span><span data-outcome="no-data">No data</span>
+        </div>
+        <p class="vs-stage-caption" id="stageCaption">A familiar queue arrives with every request looking equally expensive.</p>
+      </div>
+
+      <div class="vs-beats" id="valueBeats">
+        <article class="vs-beat" data-beat="0"><span>01</span><h3>Start with familiar work</h3><p>Requests arrive together in one queue. The visual begins where operations teams already work, without assuming every item needs the same engine.</p></article>
+        <article class="vs-beat" data-beat="1"><span>02</span><h3>Separate the judgment shapes</h3><p>Bounded checks, uncertain cases and genuinely open-ended work become visible. This is classification of work, not a claim that every case can be automated.</p></article>
+        <article class="vs-beat" data-beat="2"><span>03</span><h3>Connect the evidence</h3><p>The graph adds the short, cited relationships that make a bounded judgment inspectable. Similar text alone does not establish those relationships.</p></article>
+        <article class="vs-beat" data-beat="3"><span>04</span><h3>Make a bounded decision</h3><p>Jev routes each request to exactly one production outcome: <strong>Answer, Clarify, Reject, Review, or No data.</strong> It does not invent a sixth state.</p></article>
+        <article class="vs-beat" data-beat="4"><span>05</span><h3>Route reasoning; never bypass control</h3><p>Ambiguous or consequential work is routed to reasoning or people with the evidence trace intact. The decision layer controls the hand-off; it does not replace reasoning.</p></article>
+        <article class="vs-beat" data-beat="5"><span>06</span><h3>Reuse the work as operating marks</h3><p>The same queue tiles move into the operating view. History remains visible, so the story shows what changed rather than swapping in a disconnected chart.</p></article>
+        <article class="vs-beat" data-beat="6"><span>07</span><h3>Translate architecture into outcomes</h3><p><strong>Throughput</strong> means more useful work completed; <strong>economics</strong> means matching engine cost to task shape; <strong>control</strong> means bounded actions; <strong>focus</strong> protects expert attention; <strong>accountability</strong> keeps a trace; <strong>adaptation</strong> lets rules change without rebuilding the whole agent.</p></article>
+        <article class="vs-beat" data-beat="7"><span>08</span><h3>Measure useful work, not activity</h3><p>Future evaluation should track useful work per reasoning token, decision accuracy and calibration, unsupported-action rate, escalation precision, human-review time, route latency, and cost of incorrect automation.</p></article>
+      </div>
+      <div class="vs-story-controls" hidden aria-label="Value story controls">
+        <button type="button" id="previousBeat">← Previous</button><button type="button" id="nextBeat">Next →</button><button type="button" id="expandBeats" aria-pressed="false">Expand all beats</button>
+        <div class="vs-motion-control">
+          <span id="motionStatus" aria-live="polite">Checking motion preference</span>
+          <button type="button" id="motionToggle" aria-describedby="motionStatus" aria-pressed="false">Motion preference</button>
+        </div>
+      </div>
+      <p class="sr-only" id="beatStatus" aria-live="polite">Beat 1 of 8. Start with familiar work.</p>
+    </div>
+
+    <section class="vs-model" aria-labelledby="model-title">
+      <div>
+        <span class="eyebrow">Adjust the work, not the claim</span>
+        <h3 id="model-title">Illustrative work-unit model</h3>
+        <p>Set a notional queue, the share that is bounded, and the share of bounded work with sufficient connected evidence. The arithmetic is exact for these inputs; it is not a performance, price or savings estimate.</p>
+        <div class="vs-sliders">
+          <label id="totalUnitsLabel">Total work units <output id="totalUnitsValue" for="totalUnits">100</output><input id="totalUnits" type="range" disabled aria-labelledby="totalUnitsLabel" aria-describedby="totalUnitsValue" min="40" max="200" step="10" value="100"></label>
+          <label id="boundedShareLabel">Bounded judgments <output id="boundedShareValue" for="boundedShare">60%</output><input id="boundedShare" type="range" disabled aria-labelledby="boundedShareLabel" aria-describedby="boundedShareValue" min="10" max="90" step="5" value="60"></label>
+          <label id="evidenceShareLabel">Connected evidence sufficient <output id="evidenceShareValue" for="evidenceShare">75%</output><input id="evidenceShare" type="range" disabled aria-labelledby="evidenceShareLabel" aria-describedby="evidenceShareValue" min="10" max="100" step="5" value="75"></label>
+        </div>
+      </div>
+      <div class="vs-model-output" aria-labelledby="model-output-title">
+        <h4 id="model-output-title">Computed routing</h4>
+        <dl>
+          <div data-outcome="answer"><dt>Answer</dt><dd id="answerUnits">32</dd><small>Evidence supports the bounded answer.</small></div>
+          <div data-outcome="clarify"><dt>Clarify</dt><dd id="clarifyUnits">5</dd><small>A missing input can be requested.</small></div>
+          <div data-outcome="reject"><dt>Reject</dt><dd id="rejectUnits">4</dd><small>A rule explicitly blocks the action.</small></div>
+          <div data-outcome="review"><dt>Review</dt><dd id="reviewUnits">55</dd><small>Ambiguity or consequence needs reasoning or a person.</small></div>
+          <div data-outcome="no-data"><dt>No data</dt><dd id="noDataUnits">4</dd><small>The required evidence is absent.</small></div>
+        </dl>
+        <p id="modelSummary" aria-live="polite">100 work units route to 32 Answer, 5 Clarify, 4 Reject, 55 Review, and 4 No data.</p>
+      </div>
+    </section>
+
+    <section class="vs-architecture" aria-labelledby="architecture-title">
+      <header><span class="eyebrow">Connected agent architecture</span><h3 id="architecture-title">Reasoning is routed, not bypassed.</h3></header>
+      <div class="vs-spine-wrap">
+        <ol class="vs-spine" aria-label="MCP entry to reasoning architecture spine">
+          <li><b>MCP entry</b><span>Governed tools and live systems bring reachable material into the workflow.</span></li>
+          <li><b>Evidence</b><span>Cited facts establish what is known and where it came from.</span></li>
+          <li><b>Relationship</b><span>Graph edges expose how facts bear on the question.</span></li>
+          <li class="is-decision"><b>Decision</b><span>Jev selects Answer, Clarify, Reject, Review or No data.</span></li>
+          <li><b>Reasoning</b><span>Routed exceptions receive bounded context for synthesis, planning or novel work.</span></li>
+        </ol>
+        <aside class="vs-assurance"><b>Assurance</b><span>Identity · policy · provenance · evaluation · trace</span></aside>
+      </div>
+      <dl class="vs-executive-outcomes">
+        <div><dt>Throughput</dt><dd>Complete more useful work, not merely more calls.</dd></div><div><dt>Economics</dt><dd>Match each task to the least-general engine that can handle it safely.</dd></div><div><dt>Control</dt><dd>Keep actions inside explicit outcomes and boundaries.</dd></div><div><dt>Focus</dt><dd>Reserve agents and experts for work that needs judgment.</dd></div><div><dt>Accountability</dt><dd>Retain the evidence path, decision and hand-off.</dd></div><div><dt>Adaptation</dt><dd>Change rules and routes as the operating environment changes.</dd></div>
+      </dl>
+    </section>
+  </div>
+</section>
+
+<script>
+(() => {
+  const story = document.getElementById("reasoningStory");
+  const stage = story?.querySelector(".vs-stage");
+  const beats = story ? [...story.querySelectorAll(".vs-beat")] : [];
+  if (!story || !stage || !beats.length) return;
+  story.classList.add("vs-enhanced");
+  story.querySelector(".vs-story-controls").hidden = false;
+  let active = 0;
+  const titles = beats.map(beat => beat.querySelector("h3").textContent);
+  const applyBeat = index => {
+    active = Math.max(0, Math.min(beats.length - 1, index));
+    stage.dataset.beat = active;
+    beats.forEach((beat, i) => {
+      beat.dataset.history = i < active ? "past" : i === active ? "current" : "future";
+      beat.setAttribute("aria-current", i === active ? "step" : "false");
+    });
+    story.querySelectorAll(".vs-progress li").forEach((dot, i) => {
+      if (i === active) dot.setAttribute("aria-current", "step");
+      else dot.removeAttribute("aria-current");
+      dot.dataset.history = i < active ? "past" : i === active ? "current" : "future";
+    });
+    document.getElementById("beatCounter").textContent = `Beat ${active + 1} of ${beats.length}`;
+    document.getElementById("stageCaption").textContent = beats[active].querySelector("p").textContent;
+    document.getElementById("beatStatus").textContent = `Beat ${active + 1} of ${beats.length}. ${titles[active]}.`;
+  };
+  const chooseClosestToCentre = () => {
+    if (story.classList.contains("is-expanded")) return;
+    const centre = window.innerHeight / 2;
+    let closest = active;
+    let distance = Infinity;
+    beats.forEach((beat, index) => {
+      const rect = beat.getBoundingClientRect();
+      const nextDistance = Math.abs(rect.top + rect.height / 2 - centre);
+      if (rect.bottom >= 0 && rect.top <= window.innerHeight && nextDistance < distance) {
+        closest = index;
+        distance = nextDistance;
+      }
+    });
+    applyBeat(closest);
+  };
+  const observer = new IntersectionObserver(chooseClosestToCentre, { threshold: [0, .25, .5, .75, 1] });
+  beats.forEach(beat => observer.observe(beat));
+  const motionQuery = matchMedia("(prefers-reduced-motion: reduce)");
+  const motionStatus = document.getElementById("motionStatus");
+  const motionToggle = document.getElementById("motionToggle");
+  let motionChoice = "system";
+  const motionIsReduced = () => motionChoice === "reduce" || (motionChoice === "system" && motionQuery.matches);
+  const renderMotionChoice = announce => {
+    story.classList.toggle("force-motion", motionChoice === "force");
+    story.classList.toggle("reduce-motion", motionChoice === "reduce");
+    const systemReduced = motionQuery.matches;
+    let status;
+    let action;
+    if (motionChoice === "force") {
+      status = "Motion preview enabled for this story";
+      action = systemReduced ? "Respect reduced motion" : "Use system motion";
+    } else if (motionChoice === "reduce") {
+      status = "Motion reduced for this story";
+      action = "Enable motion";
+    } else if (systemReduced) {
+      status = "Motion reduced by system";
+      action = "Preview motion";
+    } else {
+      status = "Motion enabled";
+      action = "Reduce motion";
+    }
+    motionStatus.textContent = status;
+    motionToggle.textContent = action;
+    motionToggle.setAttribute("aria-pressed", motionChoice !== "system" ? "true" : "false");
+    if (announce) document.getElementById("beatStatus").textContent = `${status}. ${action} is available.`;
+  };
+  motionToggle.addEventListener("click", () => {
+    if (motionChoice === "system") motionChoice = motionQuery.matches ? "force" : "reduce";
+    else if (motionChoice === "reduce") motionChoice = "force";
+    else motionChoice = "system";
+    renderMotionChoice(true);
+  });
+  motionQuery.addEventListener?.("change", () => { if (motionChoice === "system") renderMotionChoice(true); });
+  story.querySelectorAll("[data-beat-target]").forEach(button => button.addEventListener("click", () => {
+    const target = Number(button.dataset.beatTarget);
+    applyBeat(target);
+    beats[target].scrollIntoView({ block: "center", behavior: motionIsReduced() ? "auto" : "smooth" });
+  }));
+  const step = delta => {
+    applyBeat(active + delta);
+    beats[active].scrollIntoView({ block: "center", behavior: motionIsReduced() ? "auto" : "smooth" });
+  };
+  renderMotionChoice(false);
+  story.addEventListener("keydown", event => {
+    if (event.target !== story) return;
+    if (event.key === "ArrowRight" || event.key === "ArrowDown") { event.preventDefault(); step(1); }
+    if (event.key === "ArrowLeft" || event.key === "ArrowUp") { event.preventDefault(); step(-1); }
+  });
+  document.getElementById("previousBeat").addEventListener("click", () => step(-1));
+  document.getElementById("nextBeat").addEventListener("click", () => step(1));
+  document.getElementById("expandBeats").addEventListener("click", event => {
+    const expanded = story.classList.toggle("is-expanded");
+    event.currentTarget.setAttribute("aria-pressed", expanded);
+    event.currentTarget.textContent = expanded ? "Return to stepped story" : "Expand all beats";
+    document.getElementById("beatStatus").textContent = expanded ? "All eight beats expanded." : `Beat ${active + 1} of ${beats.length}. ${titles[active]}.`;
+  });
+  applyBeat(0);
+
+  const ids = ["totalUnits", "boundedShare", "evidenceShare"];
+  const inputs = Object.fromEntries(ids.map(id => [id, document.getElementById(id)]));
+  const calculateWorkload = (total, boundedShare, evidenceShare) => {
+    const bounded = Math.round(total * boundedShare / 100);
+    const supported = Math.round(bounded * evidenceShare / 100);
+    const weighted = [7, 1, 1, 1].map((weight, index) => ({ index, numerator: supported * weight }));
+    const allocated = weighted.map(part => Math.floor(part.numerator / 10));
+    let residual = supported - allocated.reduce((sum, count) => sum + count, 0);
+    weighted
+      .sort((a, b) => b.numerator % 10 - a.numerator % 10 || a.index - b.index)
+      .forEach(part => { if (residual > 0) { allocated[part.index] += 1; residual -= 1; } });
+    const [answer, clarify, reject, noData] = allocated;
+    return { answer, clarify, reject, review: total - supported, noData };
+  };
+  const updateModel = () => {
+    const total = +inputs.totalUnits.value;
+    const { answer, clarify, reject, review, noData } = calculateWorkload(total, +inputs.boundedShare.value, +inputs.evidenceShare.value);
+    const values = { answerUnits: answer, clarifyUnits: clarify, rejectUnits: reject, reviewUnits: review, noDataUnits: noData };
+    Object.entries(values).forEach(([id, value]) => document.getElementById(id).textContent = value);
+    document.getElementById("totalUnitsValue").textContent = total;
+    document.getElementById("boundedShareValue").textContent = `${inputs.boundedShare.value}%`;
+    document.getElementById("evidenceShareValue").textContent = `${inputs.evidenceShare.value}%`;
+    document.getElementById("modelSummary").textContent = `${total} work units route to ${answer} Answer, ${clarify} Clarify, ${reject} Reject, ${review} Review, and ${noData} No data.`;
+  };
+  Object.values(inputs).forEach(input => input.addEventListener("input", updateModel));
+  updateModel();
+  Object.values(inputs).forEach(input => { input.disabled = false; });
+})();
+</script>
+
 <section id="trust" class="band band--black" aria-labelledby="trust-title">
   <div class="wrap split">
     <div>
       <span class="eyebrow">Trust and deployment</span>
-      <h2 id="trust-title">Built to show its working, and to say no.</h2>
+      <h2 id="trust-title">Show the evidence. Refuse when it is not enough.</h2>
     </div>
     <div>
       <ul class="proof">
-        <li><strong>Traceable</strong>Every outcome returns the path and the sources behind it.</li>
+        <li><strong>Traceable for supported flows</strong>Every supported outcome returns the relevant path and available sources behind it.</li>
         <li><strong>Bounded outcomes</strong>Answer, clarify, reject, review or no data. Nothing in between.</li>
         <li><strong>Refusal before retrieval</strong>Requests outside scope, such as a medication dose, stop before any search runs.</li>
         <li><strong>Portable Rust service</strong>One static container with no cloud SDK. The same image can run on GCP, AWS or Azure.</li>
@@ -309,7 +563,7 @@
 
 <div class="panel lab" id="labC">
   <h3>Lab 3: calibrated decisions with per-action thresholds</h3>
-  <p class="note">A simulation of the decision loop described in the paper. No model is called. Each case gets a stated confidence; the case is decided automatically if confidence clears that action's threshold, otherwise it is escalated at a cost of 1. Raise overconfidence to see what happens when stated probabilities stop matching reality.</p>
+  <p class="note">A simulation of the decision loop described in the paper. No model is called. Each case gets a stated confidence; the case is decided automatically if confidence clears that action's threshold, otherwise it goes to review at a cost of 1. Raise overconfidence to see what happens when stated probabilities stop matching reality.</p>
   <div class="params">
     <label>Overconfidence <input id="cOver" type="range" min="0" max="0.6" step="0.05" value="0"> <strong id="cOverV">0.00</strong></label>
     <label>Approve payment threshold <input id="cT0" type="number" min="0.5" max="1" step="0.01" value="0.97" style="width:80px"></label>
@@ -350,11 +604,7 @@
 </section>
 </main>
 
-<footer class="site-footer">
-  <div class="wrap">
-    <p>The explain-it-by-building-it style follows Tivadar Danka&rsquo;s newsletter <a href="https://thepalindrome.org/">The Palindrome</a>. The animations, code, graphics and figures on these pages are original.</p>
-  </div>
-</footer>
+
 
 <script>
 /* ---------- Example graph shared by the hero and the labs ---------- */
@@ -590,7 +840,7 @@ function renderB(r){
 function renderC(r){
   let h=`<div class="scroll"><table><tr><th>Action</th><th>Cost of error</th><th>Decided automatically</th><th>Error rate when automatic</th><th>Cost</th></tr>`;
   for(const s of r.stats)h+=`<tr><td>${s.name}</td><td>${s.errorCost}</td><td>${(s.auto/s.n*100).toFixed(0)}%</td><td>${s.auto?(s.wrong/s.auto*100).toFixed(1):"0.0"}%</td><td>${s.cost.toLocaleString("en-GB")}</td></tr>`;
-  h+=`</table></div><p style="margin-top:8px">Total cost with thresholds: <strong>${r.total.toLocaleString("en-GB")}</strong>. Escalate everything: ${r.escalateAll.toLocaleString("en-GB")}. Decide everything automatically: ${r.autoAll.toLocaleString("en-GB")}.</p>`;
+  h+=`</table></div><p style="margin-top:8px">Total cost with thresholds: <strong>${r.total.toLocaleString("en-GB")}</strong>. Review everything: ${r.escalateAll.toLocaleString("en-GB")}. Decide everything automatically: ${r.autoAll.toLocaleString("en-GB")}.</p>`;
   document.getElementById("cOut").innerHTML=h;
 }
 function params(k){
