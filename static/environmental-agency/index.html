@@ -5,7 +5,7 @@
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Environmental Agency catalogue discovery · The MCP Shed</title>
-<meta name="description" content="How evidence reaches an AI system through RAG and MCP, how a graph connects it, and how Jev makes a bounded decision over an air-quality catalogue.">
+<meta name="description" content="Discover the estate before you migrate it: how a fictional Environmental Agency brings its air-quality catalogue within reach through RAG and an MCP shed, connects it in a graph, and lets a System 1 model decide whether the evidence answers the request.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
@@ -30,10 +30,10 @@
 <section class="page-hero" aria-labelledby="page-title">
   <div class="wrap">
     <div>
-      <nav class="crumb" aria-label="Breadcrumb"><a href="../">Graphs + Jev</a> / <a href="../#use-cases">Use cases</a> / <span aria-current="page">DCCEEW catalogue discovery</span></nav>
-      <p class="eyebrow">Use case · Catalogue discovery</p>
-      <h1 id="page-title">Find the datasets that actually answer the question.</h1>
-      <p class="lede">A demonstration for the Department of Climate Change, Energy, the Environment and Water (DCCEEW). The evidence behind an answer is spread across documents, tables, catalogue records and reference data. First it has to be brought within reach. Then it has to be connected. Then someone, or something, has to decide whether it is enough to answer.</p>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="../" data-brand="name">The MCP Shed</a> / <a href="../#use-cases">Use cases</a> / <span aria-current="page">Environmental Agency catalogue discovery</span></nav>
+      <p class="eyebrow">Use case · Discover the estate before you migrate it</p>
+      <h1 id="page-title">Know what you hold before you move it.</h1>
+      <p class="lede">Before an agency's data estate can be migrated, someone has to establish what exists, where it lives and what depends on it. This demonstration uses the air-quality catalogue of a fictional Environmental Agency. The evidence is spread across documents, tables, catalogue records and reference data. First it has to be brought within reach through the MCP shed. Then it has to be connected in a graph. Then a System 1 model decides whether it is enough to answer.</p>
     </div>
     <div class="page-art">
       <img src="../assets/environmental-agency-landscape.svg" width="640" height="400" alt="A landscape of monitoring stations under bands of atmosphere. A highlighted path links a pollutant to a place and then to the dataset that measures it.">
@@ -46,7 +46,7 @@
     <ol class="layers">
       <li style="--c:var(--rag)"><a href="#reach"><b>Reach</b><span>RAG and MCP bring documents, records and live systems within reach.</span></a></li>
       <li style="--c:var(--graph)"><a href="#connect"><b>Connect</b><span>The graph shows how pollutant, place, year and dataset fit together.</span></a></li>
-      <li style="--c:var(--jev)"><a href="#decide"><b>Decide</b><span>Jev answers, asks, refuses or hands the request to a person.</span></a></li>
+      <li style="--c:var(--jev)"><a href="#decide"><b>Decide</b><span>A System 1 model answers, asks, refuses or hands the request to a person.</span></a></li>
       <li style="--c:var(--answer)"><a href="#demo"><b>Show</b><span>Try it: every outcome comes back with its path and its datasets.</span></a></li>
     </ol>
   </div>
@@ -62,7 +62,7 @@
         <p>A language model knows a lot about air quality in general. It knows nothing about which datasets you hold, at what breakdown, from which publisher, or how current they are. One request shows how many kinds of evidence a good answer needs.</p>
       </div>
       <div>
-        <p class="ask"><small>The request</small>Annual PM2.5 by country, 2019 to 2024 — official sources only.</p>
+        <p class="ask"><small>The request</small>Annual PM2.5 by country, 2019 to 2024, official sources only.</p>
         <table class="needs">
           <caption class="sr-only">Evidence the request needs, its shape, and where it usually lives</caption>
           <thead><tr><th scope="col">What a good answer needs</th><th scope="col">Shape</th><th scope="col">Where it usually lives</th></tr></thead>
@@ -110,15 +110,15 @@
         </dl>
       </div>
     </div>
-    <p class="joint"><strong>They combine.</strong> A <code>search_methodology</code> tool can be an MCP tool with a RAG index behind it. RAG is a way of finding things; MCP is a way of connecting to things.</p>
+    <p class="joint"><strong>They combine.</strong> A <code>search_methodology</code> tool can be an MCP tool with a RAG index behind it. RAG is a way of finding things; MCP is a way of connecting to things. In a migration programme, these servers sit in the MCP shed: a governed set, with each agent given only the servers its task needs.</p>
 
     <h3 id="fit-title" class="fit-title">The shape of the data matters as much as where it lives.</h3>
     <table class="fitgrid" aria-labelledby="fit-title">
       <thead><tr><th scope="col">RAG</th><th scope="col"><span class="sr-only">Data shape</span></th><th scope="col">A well-built MCP tool</th></tr></thead>
       <tbody>
-        <tr><td class="r" data-k="RAG"><span class="fit fit--strong">strong</span><br>What it was built for: chunk, embed, rank, cite the passage.</td><th scope="row">Text<small>methodologies, reports</small></th><td class="m" data-k="MCP"><span class="fit">good</span><br>A search tool returns passages — usually from a retrieval index behind the server.</td></tr>
+        <tr><td class="r" data-k="RAG"><span class="fit fit--strong">strong</span><br>What it was built for: chunk, embed, rank, cite the passage.</td><th scope="row">Text<small>methodologies, reports</small></th><td class="m" data-k="MCP"><span class="fit">good</span><br>A search tool returns passages, usually from a retrieval index behind the server.</td></tr>
         <tr><td class="r" data-k="RAG"><span class="fit">good</span><br>Multimodal embeddings or captions make charts, maps and scans findable.</td><th scope="row">Images<small>maps, charts, scans</small></th><td class="m" data-k="MCP"><span class="fit">good</span><br>Can return the original image with its record; finding the right one still takes search.</td></tr>
-        <tr><td class="r" data-k="RAG"><span class="fit fit--weak">weak</span><br>Chunks cut rows from headers, embeddings blur numbers, and a handful of passages can't sum, filter or join.</td><th scope="row">Tables<small>coverage, measurements</small></th><td class="m" data-k="MCP"><span class="fit fit--strong">strong</span><br>The tool runs the query — exact filters, joins and totals — and returns only the rows needed.</td></tr>
+        <tr><td class="r" data-k="RAG"><span class="fit fit--weak">weak</span><br>Chunks cut rows from headers, embeddings blur numbers, and a handful of passages can't sum, filter or join.</td><th scope="row">Tables<small>coverage, measurements</small></th><td class="m" data-k="MCP"><span class="fit fit--strong">strong</span><br>The tool runs the query (exact filters, joins and totals) and returns only the rows needed.</td></tr>
         <tr><td class="r" data-k="RAG"><span class="fit fit--weak">mixed</span><br>Flattening records to text loses field names: fine for "similar datasets", poor for "official, updated since 2024".</td><th scope="row">Records<small>metadata, JSON, logs</small></th><td class="m" data-k="MCP"><span class="fit fit--strong">strong</span><br>Reads fields by name, filters by value, and can return typed results checked against a schema <a href="#c2">[2]</a>.</td></tr>
       </tbody>
     </table>
@@ -154,7 +154,7 @@
         <div class="arrow" aria-hidden="true">→</div>
         <div class="node-box node-box--jev" style="--c:var(--jev)">
           <b>Sift · bounded decisions</b>
-          <strong>A Jev-style decision engine</strong>
+          <strong>A System 1 decision model</strong>
           <ul><li>Is it relevant to this domain?</li><li>What shape is it?</li><li>May it be shown, and to whom?</li><li>Where should it go?</li></ul>
           <p>Each call returns a confidence. Below the threshold, the answer is review.</p>
         </div>
@@ -166,7 +166,7 @@
           <div class="node-box node-box--review"><b>Unsure or sensitive</b><strong>Review queue, or skip</strong></div>
         </div>
       </div>
-      <figcaption class="annotation" style="margin-top:18px">Sifting is millions of narrow yes-or-no and pick-one calls, not open-ended reading, so it suits a decision engine better than a bigger model. This happens when data arrives, not when a question is asked. The demo below starts after this point: its catalogue graph is already built.</figcaption>
+      <figcaption class="annotation" style="margin-top:18px">Sifting is millions of narrow yes-or-no and pick-one calls, not open-ended reading, so it suits a System 1 model better than a bigger model. This happens when data arrives, not when a question is asked. The demo below starts after this point: its catalogue graph is already built.</figcaption>
     </figure>
   </div>
 </section>
@@ -210,7 +210,7 @@
       <div class="section-head" style="margin:0">
         <p class="eyebrow">05 · Decide</p>
         <h2 id="decide-title">Connected evidence still needs a decision.</h2>
-        <p>Jev is the bounded decision layer. At each step it answers one narrow question from a fixed set of answers, with a confidence, and the pipeline acts only on answers that clear the threshold.</p>
+        <p>Jev, TypeSafe's System 1 decision model <a href="#c6">[6]</a>, is the bounded decision layer. At each step it answers one narrow question from a fixed set of answers, with a confidence, and the pipeline acts only on answers that clear the threshold.</p>
         <p>It isn't a retriever, a protocol or a database. It stores no facts. It decides what the agent may do with them.</p>
       </div>
       <div>
@@ -234,8 +234,8 @@
   <div class="wrap">
     <div class="section-head">
       <p class="eyebrow">06 · Try it</p>
-      <h2 id="demo-title">Ask the DCCEEW catalogue.</h2>
-      <p class="lede">This page calls the same-origin Rust service, where deterministic Rust catalogue rules evaluate illustrative catalogue data. Start with an example, or write your own request.</p>
+      <h2 id="demo-title">Ask the Environmental Agency catalogue.</h2>
+      <p class="lede">Deterministic catalogue rules evaluate illustrative catalogue data, either in your browser or on the same-origin Rust service. The technical details under each result say which one decided. Start with an example, or write your own request.</p>
     </div>
 
     <div class="demo-grid">
@@ -292,7 +292,7 @@
           <div><dt>No data</dt><dd>The request was clear, but no combination of sources covers it.</dd></div>
         </dl>
         <p class="annotation"><strong style="color:var(--graph)">Graph</strong> stages find and check evidence. <strong style="color:var(--purple-mid)">Decision</strong> stages are Jev's bounded calls.</p>
-        <p class="boundary boundary--scope"><strong>Scope</strong>A demonstration catalogue of illustrative sources. The decision stages follow Jev's bounded-decision contract and are answered by deterministic Rust catalogue rules: no hosted model is called and request text is not logged.</p>
+        <p class="boundary boundary--scope"><strong>Scope</strong>A demonstration catalogue of illustrative sources. The decision stages follow Jev's bounded-decision contract and are answered by deterministic catalogue rules, in your browser or on the Rust service: no hosted model is called and request text is not logged.</p>
         <p class="annotation" id="catalogue-summary"></p>
       </aside>
     </div>
@@ -314,17 +314,17 @@
           <li>Graph coverage checks, including combined sources and roll-ups.</li>
           <li>Five bounded outcomes, with refusal and clarification before any search.</li>
           <li>A traceable result: stages run, datasets matched, and why.</li>
-          <li>A same-origin browser demonstration backed by the portable Rust service.</li>
+          <li>The same page running from in-browser rules or from the portable Rust service.</li>
         </ul>
       </section>
       <section aria-labelledby="next-title">
         <h3 id="next-title">Added in production</h3>
         <ul>
           <li>A RAG index over methodology documents, maps and charts.</li>
-          <li>MCP servers in front of the catalogue and source systems, with delegated, short-lived access.</li>
+          <li>An MCP shed in front of the catalogue, object storage and source systems, with delegated, short-lived access.</li>
           <li>Ingestion and sifting from object storage.</li>
           <li>A persistent graph database instead of the in-memory graph.</li>
-          <li>A Jev model with calibrated thresholds, and a human review queue.</li>
+          <li>A System 1 model such as Jev with calibrated thresholds, and a human review queue.</li>
         </ul>
       </section>
     </div>
@@ -347,14 +347,15 @@
       </div>
     </details>
     <details class="tech" id="sources">
-      <summary>Sources<small>Links last checked 5 October 2026.</small></summary>
+      <summary>Sources<small>Links last checked 5 October 2026; [6] checked 12 October 2026.</small></summary>
       <div class="body">
         <ol class="cites">
           <li id="c1">Lewis, P. et al. "Retrieval-Augmented Generation for Knowledge-Intensive NLP Tasks." NeurIPS, 2020. <a href="https://arxiv.org/abs/2005.11401">arxiv.org/abs/2005.11401</a></li>
           <li id="c2">Model Context Protocol. Specification, revision 2026-07-28: <a href="https://modelcontextprotocol.io/specification/2026-07-28/server">server primitives</a> and <a href="https://modelcontextprotocol.io/specification/2026-07-28/server/tools">tools</a>.</li>
-          <li id="c3">Anthropic. "Code execution with MCP." 4 November 2025. <a href="https://www.anthropic.com/engineering/code-execution-with-mcp">anthropic.com</a> — token cost of tool definitions and results.</li>
+          <li id="c3">Anthropic. "Code execution with MCP." 4 November 2025. <a href="https://www.anthropic.com/engineering/code-execution-with-mcp">anthropic.com</a>. On the token cost of tool definitions and results.</li>
           <li id="c4">Edge, D. et al. "From Local to Global: A GraphRAG Approach to Query-Focused Summarization." 2024. <a href="https://arxiv.org/abs/2404.16130">arxiv.org/abs/2404.16130</a></li>
           <li id="c5">Liu, N. F. et al. "Lost in the Middle: How Language Models Use Long Contexts." TACL 12, 2024. <a href="https://aclanthology.org/2024.tacl-1.9/">aclanthology.org/2024.tacl-1.9</a></li>
+          <li id="c6">TypeSafe. "Introducing System One models and Jev." <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">typesafe.ai</a></li>
           <li>The worked request, the catalogue and its sources are illustrative. The storage-sifting flow is an architecture pattern, not a feature of this demo.</li>
         </ol>
       </div>
@@ -430,7 +431,7 @@ function datasetItem(sol) {
   const names = (sol.sources || []).map(s => s.name).join(" + ");
   li.append(el("strong", "Option " + sol.id + ": " + names));
   const meta = (sol.sources || []).map(s => s.publisher + ", updated " + s.updated).join("; ");
-  li.append(el("div", meta + " · " + sol.cells + (sol.cells === 1 ? " cell" : " cells") + " covered", "annotation"));
+  li.append(el("div", meta + (typeof sol.cells === "number" ? " · " + sol.cells + (sol.cells === 1 ? " cell" : " cells") + " covered" : ""), "annotation"));
   if (sol.fit && sol.fit.legend) li.append(el("div", "Preference fit: " + sol.fit.legend[sol.fit.top], "annotation"));
   (sol.notes || []).forEach(n => li.append(el("div", "Caution: " + n, "annotation")));
   return li;
@@ -469,7 +470,7 @@ function render(body) {
     fact(tech, "Breakdown", Object.entries(body.query.levels || {}).map(([k, v]) => k + ": " + v).join(", ") || "none");
   }
   if (body.stages) fact(tech, "Stages run", body.stages.map(s => s.title).join(" → "));
-  if (outcome !== "error") fact(tech, "Decided by", siteApi.source("catalogue") + (body.model ? ": " + body.backend_label + " (" + body.model + "), " + body.residency : ""));
+  fact(tech, "Decided by", siteApi.source("catalogue") + (body.model ? ": " + body.backend_label + " (" + body.model + "), " + body.residency : ""));
   if (body.totals) fact(tech, "Decisions", body.totals.decisions + " in " + body.totals.calls + " calls, " + body.totals.wall_ms + " ms");
   $("#raw").textContent = JSON.stringify(body, null, 2);
   result.hidden = false;
