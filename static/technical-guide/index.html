@@ -57,7 +57,7 @@
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">Pillar 1 · Connectivity</span>
-      <h2 id="connectivity-title">Standard, governed MCP servers replace brittle one-off scripts.</h2>
+      <h2 id="connectivity-title">Governed MCP servers replace one-off scripts.</h2>
       <p>Each system in the estate is reached through an MCP server with scoped, short-lived credentials and an audit trail. Agents receive only the servers their task needs, which keeps tool definitions out of the context window and secrets out of scripts.</p>
     </div>
 
@@ -106,7 +106,7 @@
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">Pillar 2 · Relational context</span>
-      <h2 id="context-title">A graph holds lineage and the enterprise ontology.</h2>
+      <h2 id="context-title">A graph of lineage and meaning.</h2>
       <p>Spanner Graph, or another graph engine, records which tables, jobs, files and reports feed which others, and what each business term means. Before an agent changes anything, it can see what sits upstream and downstream, so a change in one place does not silently break another.</p>
     </div>
 
@@ -243,7 +243,7 @@
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">Pillar 3 · Logic</span>
-      <h2 id="logic-title">Skills and hooks turn migration playbooks into enforced steps.</h2>
+      <h2 id="logic-title">Playbooks as enforced steps.</h2>
       <p>Skills give agents a prescriptive playbook for each migration pattern. Hooks run before and after tool calls to validate schemas, block unsafe actions and require approval where needed. Together they reduce drift, broken code and malformed schemas.</p>
     </div>
     <div class="logic-grid">
@@ -294,7 +294,7 @@ description: Migrate one SAP table to BigQuery without breaking downstream repor
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">Pillar 4 · Reflexes</span>
-      <h2 id="reflexes-title">System 1 models route, classify and gate in milliseconds, not seconds.</h2>
+      <h2 id="reflexes-title">Fast models gate every step.</h2>
       <p>A System 1 model is a small, fast model that returns a typed decision with a calibrated confidence instead of free text. TypeSafe calls this class System One models <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">[L8]</a>. Jev takes a state and a set of typed questions, and returns typed answers with probabilities and a confidence that code can branch on <a href="https://docs.typesafe.ai/introduction">[L9]</a>.</p>
     </div>
     <div class="latency">
@@ -324,7 +324,7 @@ description: Migrate one SAP table to BigQuery without breaking downstream repor
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">Pillar 5 · Visibility and cost</span>
-      <h2 id="visibility-title">Evals show what agents did; BigQuery and Looker show users the result and the cost.</h2>
+      <h2 id="visibility-title">What agents did, and what it cost.</h2>
       <p>Every agent step writes an eval record: decision, confidence, tools called, tokens, latency and outcome. Engineers use the records to find failure patterns. BigQuery and Looker turn them into production reporting for users, including cost per migrated object, so the spend today and the run cost tomorrow are both visible.</p>
     </div>
     <div class="logic-grid">
