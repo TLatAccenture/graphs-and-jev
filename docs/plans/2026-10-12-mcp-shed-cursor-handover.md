@@ -311,7 +311,9 @@ Shared header:
   </nav>
 </div></header>
 ```
-Shared footer: brand line (`<span data-brand="org">Accenture</span> · <span data-brand="kind">Thought piece</span>`), the disclaimer (`data-brand="disclaimer"`), links to the three use-case pages and the technical guide, and the existing Palindrome credit line.
+Shared footer: brand line (`<span data-brand="org">Accenture</span> · <span data-brand="kind">Thought piece</span>`), the disclaimer (`data-brand="disclaimer"`), and links to the three use-case pages and the technical guide. No Palindrome credit line (the value-story work removed it deliberately).
+
+**WS0 outcome (merged).** `siteApi` adds `siteApi.source(domain)`, returning "in-browser fixtures" or "live API at {host}" for the technical details line. Live non-2xx responses become `{ok:false, status, json → {outcome:"error", detail}}`. Subpage breadcrumbs and body copy still carry old text for their owners to replace.
 
 **Done when:** every page loads from `static/` with no console errors at `/` and at a sub-path (`python3 -m http.server` from `static/` and from its parent); `grep -r "/graphs-and-jev/" static` is empty; the Environmental Agency demo works through `siteApi` in fixtures mode. Rust `tests/static_frontend.rs` is expected to fail after WS0 (it asserts the old pages); WS6 rewrites it, so do not edit it.
 
@@ -371,7 +373,7 @@ Changes:
 - Replace every "DCCEEW" and the full department name. Replace "Jev" first mention per 3.8; keep "Jev" thereafter.
 - Remove all em dashes (there are several in the `.fitgrid`, `.ask` and source list).
 - Demo calls `siteApi.pipeline({domain: "catalogue", request, preference})` and `siteApi.catalogue()`. Keep the existing response handling (it matches the Rust API), including the guard against stale results when requests overlap.
-- `fixtures/catalogue.js`: keep behaviour identical to the current `dcceewResult` (same outcomes for the same four example requests). Change only labels that mention DCCEEW.
+- `fixtures/catalogue.js`: make it mirror the live Rust catalogue domain, not the old `dcceewResult` approximations. The lead agent captured the Rust responses for the four examples in `/tmp/mcp-shed/rust-pipeline-1.json` to `-4.json` and `/tmp/mcp-shed/rust-catalogue.json`. The fixture returns the same outcomes, datasets, cell counts and messages for those four requests, with `backend_label` "In-browser catalogue rules" and `residency` "browser" so the mode stays visible. Other requests keep a reasonable rule-based fallback. Do not run cargo.
 - Add to "Added in production": "An MCP shed in front of the catalogue, object storage and source systems, with delegated, short-lived access."
 - Landscape SVG: rename only, unless time allows a redraw. It must not contain any department name.
 
@@ -420,7 +422,7 @@ Goal: **set env vars, run the existing release script.** No source edits per env
 
 Server changes (`src/**`, `Cargo.toml`, `Cargo.lock`):
 1. **Remove Parkinson's.** Delete `src/research.rs`, the `parkinsons` pipeline domain, the `with_research` hook and its tests. Drop `reqwest` and any other dependency only that path used, so the service makes no outbound calls. Run `cargo audit` afterwards.
-2. **Domains.** `POST /api/pipeline` accepts `domain: "catalogue"` for the existing catalogue rules; keep `"air"` as an alias so older clients still work. `"lineage"` returns HTTP 501 with `{"detail": "Lineage domain not implemented on this service."}` (the page runs it from fixtures; Section 9). Any other value keeps the existing unknown-domain error, with the available list updated.
+2. **Domains.** Make the `backend` field in `PipelineIn` optional (default `"catalogue"`): `siteApi` sends exactly `{domain, request, preference}`, which today is rejected with 422. `POST /api/pipeline` accepts `domain: "catalogue"` for the existing catalogue rules; keep `"air"` as an alias so older clients still work. `"lineage"` returns HTTP 501 with `{"detail": "Lineage domain not implemented on this service."}` (the page runs it from fixtures; Section 9). Any other value keeps the existing unknown-domain error, with the available list updated.
 3. **`GET /config.js`.** Rendered by the server from the env vars below, serialised with `serde_json` (so quotes and newlines are escaped correctly), as `window.SITE_CONFIG = {...};` with `Content-Type: text/javascript; charset=utf-8` and `Cache-Control: no-cache`. This route takes precedence over `static/config.js`. Unset vars fall back to the Rust defaults in the table. Test it with a value containing quotes, a backslash and `</script>`.
 4. **Headers.** Add `X-Content-Type-Options: nosniff`, `Referrer-Policy: strict-origin-when-cross-origin`, and a `Content-Security-Policy` allowing the Google Fonts origins, the inline scripts and styles the pages already use, and `connect-src 'self'` plus `API_BASE_URL` when it is set. `Cache-Control: no-cache` for `*.html`; long cache for `/assets/`.
 5. **Health.** Keep `/api/health` and `/api/ready` (Cloud Run probes already use them). Do not add `/healthz`; Cloud Run reserves some paths ending in `z`.
