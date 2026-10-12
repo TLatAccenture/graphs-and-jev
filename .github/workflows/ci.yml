@@ -1,0 +1,64 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt
+      - uses: taiki-e/install-action@v2
+        with:
+          tool: cargo-audit
+      - run: cargo fmt --check
+      - run: cargo test --locked
+      - run: cargo audit
+
+  checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: sudo apt-get update && sudo apt-get install -y ripgrep
+      - run: git diff --check "$(git hash-object -t tree /dev/null)" HEAD
+      - run: bash tests/static-checks.sh
+      - run: bash tests/test-deploy.sh
+
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm run test:e2e
+      - run: npm run test:e2e:subpath
+      - run: cargo build --locked
+      - name: Live suite against the Rust service
+        run: |
+          PORT=18180 ./target/debug/serve & server=$!
+          trap 'kill $server' EXIT
+          python3 deploy/verify.py http://127.0.0.1:18180
+          BASE_URL=http://127.0.0.1:18180 npm run test:live
+
+  container:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t graphs-and-jev:ci .
+      - run: IMAGE=graphs-and-jev:ci bash scripts/smoke-container.sh

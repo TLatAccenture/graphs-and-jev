@@ -21,7 +21,7 @@ const baseURL = local
 
 export default defineConfig({
   testDir: "tests/e2e",
-  outputDir: "test-results",
+  outputDir: `test-results/${target}`,
   timeout: 30_000,
   expect: { timeout: 7_000 },
   fullyParallel: true,
