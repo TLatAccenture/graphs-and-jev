@@ -17,7 +17,7 @@ This repository is being converted into "The MCP Shed", a thought piece on agent
 9. Never mention DCCEEW, Parkinson's or RLCD. Use "Environmental Agency" (fictional) and "System 1 model".
 10. Keep the existing accessibility patterns: labelled controls, `aria-live` status, keyboard support, outcome shapes plus text, 44px targets.
 11. Before reporting done, run `tests/static-checks.sh` and the Playwright tests for your pages, and attach desktop (1280px) and mobile (390px) screenshots.
-12. Work only in your own git worktree on branch `mcp-shed/wsN`, cut from `mcp-shed`. Never commit to `main` or `mcp-shed` directly; the lead agent merges.
+12. Work only in your own git worktree on branch `mcp-shed-wsN`, cut from `mcp-shed`. Never commit to `main` or `mcp-shed` directly; the lead agent merges.
 13. Commit as the repository's configured `TLatAccenture` identity. No co-author trailers.
 14. Never run `deploy/deploy.sh` or any `gcloud` command that changes GCP. The lead agent releases.
 15. Never commit secrets, tokens, GCP credentials or local environment files.

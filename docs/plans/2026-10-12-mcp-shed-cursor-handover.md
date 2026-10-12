@@ -9,7 +9,7 @@
 | Baseline | `origin/main` at `5475dd9`: pages already live under `static/`, served with the API by one Rust process on Cloud Run. No `demo-data.js`, no Pages workflow. |
 | Stack | Pages: static HTML, CSS, vanilla JavaScript, SVG, no framework, no build step. Server: the existing Rust crate (`Cargo.toml`, `src/`). |
 | Target | The existing Cloud Run service `graphs-and-jev` in `ninth-airship-386815`, `australia-southeast1`, released through `deploy/deploy.sh` (private candidate, verify, promote). See `docs/deployment/cloud-run.md`. |
-| Branching | All work lands on branch `mcp-shed`. Each workstream works in its own git worktree on branch `mcp-shed/wsN` cut from `mcp-shed`; the lead agent merges each into `mcp-shed`. One pull request from `mcp-shed` to `main` at the end. Nothing merges to `main` before the final review. |
+| Branching | All work lands on branch `mcp-shed`. Each workstream works in its own git worktree on branch `mcp-shed-wsN` cut from `mcp-shed`; the lead agent merges each into `mcp-shed`. One pull request from `mcp-shed` to `main` at the end. Nothing merges to `main` before the final review. |
 | Agents | Cursor subagents, one per workstream. Commits use the repository's `TLatAccenture` identity with no co-author trailers. |
 | Reviewer | The lead agent reviews against Section 11 once the swarm reports done, then runs the deployment (Section 7, WS6). |
 
