@@ -47,6 +47,20 @@ impl Site {
         } else {
             format!("'self' {}", origin(&base_url)?)
         };
+        let routes = [
+            ("API_ROUTE_HEALTH", "/api/health"),
+            ("API_ROUTE_CATALOGUE", "/api/catalogue"),
+            ("API_ROUTE_PIPELINE", "/api/pipeline"),
+        ]
+        .map(|(key, default)| (key, var(key, default)));
+        // The browser joins baseUrl and route by plain concatenation, so each route is an absolute path.
+        for (key, route) in &routes {
+            let bad = |c: char| c.is_control() || c.is_whitespace() || c == '\\';
+            if !route.starts_with('/') || route.starts_with("//") || route.chars().any(bad) {
+                return Err(format!("{key} must be a path starting with a single '/'."));
+            }
+        }
+        let [(_, health), (_, catalogue), (_, pipeline)] = routes;
         let config = json!({
             "brand": {
                 "org": var("BRAND_ORG", "Accenture"),
@@ -60,9 +74,9 @@ impl Site {
                 "baseUrl": base_url,
                 "timeoutMs": timeout,
                 "routes": {
-                    "health": var("API_ROUTE_HEALTH", "/api/health"),
-                    "catalogue": var("API_ROUTE_CATALOGUE", "/api/catalogue"),
-                    "pipeline": var("API_ROUTE_PIPELINE", "/api/pipeline"),
+                    "health": health,
+                    "catalogue": catalogue,
+                    "pipeline": pipeline,
                 },
                 "domains": {
                     "catalogue": var("API_MODE_CATALOGUE", &mode),
@@ -109,11 +123,12 @@ impl Site {
     }
 }
 
-/// Reduces an http(s) URL to `scheme://host[:port]` for the CSP. The host must be a DNS name,
-/// IPv4 address or bracketed IPv6 address, and the port 0-65535, so browsers can parse it too.
+/// Checks that `API_BASE_URL` is an origin, `scheme://host[:port]` with no path, query or fragment,
+/// because the browser appends route paths to it. The host must be a DNS name, IPv4 address or
+/// bracketed IPv6 address, and the port 0-65535, so browsers can parse it too.
 fn origin(url: &str) -> Result<String, String> {
     let invalid = || {
-        "API_BASE_URL must be an http or https URL with a DNS name, IPv4 or [IPv6] host and an optional port."
+        "API_BASE_URL must be an origin: http(s)://host[:port] with a DNS name, IPv4 or [IPv6] host, and no path, query or fragment."
             .to_string()
     };
     let (scheme, rest) = url
@@ -124,7 +139,10 @@ fn origin(url: &str) -> Result<String, String> {
     if url.chars().any(|c| c.is_control() || c.is_whitespace()) {
         return Err(invalid());
     }
-    let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
+    if rest.contains(['/', '?', '#']) {
+        return Err(invalid());
+    }
+    let authority = rest;
     let port = if let Some(v6) = authority.strip_prefix('[') {
         let (addr, after) = v6.split_once(']').ok_or_else(invalid)?;
         addr.parse::<Ipv6Addr>().map_err(|_| invalid())?;

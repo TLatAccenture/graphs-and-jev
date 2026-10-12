@@ -60,11 +60,11 @@ window.SITE_CONFIG = {"brand":{...},"api":{...}};
 | `BRAND_KIND` | Thought piece | `brand.kind` | Any text |
 | `BRAND_DISCLAIMER` | The disclaimer in handover Section 4.1 | `brand.disclaimer` | Any text |
 | `API_MODE` | `live` | `api.mode` | `live`, `fixtures` |
-| `API_BASE_URL` | empty (same origin) | `api.baseUrl` | Empty, or an `http`/`https` URL whose host is a DNS name, an IPv4 address or a bracketed IPv6 address, with an optional port from 0 to 65535 and no user info or whitespace. The service refuses to start otherwise, and `deploy/deploy.sh` applies the same rule before any `gcloud` call. |
+| `API_BASE_URL` | empty (same origin) | `api.baseUrl` | Empty, or an origin only: `http(s)://host[:port]`, where the host is a DNS name, an IPv4 address or a bracketed IPv6 address and the port is 0 to 65535. No path, trailing slash, query, fragment, user info or whitespace: the pages request `baseUrl + route`, so put any path prefix in the routes (for example `API_ROUTE_PIPELINE=/v1/pipeline`). The service refuses to start otherwise, and `deploy/deploy.sh` applies the same rule before any `gcloud` call. |
 | `API_TIMEOUT_MS` | `15000` | `api.timeoutMs` | Positive integer |
-| `API_ROUTE_HEALTH` | `/api/health` | `api.routes.health` | Path |
-| `API_ROUTE_CATALOGUE` | `/api/catalogue` | `api.routes.catalogue` | Path |
-| `API_ROUTE_PIPELINE` | `/api/pipeline` | `api.routes.pipeline` | Path |
+| `API_ROUTE_HEALTH` | `/api/health` | `api.routes.health` | Absolute path starting with a single `/` |
+| `API_ROUTE_CATALOGUE` | `/api/catalogue` | `api.routes.catalogue` | Absolute path starting with a single `/` |
+| `API_ROUTE_PIPELINE` | `/api/pipeline` | `api.routes.pipeline` | Absolute path starting with a single `/` |
 | `API_MODE_CATALOGUE` | value of `API_MODE` | `api.domains.catalogue` | `live`, `fixtures` |
 | `API_MODE_LINEAGE` | `fixtures` | `api.domains.lineage` | `live`, `fixtures` |
 

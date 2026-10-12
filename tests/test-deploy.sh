@@ -245,13 +245,15 @@ rm -rf "$classifier_dir"
 app_env_rendered="$(app_env_json 'BRAND_NAME=Shed "test" \ </script>, a=b' API_MODE=fixtures API_TIMEOUT_MS=9000)"
 python3 -c 'import json,sys; data=json.loads(sys.argv[1]); assert data == {"API_MODE": "fixtures", "API_TIMEOUT_MS": "9000", "BRAND_NAME": "Shed \"test\" \\ </script>, a=b"}, data' "$app_env_rendered" || fail "app settings did not round-trip: $app_env_rendered"
 # Same cases as invalid_site_settings_fail_at_startup / browser_parseable_base_urls_are_accepted in tests/api_boundary.rs.
-for good_url in https://api.example.run.app/v1 http://localhost:8080 http://127.0.0.1:8080/ 'https://[::1]:8443/api?x=1'; do
+for good_url in https://api.example.run.app http://localhost:8080 http://127.0.0.1:8080 'https://[::1]:8443'; do
   app_env_json "API_BASE_URL=$good_url" >/dev/null || fail "app_env_json rejected $good_url"
 done
 for bad_setting in API_MODE=remote API_MODE_CATALOGUE=LIVE API_TIMEOUT_MS=0 API_TIMEOUT_MS=-5 'API_BASE_URL=ftp://x' 'API_BASE_URL=https://user@x' 'API_BASE_URL=https://x y' \
   'API_BASE_URL=https://' 'API_BASE_URL=https://:' 'API_BASE_URL=https://[]' 'API_BASE_URL=https://[::1' 'API_BASE_URL=https://[::1]x' 'API_BASE_URL=https://[fe80::1%eth0]' \
   'API_BASE_URL=https://api.example.com:' 'API_BASE_URL=https://api.example.com:99999' 'API_BASE_URL=https://api.example.com:+80' \
-  'API_BASE_URL=https://api..example.com' 'API_BASE_URL=https://-api.example.com' 'API_BASE_URL=https://1.2.3.999' 'API_BASE_URL=https://api.example.com/a b'; do
+  'API_BASE_URL=https://api..example.com' 'API_BASE_URL=https://-api.example.com' 'API_BASE_URL=https://1.2.3.999' 'API_BASE_URL=https://api.example.com/a b' \
+  'API_BASE_URL=https://api.example.run.app/v1' 'API_BASE_URL=https://api.example.run.app/' 'API_BASE_URL=https://[::1]:8443?x=1' 'API_BASE_URL=https://api.example.run.app#f' \
+  'API_ROUTE_HEALTH=api/health' 'API_ROUTE_CATALOGUE=//evil.example/catalogue' 'API_ROUTE_PIPELINE=/api/pipe line' 'API_ROUTE_PIPELINE=/\evil.example'; do
   if app_env_json "$bad_setting" >/dev/null 2>&1; then fail "app_env_json accepted $bad_setting"; fi
 done
 for app_key in BRAND_ORG BRAND_NAME BRAND_TAGLINE BRAND_KIND BRAND_DISCLAIMER API_MODE API_BASE_URL API_TIMEOUT_MS API_ROUTE_HEALTH API_ROUTE_CATALOGUE API_ROUTE_PIPELINE API_MODE_CATALOGUE API_MODE_LINEAGE; do

@@ -374,7 +374,7 @@ async fn config_js_applies_overrides_and_escapes_hostile_values() {
         ("BRAND_NAME", hostile),
         ("BRAND_ORG", "Example"),
         ("API_MODE", "fixtures"),
-        ("API_BASE_URL", "https://api.example.run.app/v1"),
+        ("API_BASE_URL", "https://api.example.run.app"),
         ("API_TIMEOUT_MS", "9000"),
         ("API_ROUTE_PIPELINE", "/v1/pipeline"),
         ("API_MODE_LINEAGE", "live"),
@@ -392,7 +392,7 @@ async fn config_js_applies_overrides_and_escapes_hostile_values() {
         "Agentic migration and modernisation"
     );
     assert_eq!(value["api"]["mode"], "fixtures");
-    assert_eq!(value["api"]["baseUrl"], "https://api.example.run.app/v1");
+    assert_eq!(value["api"]["baseUrl"], "https://api.example.run.app");
     assert_eq!(value["api"]["timeoutMs"], 9000);
     assert_eq!(value["api"]["routes"]["pipeline"], "/v1/pipeline");
     assert_eq!(value["api"]["domains"]["catalogue"], "fixtures");
@@ -421,6 +421,14 @@ fn invalid_site_settings_fail_at_startup() {
         vec![("API_BASE_URL", "https://-api.example.com")],
         vec![("API_BASE_URL", "https://1.2.3.999")],
         vec![("API_BASE_URL", "https://api.example.com/a b")],
+        vec![("API_BASE_URL", "https://api.example.run.app/v1")],
+        vec![("API_BASE_URL", "https://api.example.run.app/")],
+        vec![("API_BASE_URL", "https://[::1]:8443?x=1")],
+        vec![("API_BASE_URL", "https://api.example.run.app#f")],
+        vec![("API_ROUTE_HEALTH", "api/health")],
+        vec![("API_ROUTE_CATALOGUE", "//evil.example/catalogue")],
+        vec![("API_ROUTE_PIPELINE", "/api/pipe line")],
+        vec![("API_ROUTE_PIPELINE", "/\\evil.example")],
     ] {
         assert!(site(&vars).is_err(), "{vars:?}");
     }
@@ -429,10 +437,10 @@ fn invalid_site_settings_fail_at_startup() {
 #[test]
 fn browser_parseable_base_urls_are_accepted() {
     for url in [
-        "https://api.example.run.app/v1",
+        "https://api.example.run.app",
         "http://localhost:8080",
-        "http://127.0.0.1:8080/",
-        "https://[::1]:8443/api?x=1",
+        "http://127.0.0.1:8080",
+        "https://[::1]:8443",
     ] {
         assert!(site(&[("API_BASE_URL", url)]).is_ok(), "{url}");
     }
@@ -474,7 +482,7 @@ async fn retired_pages_redirect_permanently() {
 async fn responses_carry_security_and_cache_headers() {
     let (router, _) = app_with_site(
         10,
-        site(&[("API_BASE_URL", "https://api.example.run.app/v1")]).unwrap(),
+        site(&[("API_BASE_URL", "https://api.example.run.app")]).unwrap(),
     );
     for path in [
         "/",

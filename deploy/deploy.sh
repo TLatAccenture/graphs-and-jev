@@ -25,7 +25,7 @@ import sys
 
 # Mirrors `origin` in src/site.rs: the browser must be able to parse whatever the server accepts.
 def valid_base_url(url):
-    match = re.fullmatch(r"https?://([^/?#]*)([/?#]\S*)?", url)
+    match = re.fullmatch(r"https?://([^/?#]*)", url)
     if not match or any(ord(c) < 33 or ord(c) == 127 for c in url):
         return False
     authority = match.group(1)
@@ -58,7 +58,11 @@ for key in ("API_MODE", "API_MODE_CATALOGUE", "API_MODE_LINEAGE"):
 if "API_TIMEOUT_MS" in settings and not re.fullmatch(r"[1-9][0-9]{0,8}", settings["API_TIMEOUT_MS"]):
     raise SystemExit("API_TIMEOUT_MS must be a positive integer")
 if "API_BASE_URL" in settings and not valid_base_url(settings["API_BASE_URL"]):
-    raise SystemExit("API_BASE_URL must be an http or https URL with a DNS name, IPv4 or [IPv6] host and an optional port")
+    raise SystemExit("API_BASE_URL must be an origin: http(s)://host[:port] with no path, query or fragment")
+for key in ("API_ROUTE_HEALTH", "API_ROUTE_CATALOGUE", "API_ROUTE_PIPELINE"):
+    route = settings.get(key)
+    if route is not None and (not route.startswith("/") or route.startswith("//") or re.search(r"[\s\\\x00-\x1f\x7f]", route)):
+        raise SystemExit(f"{key} must be a path starting with a single '/'")
 print(json.dumps(settings, sort_keys=True))
 PY
 }
