@@ -1,8 +1,6 @@
 # Cloud Run deployment record
 
-This record captures the verified production state on 9 October 2026. Re-run the commands below before relying on it after a deployment.
-
-> **Not yet released.** The live service still runs `e7cead0`, the earlier "Graphs + Jev" site. The MCP Tool Shed pages, `/config.js`, the redirects and `deploy/promote.sh` described below arrive with PR [#4](https://github.com/TLatAccenture/graphs-and-jev/pull/4) and take effect only after it is merged and released. This record will be rewritten from the live service after that release.
+This record captures the verified production state on 12 October 2026, after PR [#4](https://github.com/TLatAccenture/graphs-and-jev/pull/4) (The MCP Tool Shed) was merged and released with `deploy/deploy.sh` and `deploy/promote.sh`. Re-run the commands below before relying on it after a deployment.
 
 ## Published service
 
@@ -10,19 +8,20 @@ This record captures the verified production state on 9 October 2026. Re-run the
 - Region: `australia-southeast1`
 - Service: `graphs-and-jev`
 - Canonical URL: <https://graphs-and-jev-956922431929.australia-southeast1.run.app>
-- Active revision: `graphs-and-jev-e7cead061975`
-- Source commit: `e7cead061975dcd120dc113d72e25f0cbc818f6d`
-- Immutable image: `australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app@sha256:79f5fab2630f04682c59cf2a3f1be64304ef8260dbee9b97c89e09c5f2b615f3`
+- Active revision: `graphs-and-jev-4008223a049a` (100% of traffic)
+- Source commit: `4008223a049a16a963a6d87c5b6a092a8ea09b66` (merge of PR #4 into `main`)
+- Immutable image: `australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app@sha256:bca27e6fc9d6109a06b780870fcdf2f252d9e58890008da065682732bed6e15c`
+- Previous revision: `graphs-and-jev-e7cead061975` (0%, the earlier "Graphs + Jev" site), kept as the rollback target
 - Runtime identity: `graphs-and-jev-runner@ninth-airship-386815.iam.gserviceaccount.com`
 
-The single Rust process serves the static field guide and same-origin API. It runs from a `scratch` image as UID/GID 65532. Cloud Run ingress is `all`; `allUsers` has `roles/run.invoker`, so the publication is intentionally public. GitHub PR [#1](https://github.com/TLatAccenture/graphs-and-jev/pull/1) is merged, the Pages workflow has been removed, and the GitHub Pages API returns 404 for this repository.
+The single Rust process serves the static field guide and same-origin API. It runs from a `scratch` image as UID/GID 65532. Cloud Run ingress is `all`; `allUsers` has `roles/run.invoker`, so the publication is intentionally public. GitHub Pages was retired with PR [#1](https://github.com/TLatAccenture/graphs-and-jev/pull/1); the GitHub Pages API returns 404 for this repository.
 
 ## Effective runtime configuration
 
 The active revision reports minimum instances 0, maximum instances 2, concurrency 20, 1 CPU, 512 MiB memory, and a 30-second request timeout. Startup and liveness probes use `/api/ready` and `/api/health`. Inspect the revision rather than relying on the service's historical top-level `run.googleapis.com/maxScale` annotation:
 
 ```bash
-gcloud run revisions describe graphs-and-jev-e7cead061975 \
+gcloud run revisions describe graphs-and-jev-4008223a049a \
   --project=ninth-airship-386815 \
   --region=australia-southeast1 \
   --format=yaml
@@ -30,9 +29,9 @@ gcloud run revisions describe graphs-and-jev-e7cead061975 \
 
 `RATE_LIMIT_PER_MINUTE` is not set in the revision, so the compiled default is 120 expensive requests per minute. The limiter is process-local and global within each instance. With at most two instances, the aggregate ceiling can therefore reach 240 requests per minute and is not a stable per-client quota. Move enforcement to an edge or shared store before increasing the instance limit or requiring client-level guarantees.
 
-From PR #4 the service makes no outbound requests: the Parkinson's research path and its HTTP client are removed. The currently live revision still contains them. No hosted-model credential or API token is present in the runtime configuration.
+The service makes no outbound requests: the Parkinson's research path and its HTTP client were removed in PR #4. No hosted-model credential or API token is present in the runtime configuration.
 
-The revision's environment variables come only from the allowlist in `deploy/deploy.sh` (`BRAND_*`, `API_*`; see `deploy/cloud-run.env.example`). The script validates them before any `gcloud` call, passes them with `--env-vars-file`, and confirms them on the candidate revision. With none set, the revision is deployed with `--clear-env-vars` and `/config.js` uses the service defaults.
+The revision's environment variables come only from the allowlist in `deploy/deploy.sh` (`BRAND_*`, `API_*`; see `deploy/cloud-run.env.example`). The script validates them before any `gcloud` call, passes them with `--env-vars-file`, and confirms them on the candidate revision. With none set, the revision is deployed with `--clear-env-vars` and `/config.js` uses the service defaults. The active revision was released this way: it has no app environment variables, so the catalogue domain is live and the lineage domain uses fixtures.
 
 ## Build provenance and access
 
@@ -40,7 +39,8 @@ Successful Cloud Build IDs for the promoted runtime lineage were:
 
 - `47024d2f-1936-4ecc-b461-572bec8a0f2c` — commit `e48a4869dbcc91e84f41e988e791117ed8f3d918`, distroless candidate, not promoted.
 - `336f2ec2-cae7-4095-8312-caa84e0931a5` — commit `6a52f35f2aa793b24f1aa952cb7ff01f48dde059`, first scratch candidate.
-- `9a059894-f911-4c7f-8471-a35dcc10fdf0` — commit `e7cead061975dcd120dc113d72e25f0cbc818f6d`, current scratch image.
+- `9a059894-f911-4c7f-8471-a35dcc10fdf0` — commit `e7cead061975dcd120dc113d72e25f0cbc818f6d`, previous scratch image.
+- `3df1250d-a231-458a-862b-c46e25c5fe19` — commit `4008223a049a16a963a6d87c5b6a092a8ea09b66`, current scratch image (The MCP Tool Shed).
 
 Cloud Build staged source in `gs://ninth-airship-386815-graphs-and-jev-build-source/source/` and wrote logs to `gs://956922431929-australia-southeast1-cloudbuild-logs/logs`. Both buckets are regional, use uniform bucket-level access, and enforce public-access prevention. The dedicated builder is `graphs-and-jev-builder@ninth-airship-386815.iam.gserviceaccount.com`; verified grants are Artifact Registry writer on the repository, project-level log writer and Service Usage consumer, source-object read access, and log-bucket object management required by Cloud Build. The runtime service account has no verified project-wide role.
 
@@ -74,6 +74,8 @@ Do not add raw request text, response evidence bodies, credentials, tokens, or p
 
 `tests/test-deploy.sh` covers both scripts with a mocked `gcloud`, including the rollback path.
 
+The 12 October 2026 release followed these steps. `deploy.sh` validated `graphs-and-jev-4008223a049a` at 0% with live traffic and access unchanged. The Playwright live suite passed against the candidate tag URL (108 passed, 0 failed). `promote.sh` moved 100% of traffic, kept `allUsers` invoker access and verified the canonical URL anonymously. The Playwright live suite then passed again against <https://graphs-and-jev-956922431929.australia-southeast1.run.app> (108 passed, 0 failed).
+
 ## Release verification gates
 
 Do not send production traffic to a candidate until all gates pass:
@@ -106,7 +108,7 @@ Route all traffic to a known healthy revision:
 gcloud run services update-traffic graphs-and-jev \
   --project=ninth-airship-386815 \
   --region=australia-southeast1 \
-  --to-revisions=graphs-and-jev-6a52f35f2aa7=100
+  --to-revisions=graphs-and-jev-e7cead061975=100
 ```
 
 Verify `/api/health`, `/api/ready`, `/`, `/technical-guide/`, `/environmental-agency/`, `/lineage-migration/`, `/little-bunnies/`, `/config.js`, and representative API outcomes. Restore the current revision with:
@@ -115,7 +117,7 @@ Verify `/api/health`, `/api/ready`, `/`, `/technical-guide/`, `/environmental-ag
 gcloud run services update-traffic graphs-and-jev \
   --project=ninth-airship-386815 \
   --region=australia-southeast1 \
-  --to-revisions=graphs-and-jev-e7cead061975=100
+  --to-revisions=graphs-and-jev-4008223a049a=100
 ```
 
-The completed drill moved 100% traffic from `graphs-and-jev-e7cead061975` to `graphs-and-jev-6a52f35f2aa7`, verified the older revision, then restored and re-verified `graphs-and-jev-e7cead061975`. Live state after the drill is restored: the `e7cead` revision is ready and receives 100% of traffic.
+Rolling back to `graphs-and-jev-e7cead061975` restores the earlier "Graphs + Jev" site, so the MCP Tool Shed pages, `/config.js` and the redirects return 404 until traffic is restored. An earlier drill (9 October 2026) moved 100% traffic from `graphs-and-jev-e7cead061975` to `graphs-and-jev-6a52f35f2aa7`, verified the older revision, then restored and re-verified `graphs-and-jev-e7cead061975`.
