@@ -1,4 +1,4 @@
-/* Graphs + Jev showcase. Black, white and Accenture purple carry the identity;
+/* The MCP Tool Shed design system. Black, white and Accenture purple carry the identity;
    blue, green, amber and red carry meaning (evidence, answer, review, reject) and
    always appear with a text label. */
 :root{
@@ -11,6 +11,8 @@
   --reject:#b4141b;--reject-wash:#fbe4e4;
   /* Lab chart categories, read by the technical-guide scripts */
   --native:var(--purple);--over:var(--purple-mid);--doc:var(--black);--embed:var(--purple-deep);--warn:var(--reject);
+  /* MCP Tool Shed pillars, bottom of the stack first. Each passes AA (4.5:1 or more) as text on white and under white text. */
+  --connect:#00737a;--context:var(--evidence);--logic:#a3165a;--reflex:var(--purple-mid);--visibility:var(--black);
   --bg:var(--white);--code:#f4f2ed;
   --display:clamp(2.6rem,7.2vw,6rem);--h2:clamp(1.9rem,4.2vw,3.2rem);--h3:clamp(1.2rem,2vw,1.5rem);
   --body:clamp(1.02rem,1.1vw,1.12rem);--small:.9rem;--tiny:.78rem;
@@ -178,7 +180,7 @@ button{cursor:pointer}
 .evidence-path li{display:flex;align-items:center;margin:0}
 .evidence-path .n{background:var(--white);border:1.5px solid var(--evidence);color:var(--ink);padding:5px 10px;font-weight:600;font-size:.95rem}
 .evidence-path .e{color:var(--evidence);font:600 var(--tiny)/1 var(--mono);text-transform:uppercase;letter-spacing:.06em;padding:0 8px}
-.evidence-path .e::before{content:"— "}.evidence-path .e::after{content:" →"}
+.evidence-path .e::before{content:"\2013  "}.evidence-path .e::after{content:" →"}
 .paths{display:grid;gap:10px}
 
 /* Demo status */
@@ -337,7 +339,7 @@ pre{background:var(--code);border:1px solid var(--line);border-radius:var(--r-sm
 .runlist{display:grid;gap:18px}
 .runlist > *{min-width:0}
 
-/* Context story (DCCEEW): teal is RAG, raspberry is MCP, blue is the graph, purple is Jev */
+/* Context story (Environmental Agency): teal is RAG, raspberry is MCP, blue is the graph, purple is Jev */
 .ctx{--rag:#00737a;--rag-wash:#e0f2f1;--mcp:#a3165a;--mcp-wash:#fbe7f0;--graph:var(--evidence);--jev:var(--purple-mid)}
 .layers{display:grid;gap:0;margin:0;padding:0;list-style:none;max-width:none;counter-reset:layer}
 @media (min-width:860px){.layers{grid-template-columns:repeat(4,minmax(0,1fr))}}
@@ -448,7 +450,65 @@ pre{background:var(--code);border:1px solid var(--line);border-radius:var(--r-sm
 .site-footer a{color:#d9a6ff}
 .site-footer p{max-width:90ch}
 
+/* Five-layer pillar stack. DOM order is bottom layer first, so mobile reads
+   Connectivity first; wider screens draw it as a stack with Connectivity at the base. */
+.stack{list-style:none;margin:0;padding:0;max-width:none;display:flex;flex-direction:column;gap:6px}
+@media (min-width:821px){.stack{flex-direction:column-reverse}}
+.stack>li{--c:var(--purple);margin:0}
+.stack>[data-pillar="connect"]{--c:var(--connect)}
+.stack>[data-pillar="context"]{--c:var(--context)}
+.stack>[data-pillar="logic"]{--c:var(--logic)}
+.stack>[data-pillar="reflex"]{--c:var(--reflex)}
+.stack>[data-pillar="visibility"]{--c:var(--visibility)}
+.stack-layer{display:flex;align-items:baseline;gap:16px;width:100%;min-height:44px;padding:16px 20px;border:0;border-left:8px solid var(--c);background:color-mix(in srgb,var(--c) 8%,var(--white));color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.stack-layer:hover{background:color-mix(in srgb,var(--c) 16%,var(--white))}
+.stack-layer:focus-visible{outline:3px solid var(--c);outline-offset:3px}
+.stack-layer[aria-expanded="true"],.stack-layer[aria-pressed="true"]{background:var(--c);color:var(--white)}
+.stack-layer b{font:600 var(--tiny)/1.3 var(--mono);letter-spacing:.12em;text-transform:uppercase;flex:none}
+.stack-layer strong{font-size:var(--h3);letter-spacing:-.015em;line-height:1.15}
+.stack-layer span{color:inherit}
+.stack-detail{padding:16px 20px 20px;border-left:8px solid var(--c);background:var(--white)}
+.stack-detail p:last-child{margin-bottom:0}
+
 @media (prefers-reduced-motion:reduce){
   html{scroll-behavior:auto}
   *,*::before,*::after{animation:none!important;transition:none!important}
+}
+
+@media (max-width:320px){.wrap{--gutter:14px}}
+/* Print and "Save as PDF" never scroll, so nothing may wait for an animation to become visible. */
+@media print{*,*::before,*::after{animation:none!important;transition:none!important}}
+
+/* Motion. Only for people who have not asked their system for reduced motion. */
+@keyframes draw{to{stroke-dashoffset:0}}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}}
+@keyframes pop{from{opacity:0;transform:scale(.4)}}
+@keyframes fade{from{opacity:0}}
+@keyframes grow{from{transform:scaleX(0)}}
+@media screen and (prefers-reduced-motion:no-preference){
+  /* Lineage graph: nodes appear hop by hop, then the evidence path draws edge by edge. */
+  .node{transform-box:fill-box;transform-origin:center;animation:pop .4s cubic-bezier(.2,.8,.3,1.3) both;animation-delay:calc(var(--hop,0) * 120ms)}
+  .edge{animation:fade .4s ease both}
+  .edge.path line{stroke-dasharray:1;stroke-dashoffset:1;animation:draw .5s ease-out forwards;animation-delay:calc(300ms + var(--i,0) * 450ms)}
+  .edge.path text{animation:fade .3s ease both;animation-delay:calc(600ms + var(--i,0) * 450ms)}
+  /* Results: the panel rises in, the outcome mark pops, then evidence and stages follow in order. */
+  .result:not([hidden]){animation:rise .35s ease-out both}
+  .result .outcome::before{animation:pop .45s cubic-bezier(.2,.8,.3,1.4) .15s both}
+  :is(.evidence-path,.ln-stages,.ln-steps)>li{animation:rise .3s ease-out both;animation-delay:calc(var(--d,0s) + var(--n,0) * 90ms)}
+  :is(.evidence-path,.ln-stages,.ln-steps)>li:nth-child(2){--n:1}
+  :is(.evidence-path,.ln-stages,.ln-steps)>li:nth-child(3){--n:2}
+  :is(.evidence-path,.ln-stages,.ln-steps)>li:nth-child(4){--n:3}
+  :is(.evidence-path,.ln-stages,.ln-steps)>li:nth-child(5){--n:4}
+  :is(.evidence-path,.ln-stages,.ln-steps)>li:nth-child(n+6){--n:5}
+  .evidence-path:nth-child(2){--d:.3s}.evidence-path:nth-child(3){--d:.6s}.evidence-path:nth-child(n+4){--d:.9s}
+  .stack-detail:not([hidden]){animation:rise .3s ease-out both}
+  .stack-layer,.scenario,.btn,.hops button{transition:background-color .2s,color .2s,border-color .2s,transform .15s}
+  .stack-layer:hover{transform:translateX(4px)}
+  :is(.btn,.scenario,.stack-layer):active{transform:translateY(1px)}
+  .reach li{transition:background-color .3s}
+  .reach .meter span{transform-origin:left;animation:grow .9s cubic-bezier(.2,.8,.2,1) both}
+  .reach li:nth-child(2) .meter span{animation-delay:.15s}.reach li:nth-child(3) .meter span{animation-delay:.3s}
+  @supports (animation-timeline:view()){
+    .section-head,.feature,.proof li,.defs>div,.reach li{animation:rise linear both;animation-timeline:view();animation-range:entry 0% entry 40%}
+  }
 }

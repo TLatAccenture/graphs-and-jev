@@ -4,7 +4,7 @@ mod decide;
 mod graph;
 mod pipeline;
 mod request;
-pub mod research;
+mod site;
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -12,9 +12,9 @@ use std::time::Instant;
 
 use axum::body::Body;
 use axum::extract::{DefaultBodyLimit, State};
-use axum::http::{HeaderName, HeaderValue, Request, StatusCode};
+use axum::http::{header, HeaderName, HeaderValue, Request, StatusCode};
 use axum::middleware::{self, Next};
-use axum::response::{IntoResponse, Response};
+use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
@@ -23,6 +23,7 @@ use tower_http::services::ServeDir;
 
 use crate::auth::{error, guard, Limiter};
 use crate::catalogue::Catalogue;
+pub use crate::site::Site;
 
 const VERSION: &str = "0.1.0";
 const MAX_BODY_BYTES: usize = 64 * 1024;
@@ -30,15 +31,13 @@ const MAX_REQUEST_CHARS: usize = 500;
 const MAX_PREFERENCE_CHARS: usize = 300;
 static REQUEST_SEQUENCE: AtomicU64 = AtomicU64::new(1);
 
-type ResearchFn = dyn Fn(&str) -> Result<Value, research::ResearchError> + Send + Sync;
-
 pub struct App {
     cat: Catalogue,
     min_confidence: f64,
     max_state: usize,
     limiter: Limiter,
     log: Arc<dyn Fn(String) + Send + Sync>,
-    research: Arc<ResearchFn>,
+    site: Site,
 }
 
 impl App {
@@ -57,7 +56,7 @@ impl App {
             max_state,
             limiter: Limiter::new(rate),
             log: Arc::new(|line| println!("{line}")),
-            research: Arc::new(|request| research::run(request, &research::Live)),
+            site: Site::default(),
         })
     }
 
@@ -66,11 +65,8 @@ impl App {
         self
     }
 
-    pub fn with_research(
-        mut self,
-        research: impl Fn(&str) -> Result<Value, research::ResearchError> + Send + Sync + 'static,
-    ) -> Self {
-        self.research = Arc::new(research);
+    pub fn with_site(mut self, site: Site) -> Self {
+        self.site = site;
         self
     }
 
@@ -85,33 +81,13 @@ impl App {
 }
 
 #[derive(Clone, Debug)]
-pub struct LogMetadata {
-    pub outcome: &'static str,
-    pub upstream_error_class: &'static str,
-}
-
-fn with_log_metadata(
-    mut response: Response,
+struct LogMetadata {
     outcome: &'static str,
-    upstream_error_class: &'static str,
-) -> Response {
-    response.extensions_mut().insert(LogMetadata {
-        outcome,
-        upstream_error_class,
-    });
-    response
 }
 
-pub fn classified_error(
-    status: StatusCode,
-    detail: &str,
-    upstream_error_class: &'static str,
-) -> Response {
-    with_log_metadata(
-        error(status, detail),
-        "upstream_error",
-        upstream_error_class,
-    )
+fn with_log_metadata(mut response: Response, outcome: &'static str) -> Response {
+    response.extensions_mut().insert(LogMetadata { outcome });
+    response
 }
 
 #[derive(Deserialize)]
@@ -121,8 +97,13 @@ struct DecideIn {
     questions: serde_json::Map<String, Value>,
 }
 
+fn default_backend() -> String {
+    "catalogue".into()
+}
+
 #[derive(Deserialize)]
 struct PipelineIn {
+    #[serde(default = "default_backend")]
     backend: String,
     request: String,
     #[serde(default)]
@@ -252,6 +233,7 @@ fn check(app: &App) -> Option<Response> {
 
 async fn health(State(app): State<Arc<App>>) -> Json<Value> {
     Json(json!({
+        "status": "ok",
         "ok": true,
         "version": VERSION,
         "auth_required": false,
@@ -295,11 +277,7 @@ async fn decide(State(app): State<Arc<App>>, Json(body): Json<DecideIn>) -> Resp
         return failure.into_response();
     }
     match crate::decide::decide(&app.cat, &body.state, &body.questions) {
-        Ok(value) => with_log_metadata(
-            (StatusCode::OK, Json(value)).into_response(),
-            "decided",
-            "none",
-        ),
+        Ok(value) => with_log_metadata((StatusCode::OK, Json(value)).into_response(), "decided"),
         Err(e) => error(StatusCode::UNPROCESSABLE_ENTITY, &e.0),
     }
 }
@@ -321,26 +299,21 @@ async fn run_pipeline(State(app): State<Arc<App>>, Json(body): Json<PipelineIn>)
         .as_deref()
         .map(str::trim)
         .filter(|s| !s.is_empty())
-        .unwrap_or("air");
-    if domain == "parkinsons" {
-        let owned = request.to_string();
-        let research = Arc::clone(&app.research);
-        let joined = tokio::task::spawn_blocking(move || research(&owned)).await;
-        return match joined {
-            Ok(Ok(v)) => decision_response(v),
-            Ok(Err(e)) => research_unavailable(e.class()),
-            Err(_) => classified_error(
-                StatusCode::BAD_GATEWAY,
-                "Could not complete the retrieval task.",
-                "task",
-            ),
-        };
-    }
-    if domain != "air" {
-        return error(
-            StatusCode::NOT_FOUND,
-            "Unknown domain. Available: air, parkinsons",
-        );
+        .unwrap_or("catalogue");
+    match domain {
+        "catalogue" | "air" => {}
+        "lineage" => {
+            return error(
+                StatusCode::NOT_IMPLEMENTED,
+                "Lineage domain not implemented on this service.",
+            )
+        }
+        _ => {
+            return error(
+                StatusCode::NOT_FOUND,
+                "Unknown domain. Available: catalogue, lineage",
+            )
+        }
     }
     match pipeline::run(&app.cat, request, preference, app.min_confidence) {
         Ok(v) => decision_response(v),
@@ -348,27 +321,15 @@ async fn run_pipeline(State(app): State<Arc<App>>, Json(body): Json<PipelineIn>)
     }
 }
 
-fn research_unavailable(class: &'static str) -> Response {
-    let status = if class == "timeout" {
-        StatusCode::SERVICE_UNAVAILABLE
-    } else {
-        StatusCode::BAD_GATEWAY
-    };
-    with_log_metadata(
-        (
-            status,
-            Json(json!({
-                "outcome": "unavailable",
-                "error_class": class,
-                "message": "Research sources are temporarily unavailable.",
-                "citations": [],
-                "graph": {"nodes": [], "edges": []},
-            })),
-        )
-            .into_response(),
-        "unavailable",
-        class,
+async fn config_js(State(app): State<Arc<App>>) -> Response {
+    (
+        [
+            (header::CONTENT_TYPE, "text/javascript; charset=utf-8"),
+            (header::CACHE_CONTROL, "no-cache"),
+        ],
+        app.site.config_js().to_owned(),
     )
+        .into_response()
 }
 
 fn decision_response(value: Value) -> Response {
@@ -380,11 +341,7 @@ fn decision_response(value: Value) -> Response {
         Some("no_data") => "no_data",
         _ => "answer",
     };
-    with_log_metadata(
-        (StatusCode::OK, Json(value)).into_response(),
-        outcome,
-        "none",
-    )
+    with_log_metadata((StatusCode::OK, Json(value)).into_response(), outcome)
 }
 
 fn static_service(static_dir: &std::path::Path) -> ServeDir {
@@ -397,14 +354,67 @@ pub fn router(app: Arc<App>, static_dir: &std::path::Path) -> Router {
         .route("/api/pipeline", post(run_pipeline))
         .layer(DefaultBodyLimit::max(MAX_BODY_BYTES))
         .route_layer(middleware::from_fn_with_state(app.clone(), limit_expensive));
-    Router::new()
+    let mut router = Router::new();
+    // Retired pages keep their bookmarks and indexed links working.
+    for (old, new) in [
+        ("/dcceew", "/environmental-agency/"),
+        ("/parkinsons", "/lineage-migration/"),
+    ] {
+        let to = get(move || async move { Redirect::permanent(new) });
+        router = router
+            .route(old, to.clone())
+            .route(&format!("{old}/"), to.clone())
+            .route(&format!("{old}/{{*rest}}"), to);
+    }
+    router
         .route("/api/health", get(health))
         .route("/api/ready", get(ready))
         .route("/api/catalogue", get(catalogue))
+        .route("/config.js", get(config_js))
         .merge(expensive)
         .fallback_service(static_service(static_dir))
         .with_state(app.clone())
+        .layer(middleware::from_fn_with_state(
+            app.clone(),
+            security_headers,
+        ))
         .layer(middleware::from_fn_with_state(app, log_request))
+}
+
+async fn security_headers(
+    State(app): State<Arc<App>>,
+    request: Request<Body>,
+    next: Next,
+) -> Response {
+    let path = request.uri().path().to_owned();
+    let assets = path.starts_with("/assets/");
+    let mut response = next.run(request).await;
+    let html = response
+        .headers()
+        .get(header::CONTENT_TYPE)
+        .and_then(|value| value.to_str().ok())
+        .is_some_and(|value| value.starts_with("text/html"));
+    let cache_asset = assets && response.status().is_success();
+    let headers = response.headers_mut();
+    headers.insert(
+        header::X_CONTENT_TYPE_OPTIONS,
+        HeaderValue::from_static("nosniff"),
+    );
+    headers.insert(
+        header::REFERRER_POLICY,
+        HeaderValue::from_static("strict-origin-when-cross-origin"),
+    );
+    headers.insert(header::CONTENT_SECURITY_POLICY, app.site.csp(&path).clone());
+    if html {
+        headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-cache"));
+    } else if cache_asset {
+        // ponytail: asset names carry no content hash, so a week bounds staleness after a release.
+        headers.insert(
+            header::CACHE_CONTROL,
+            HeaderValue::from_static("public, max-age=604800"),
+        );
+    }
+    response
 }
 
 fn log_fields(
@@ -413,7 +423,6 @@ fn log_fields(
     status: StatusCode,
     latency_ms: u128,
     outcome: &str,
-    upstream_error_class: &str,
 ) -> Value {
     json!({
         "request_id": request_id,
@@ -421,7 +430,6 @@ fn log_fields(
         "status": status.as_u16(),
         "latency_ms": latency_ms,
         "outcome": outcome,
-        "upstream_error_class": upstream_error_class,
     })
 }
 
@@ -442,21 +450,18 @@ async fn log_request(State(app): State<Arc<App>>, request: Request<Body>, next: 
     let request_id = format!("r-{}", REQUEST_SEQUENCE.fetch_add(1, Ordering::Relaxed));
     let mut response = next.run(request).await;
     let status = response.status();
-    let metadata = response.extensions().get::<LogMetadata>().cloned();
-    let outcome = metadata.as_ref().map_or_else(
+    let outcome = response.extensions().get::<LogMetadata>().map_or_else(
         || match status {
             StatusCode::PAYLOAD_TOO_LARGE => "payload_too_large",
             StatusCode::UNPROCESSABLE_ENTITY => "invalid_request",
             StatusCode::TOO_MANY_REQUESTS => "rate_limited",
             StatusCode::NOT_FOUND => "not_found",
+            StatusCode::NOT_IMPLEMENTED => "not_implemented",
             _ if status.is_success() => "success",
             _ => "error",
         },
         |metadata| metadata.outcome,
     );
-    let upstream_error_class = metadata
-        .as_ref()
-        .map_or("none", |metadata| metadata.upstream_error_class);
     (app.log)(
         log_fields(
             &request_id,
@@ -464,7 +469,6 @@ async fn log_request(State(app): State<Arc<App>>, request: Request<Body>, next: 
             status,
             started.elapsed().as_millis(),
             outcome,
-            upstream_error_class,
         )
         .to_string(),
     );

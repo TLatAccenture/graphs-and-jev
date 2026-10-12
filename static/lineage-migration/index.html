@@ -1,0 +1,275 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Lineage-guarded migration · The MCP Tool Shed</title>
+<meta name="description" content="Each migration step is checked against lineage first. The graph finds the blast radius; a System 1 gate decides.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../guide.css">
+<link rel="stylesheet" href="../styles/lineage.css">
+<script src="../config.js"></script>
+<script src="../js/api.js"></script>
+<script src="../fixtures/lineage.js"></script>
+</head>
+<body data-page-title="Lineage-guarded migration">
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../"><span data-brand="name">The MCP Tool Shed</span></a>
+  <nav class="site-nav" aria-label="Primary">
+    <a href="../#pillars">Approach</a>
+    <a href="../#use-cases" aria-current="true">Use cases</a>
+    <a href="../technical-guide/">Technical guide</a>
+    <a class="cta" href="#demo">Try the demo</a>
+  </nav>
+</div></header>
+<main id="main">
+
+<section class="page-hero" aria-labelledby="page-title">
+  <div class="wrap">
+    <div>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="../"><span data-brand="name">The MCP Tool Shed</span></a> / <a href="../#use-cases">Use cases</a> / <span aria-current="page">Lineage-guarded migration</span></nav>
+      <p class="eyebrow">Use case · Safe change</p>
+      <h1 id="page-title">See the blast radius first.</h1>
+      <p class="lede">Renaming a column can break a report the agent never saw. Each step is checked against lineage, then <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">Jev</a>, TypeSafe's System 1 decision model, decides.</p>
+      <p class="boundary boundary--change"><strong>Illustrative, not a migration tool.</strong>Sample estate, in your browser. No real system is touched.</p>
+    </div>
+    <div class="page-art">
+      <img src="../assets/lineage-blast-radius.svg" width="640" height="400" alt="Rings spread from KNA1.REGION: one hop to BigQuery customers.region, two hops to the Finance Looker dashboards Regional sales and Monthly churn.">
+    </div>
+  </div>
+</section>
+
+<section class="band band--tight band--paper" aria-label="Use case summary">
+  <div class="wrap">
+    <dl class="brief">
+      <div><dt>Question</dt><dd>Will this step break anything downstream?</dd></div>
+      <div><dt>Graph</dt><dd>Every dependent table, job and report.</dd></div>
+      <div><dt>Playbook and hooks</dt><dd>A skill sets the steps; hooks check the schema and block unsafe writes.</dd></div>
+      <div><dt>System 1 gate</dt><dd>Proceeds, asks, refuses or escalates, with a calibrated confidence.</dd></div>
+    </dl>
+  </div>
+</section>
+
+<section class="band" id="demo" aria-labelledby="demo-title">
+  <div class="wrap">
+    <div class="section-head">
+      <p class="eyebrow">Demo</p>
+      <h2 id="demo-title">Gate a migration step.</h2>
+      <p class="lede">Pick an example or describe a change.</p>
+    </div>
+
+    <div class="demo-grid">
+      <div>
+        <fieldset class="scenarios">
+          <legend>Examples</legend>
+          <button type="button" class="scenario" aria-pressed="false" data-req="Rename KNA1.REGION to SALES_REGION in the BigQuery target"><strong>Rename a mapped column</strong><span>"Rename KNA1.REGION to SALES_REGION in the BigQuery target." Two dashboards read the column.</span></button>
+          <button type="button" class="scenario" aria-pressed="false" data-req="Migrate COBOL job CUSTUPD to BigQuery SQL"><strong>Convert a batch job</strong><span>"Migrate COBOL job CUSTUPD to BigQuery SQL." The record layout it reads is ambiguous.</span></button>
+          <button type="button" class="scenario" aria-pressed="false" data-req="Drop table KNA1 after cutover"><strong>Retire a source table</strong><span>"Drop table KNA1 after cutover." A downstream report has no owner.</span></button>
+          <button type="button" class="scenario" aria-pressed="false" data-req="Copy the production customer table to dev for testing"><strong>Copy production data</strong><span>"Copy the production customer table to dev for testing." A policy forbids it.</span></button>
+          <button type="button" class="scenario" aria-pressed="false" data-req="Migrate table ZLEGACY_TMP"><strong>Migrate an unknown table</strong><span>"Migrate table ZLEGACY_TMP." The graph has never seen it.</span></button>
+        </fieldset>
+
+        <form id="askLn" class="demo" aria-describedby="lnStatus">
+          <div class="field">
+            <label for="lnRequest">Migration request</label>
+            <p class="hint" id="ln-hint">For example "rename KNA1.REGION". No real names or credentials.</p>
+            <textarea id="lnRequest" name="request" maxlength="500" required aria-describedby="ln-hint">Rename KNA1.REGION to SALES_REGION in the BigQuery target</textarea>
+          </div>
+          <div class="actions">
+            <button class="btn btn--purple" type="submit" id="lnSubmit">Check and decide</button>
+          </div>
+          <p class="demo-status" id="lnStatus" aria-live="polite" data-state="idle">Ready.</p>
+        </form>
+
+        <section class="result" id="lnResult" aria-labelledby="ln-result-heading" tabindex="-1" hidden>
+          <h3 class="outcome" id="ln-result-heading"><span id="lnOutcome"></span></h3>
+          <p class="answer" id="lnAnswer"></p>
+          <ul id="lnWhy"></ul>
+          <h3>Stages</h3>
+          <ol class="ln-stages" id="lnStages" aria-label="Stages the request passed through"></ol>
+          <h3>Blast radius</h3>
+          <div class="paths" id="lnPaths"></div>
+          <h3>Playbook steps</h3>
+          <p id="lnSkill"></p>
+          <ol class="ln-steps" id="lnSteps"></ol>
+          <h3>Eval record</h3>
+          <div class="scroll" id="lnEval"></div>
+          <details class="inline">
+            <summary>Technical details</summary>
+            <p id="lnSource"></p>
+            <dl class="facts" id="lnTech"></dl>
+            <pre id="lnRaw"></pre>
+          </details>
+        </section>
+      </div>
+
+      <aside aria-labelledby="read-title">
+        <h3 id="read-title">How to read the result</h3>
+        <dl class="facts ln-key">
+          <div data-o="answer"><dt>Proceed</dt><dd>Lineage supports it. It runs, with the blast radius attached.</dd></div>
+          <div data-o="clarify"><dt>Ask</dt><dd>A detail is missing or ambiguous. The agent asks.</dd></div>
+          <div data-o="review"><dt>Escalate</dt><dd>A fact, such as an owner, is missing. A person decides.</dd></div>
+          <div data-o="reject"><dt>Refuse</dt><dd>Unsafe or out of scope. Stops before any tool call.</dd></div>
+          <div data-o="no_data"><dt>No data</dt><dd>The object is not in the lineage graph.</dd></div>
+        </dl>
+        <p class="boundary boundary--scope"><strong>How the gate works here</strong>Here the gate is a few in-browser word rules. A System 1 model adds calibrated confidence. Confidence and eval records are illustrative.</p>
+      </aside>
+    </div>
+  </div>
+</section>
+
+</main>
+<footer class="site-footer">
+  <div class="wrap">
+    <p><span data-brand="org">Accenture</span> · <span data-brand="kind">Thought piece</span></p>
+    <p data-brand="disclaimer">An Accenture thought piece on agentic migration and modernisation. It is not a product or service offer from Accenture or Google Cloud. Product names and marks belong to their owners.</p>
+    <p><a href="../environmental-agency/">Environmental Agency catalogue discovery</a> · <a href="../lineage-migration/">Lineage-guarded migration</a> · <a href="../little-bunnies/">Little Bunnies</a> · <a href="../technical-guide/">Technical guide</a></p>
+  </div>
+</footer>
+
+<script>
+const $ = s => document.querySelector(s);
+const form = $("#askLn"), statusLine = $("#lnStatus"), submit = $("#lnSubmit"), result = $("#lnResult");
+const OUTCOME_LABEL = {
+  answer: "Proceed",
+  clarify: "Ask",
+  review: "Escalate",
+  reject: "Refuse",
+  no_data: "No data",
+  error: "Service unavailable"
+};
+const STAGE_NAME = {gate: "Gate", lineage: "Lineage", playbook: "Playbook", hook: "Hook check", eval: "Eval record"};
+const EVAL_FIELDS = [
+  ["run_id", "Run ID"], ["decision", "Decision"], ["confidence", "Confidence"], ["tools_called", "Tools called"],
+  ["tokens_in", "Tokens in"], ["tokens_out", "Tokens out"], ["latency_ms", "Latency (ms)"], ["cost_usd", "Cost (USD)"]
+];
+
+function el(tag, text, cls) { const n = document.createElement(tag); if (text != null) n.textContent = text; if (cls) n.className = cls; return n; }
+function fact(dl, term, value) { const d = el("div"); d.append(el("dt", term), el("dd", value)); dl.append(d); }
+function setStatus(text, state) { statusLine.textContent = text; statusLine.dataset.state = state; }
+function rel(ty) { return String(ty || "").replace(/_/g, " "); }
+
+function pathItem(edge) {
+  const from = edge.from_label || edge.from, to = edge.to_label || edge.to;
+  const ol = el("ol", null, "evidence-path");
+  ol.setAttribute("aria-label", from + " " + rel(edge.ty) + " " + to);
+  const node = name => { const li = el("li"); li.append(el("span", name, "n")); return li; };
+  const r = el("li"); r.append(el("span", rel(edge.ty), "e"));
+  ol.append(node(from), r, node(to));
+  return ol;
+}
+
+function render(body) {
+  const outcome = OUTCOME_LABEL[body.outcome] ? body.outcome : "error";
+  result.dataset.outcome = outcome;
+  $("#lnOutcome").textContent = OUTCOME_LABEL[outcome];
+  $("#lnAnswer").textContent = body.message || body.detail || "No result was returned.";
+
+  const why = $("#lnWhy");
+  const reasons = (body.explanation && body.explanation.text ? body.explanation.text.split("\n").slice(1) : []).filter(Boolean);
+  why.replaceChildren(...reasons.map(t => el("li", t)));
+  why.hidden = !reasons.length;
+
+  const stages = $("#lnStages");
+  stages.replaceChildren();
+  (body.stages || []).forEach(s => { const li = el("li"); li.append(el("b", STAGE_NAME[s.stage] || s.stage), s.title || ""); stages.append(li); });
+  if (!stages.children.length) stages.append(el("li", outcome === "error" ? "None. The request did not complete." : "None returned.", "empty"));
+
+  const edges = (body.graph && body.graph.edges) || [];
+  const paths = $("#lnPaths");
+  const emptyPath = {
+    reject: "None. The gate refused the request before the graph was read.",
+    no_data: "None. The object is not in the lineage graph.",
+    error: "None. The request did not complete."
+  };
+  paths.replaceChildren(...(edges.length ? edges.map(pathItem) : [el("p", emptyPath[outcome] || "None. No object was named to trace.", "empty")]));
+
+  const playbook = body.playbook;
+  const list = (playbook && playbook.steps) || [];
+  $("#lnSkill").textContent = playbook && playbook.skill ? "Skill: " + playbook.skill : "";
+  $("#lnSkill").hidden = !(playbook && playbook.skill);
+  const steps = $("#lnSteps");
+  steps.replaceChildren();
+  list.forEach(s => {
+    const li = el("li");
+    const status = el("span", s.status, "ln-status");
+    status.dataset.status = s.status;
+    li.append(el("span", s.name), status);
+    steps.append(li);
+  });
+  if (!list.length) steps.append(el("li", outcome === "error" ? "None. The request did not complete." : "None. No playbook ran for this request.", "empty"));
+
+  const evalBox = $("#lnEval");
+  evalBox.replaceChildren();
+  if (body.eval) {
+    const table = el("table", null, "ln-eval");
+    table.append(el("caption", body.residency === "browser"
+      ? "Illustrative record from the in-browser rules. No model or system is called, so tokens, latency and cost are zero, not measured."
+      : "As returned by the service."));
+    const tbody = el("tbody");
+    EVAL_FIELDS.forEach(([key, label]) => {
+      const v = body.eval[key];
+      if (v === undefined) return;
+      const tr = el("tr"), th = el("th", label);
+      th.scope = "row";
+      tr.append(th, el("td", Array.isArray(v) ? (v.length ? v.join(", ") : "none") : String(v)));
+      tbody.append(tr);
+    });
+    table.append(tbody);
+    evalBox.append(table);
+  } else {
+    evalBox.append(el("p", "None. No eval record was returned.", "empty"));
+  }
+
+  $("#lnSource").textContent = "Decided by: " + siteApi.source("lineage");
+  const tech = $("#lnTech");
+  tech.replaceChildren();
+  if (body.backend_label) fact(tech, "Backend", body.backend_label + (body.model ? " (" + body.model + ")" : "") + (body.residency ? ", " + body.residency : ""));
+  if (body.totals) fact(tech, "Totals", "decisions " + body.totals.decisions + ", calls " + body.totals.calls + ", wall time " + body.totals.wall_ms + " ms");
+  $("#lnRaw").textContent = JSON.stringify(body, null, 2);
+  result.hidden = false;
+  result.getAnimations({ subtree: true }).forEach(a => { a.cancel(); a.play(); });
+  return OUTCOME_LABEL[outcome];
+}
+
+document.querySelectorAll("[data-req]").forEach(btn => btn.addEventListener("click", () => {
+  document.querySelectorAll("[data-req]").forEach(b => b.setAttribute("aria-pressed", b === btn ? "true" : "false"));
+  $("#lnRequest").value = btn.dataset.req;
+  form.requestSubmit();
+}));
+
+let latest = 0;
+form.addEventListener("submit", async (ev) => {
+  ev.preventDefault();
+  const request = $("#lnRequest").value.trim();
+  if (!request) return;
+  const mine = ++latest;
+  submit.disabled = true;
+  form.setAttribute("aria-busy", "true");
+  setStatus("Working: checking the request against the lineage graph…", "working");
+  let body, ok = false, status = 0;
+  try {
+    const res = await siteApi.pipeline({domain: "lineage", request});
+    status = res.status;
+    ok = res.ok;
+    body = await res.json();
+  } catch (e) {
+    body = null;
+  }
+  if (mine !== latest) return;
+  submit.disabled = false;
+  form.removeAttribute("aria-busy");
+  if (!body || !ok) {
+    render({outcome: "error", detail: (body && body.detail) || "The service did not complete the request" + (status ? " (HTTP " + status + ")." : ".")});
+    setStatus("Service unavailable. Nothing was decided and no result was substituted.", "error");
+    return;
+  }
+  setStatus("Done. Outcome: " + render(body) + ".", "done");
+});
+</script>
+</body>
+</html>

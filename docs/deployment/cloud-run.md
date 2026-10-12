@@ -2,6 +2,8 @@
 
 This record captures the verified production state on 9 October 2026. Re-run the commands below before relying on it after a deployment.
 
+> **Not yet released.** The live service still runs `e7cead0`, the earlier "Graphs + Jev" site. The MCP Tool Shed pages, `/config.js`, the redirects and `deploy/promote.sh` described below arrive with PR [#4](https://github.com/TLatAccenture/graphs-and-jev/pull/4) and take effect only after it is merged and released. This record will be rewritten from the live service after that release.
+
 ## Published service
 
 - GCP project: `ninth-airship-386815`
@@ -28,7 +30,9 @@ gcloud run revisions describe graphs-and-jev-e7cead061975 \
 
 `RATE_LIMIT_PER_MINUTE` is not set in the revision, so the compiled default is 120 expensive requests per minute. The limiter is process-local and global within each instance. With at most two instances, the aggregate ceiling can therefore reach 240 requests per minute and is not a stable per-client quota. Move enforcement to an edge or shared store before increasing the instance limit or requiring client-level guarantees.
 
-The service makes bounded HTTPS requests to Wikipedia and Europe PMC for the Parkinson's research path. A live canonical-URL request returned citations from both providers. No hosted-model credential or API token is present in the runtime configuration.
+From PR #4 the service makes no outbound requests: the Parkinson's research path and its HTTP client are removed. The currently live revision still contains them. No hosted-model credential or API token is present in the runtime configuration.
+
+The revision's environment variables come only from the allowlist in `deploy/deploy.sh` (`BRAND_*`, `API_*`; see `deploy/cloud-run.env.example`). The script validates them before any `gcloud` call, passes them with `--env-vars-file`, and confirms them on the candidate revision. With none set, the revision is deployed with `--clear-env-vars` and `/config.js` uses the service defaults.
 
 ## Build provenance and access
 
@@ -55,9 +59,20 @@ Run `IMAGE=graphs-and-jev:test scripts/smoke-container.sh` to repeat the root-fi
 
 ## Logging and monitoring
 
-Application logs are one JSON object per request with `request_id`, `route`, `status`, `latency_ms`, `outcome`, and `upstream_error_class`. The API returns the request ID in `x-request-id`. Tests assert that request and preference text do not enter structured logs, and upstream error messages are reduced to a class. Cloud Run platform request logs remain separate from these application records.
+Application logs are one JSON object per request with `request_id`, `route`, `status`, `latency_ms`, and `outcome`. The API returns the request ID in `x-request-id`. Tests assert that request and preference text do not enter structured logs. Cloud Run platform request logs remain separate from these application records.
 
-Do not add raw request text, response evidence bodies, credentials, tokens, or personal data to logs. Monitor request status and latency by route, decision outcomes, upstream error classes, revision health, instance count, and cost.
+Do not add raw request text, response evidence bodies, credentials, tokens, or personal data to logs. Monitor request status and latency by route, decision outcomes, revision health, instance count, and cost.
+
+## Release procedure
+
+1. `deploy/deploy.sh [env-file]` runs the preflight, builds the image in Cloud Build and deploys it by digest as a revision tagged `candidate-<sha12>`.
+   - On an existing service the deploy uses `--no-traffic` and no IAM flag. Cloud Run IAM is service-wide, so an IAM flag here would also change access to the live revision. The script records the invoker policy and the serving traffic split first and fails if either changes.
+   - On a new service the first revision is deployed private (`--no-allow-unauthenticated`) at 100% traffic.
+   - The candidate tag URL is checked with an identity token by `deploy/verify.py`: health, readiness, every page, `/config.js`, the retired-page redirects, catalogue answer/clarify/reject and the lineage 501. The canonical URL must still answer anonymously with 200 on a public service, or 401/403 on a new private one.
+   - On a public service the tag URL is reachable without credentials. It is unlisted, not private.
+2. `deploy/promote.sh <revision> [env-file]` re-checks the candidate, moves 100% of traffic to it, grants `allUsers` `roles/run.invoker` (a no-op if already granted), confirms the traffic split and runs `deploy/verify.py` against the canonical URL without credentials. If any step after the traffic switch fails it restores the previous traffic split and IAM policy and exits non-zero.
+
+`tests/test-deploy.sh` covers both scripts with a mocked `gcloud`, including the rollback path.
 
 ## Release verification gates
 
@@ -65,14 +80,16 @@ Do not send production traffic to a candidate until all gates pass:
 
 1. `cargo test` and `cargo build --release` succeed from the committed tree.
 2. The local scratch image builds and `scripts/smoke-container.sh` passes.
-3. The image is addressed by digest and its revision reports the expected account, probes, limits, and zero candidate traffic.
-4. Candidate checks pass for health, readiness, all static routes, DCCEEW answer/clarify/reject, Parkinson's clinical rejection before retrieval, and either HTTPS research citations or an explicit bounded upstream failure.
+3. The image is addressed by digest and its revision reports the expected account, probes, limits, and zero candidate traffic, with live traffic and service IAM unchanged.
+4. Candidate checks (`deploy/verify.py`) pass for health, readiness, `/config.js`, all static routes, the `/dcceew/` and `/parkinsons/` redirects, catalogue answer/clarify/reject, and the lineage 501.
 5. Boundary checks return the expected 413/422 and 429 responses; logs contain request IDs and no submitted request text.
 6. Desktop and 390 px browser checks have no console errors or horizontal overflow.
-7. Canonical-URL checks pass after the traffic update.
+7. Canonical-URL checks pass anonymously after the traffic update (`deploy/promote.sh`).
 8. Git status is clean and tracked browser assets contain no secret, token, credential, GCP project ID, analytics identifier, authentication code, or raw personal data.
 
 ## Rollback and restore
+
+`deploy/promote.sh` rolls back automatically when promotion fails. To roll back by hand later:
 
 List available revisions:
 
@@ -92,7 +109,7 @@ gcloud run services update-traffic graphs-and-jev \
   --to-revisions=graphs-and-jev-6a52f35f2aa7=100
 ```
 
-Verify `/api/health`, `/api/ready`, `/`, `/dcceew/`, `/parkinsons/`, `/little-bunnies/`, and representative API outcomes. Restore the current revision with:
+Verify `/api/health`, `/api/ready`, `/`, `/technical-guide/`, `/environmental-agency/`, `/lineage-migration/`, `/little-bunnies/`, `/config.js`, and representative API outcomes. Restore the current revision with:
 
 ```bash
 gcloud run services update-traffic graphs-and-jev \

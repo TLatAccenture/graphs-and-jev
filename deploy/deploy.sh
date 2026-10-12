@@ -15,6 +15,58 @@ classify_service_describe() {
   return 1
 }
 
+# Validates KEY=VALUE app settings and prints them as a JSON object (also valid YAML for --env-vars-file).
+app_env_json() {
+  python3 - "$@" <<'PY'
+import ipaddress
+import json
+import re
+import sys
+
+# Mirrors `origin` in src/site.rs: the browser must be able to parse whatever the server accepts.
+def valid_base_url(url):
+    match = re.fullmatch(r"https?://([^/?#]*)", url)
+    if not match or any(ord(c) < 33 or ord(c) == 127 for c in url):
+        return False
+    authority = match.group(1)
+    if authority.startswith("["):
+        addr, sep, after = authority[1:].partition("]")
+        if not sep or "%" in addr or (after and not after.startswith(":")):
+            return False
+        try:
+            ipaddress.IPv6Address(addr)
+        except ValueError:
+            return False
+        port = after[1:] if after else None
+    else:
+        host, sep, port = authority.partition(":")
+        port = port if sep else None
+        labels = host.split(".")
+        if not all(re.fullmatch(r"[A-Za-z0-9]([A-Za-z0-9-]{0,61}[A-Za-z0-9])?", label) for label in labels):
+            return False
+        if labels[-1].isdigit():
+            try:
+                ipaddress.IPv4Address(host)
+            except ValueError:
+                return False
+    return port is None or (re.fullmatch(r"[0-9]+", port) is not None and int(port) <= 65535)
+
+settings = dict(arg.split("=", 1) for arg in sys.argv[1:])
+for key in ("API_MODE", "API_MODE_CATALOGUE", "API_MODE_LINEAGE"):
+    if key in settings and settings[key] not in ("live", "fixtures"):
+        raise SystemExit(f"{key} must be live or fixtures")
+if "API_TIMEOUT_MS" in settings and not re.fullmatch(r"[1-9][0-9]{0,8}", settings["API_TIMEOUT_MS"]):
+    raise SystemExit("API_TIMEOUT_MS must be a positive integer")
+if "API_BASE_URL" in settings and not valid_base_url(settings["API_BASE_URL"]):
+    raise SystemExit("API_BASE_URL must be an origin: http(s)://host[:port] with no path, query or fragment")
+for key in ("API_ROUTE_HEALTH", "API_ROUTE_CATALOGUE", "API_ROUTE_PIPELINE"):
+    route = settings.get(key)
+    if route is not None and (not route.startswith("/") or route.startswith("//") or re.search(r"[\s\\\x00-\x1f\x7f]", route)):
+        raise SystemExit(f"{key} must be a path starting with a single '/'")
+print(json.dumps(settings, sort_keys=True))
+PY
+}
+
 main() (
   set -euo pipefail
   local gjd_REPO_ROOT gjd_PROJECT_ID gjd_REGION gjd_SERVICE gjd_ARTIFACT_REPOSITORY gjd_IMAGE
@@ -28,7 +80,8 @@ main() (
   local gjd_image_digest gjd_service_exists gjd_candidate_url gjd_service_url gjd_service_json gjd_describe_stdout gjd_describe_stderr
   local gjd_describe_status gjd_describe_result gjd_revision_json gjd_iam_json gjd_tmp_output gjd_revision
   local gjd_upload_files gjd_upload_count gjd_upload_bytes gjd_upload_file gjd_upload_unexpected
-  local -a gjd_required_apis gjd_deploy_traffic_args
+  local gjd_app_key gjd_app_env_json gjd_app_env_file gjd_prior_public gjd_prior_serving gjd_identity_token
+  local -a gjd_required_apis gjd_deploy_traffic_args gjd_app_env_keys gjd_app_env gjd_app_env_args
 
   gjd_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
   cd "$gjd_REPO_ROOT"
@@ -70,6 +123,21 @@ main() (
   done
 
   fail() { printf 'preflight failed: %s\n' "$*" >&2; exit 1; }
+
+  # Only these app settings reach the revision; anything else in the env file stays local.
+  gjd_app_env_keys=(
+    BRAND_ORG BRAND_NAME BRAND_TAGLINE BRAND_KIND BRAND_DISCLAIMER
+    API_MODE API_BASE_URL API_TIMEOUT_MS
+    API_ROUTE_HEALTH API_ROUTE_CATALOGUE API_ROUTE_PIPELINE
+    API_MODE_CATALOGUE API_MODE_LINEAGE
+  )
+  gjd_app_env=()
+  for gjd_app_key in "${gjd_app_env_keys[@]}"; do
+    if [[ -n "${!gjd_app_key:-}" ]]; then
+      gjd_app_env+=("${gjd_app_key}=${!gjd_app_key}")
+    fi
+  done
+  gjd_app_env_json="$(app_env_json ${gjd_app_env[@]+"${gjd_app_env[@]}"})" || fail 'invalid app environment variables'
   require_permission() {
     local principal="$1" resource="$2" permission="$3" state
     state="$(gcloud policy-intelligence troubleshoot-policy iam "$resource" \
@@ -188,7 +256,7 @@ if failed:
   gjd_upload_unexpected="$(grep -Ev '^(Dockerfile|Cargo\.toml|Cargo\.lock|catalogue\.json|src/.+|static/.+)$' <<<"$gjd_upload_files" || true)"
   [[ -z "$gjd_upload_unexpected" ]] || fail "Cloud Build upload includes unexpected files: $gjd_upload_unexpected"
   gjd_upload_count="$(wc -l <<<"$gjd_upload_files" | tr -d ' ')"
-  gjd_upload_bytes="$(while IFS= read -r gjd_upload_file; do stat -f '%z' "$gjd_upload_file"; done <<<"$gjd_upload_files" | awk '{sum += $1} END {print sum + 0}')"
+  gjd_upload_bytes="$(while IFS= read -r gjd_upload_file; do wc -c <"$gjd_upload_file"; done <<<"$gjd_upload_files" | awk '{sum += $1} END {print sum + 0}')"
   (( gjd_upload_count > 4 && gjd_upload_count < 500 )) || fail "Cloud Build upload file count is unsafe: $gjd_upload_count"
   (( gjd_upload_bytes < 5242880 )) || fail "Cloud Build upload is too large: $gjd_upload_bytes bytes"
   printf 'Cloud Build source context: %s files, %s bytes\n' "$gjd_upload_count" "$gjd_upload_bytes"
@@ -229,9 +297,27 @@ if failed:
   rm -f "$gjd_describe_stdout" "$gjd_describe_stderr"
   trap - EXIT
 
+  # Cloud Run IAM is service-wide: an IAM flag on a candidate deploy would change access to the live
+  # revision too. A new service starts private; an existing one keeps its IAM and serving traffic,
+  # and both are checked unchanged after the deploy. Only deploy/promote.sh changes access.
   gjd_deploy_traffic_args=(--no-allow-unauthenticated)
+  gjd_prior_public=false
+  gjd_prior_serving='{}'
   if [[ "$gjd_service_exists" == true ]]; then
-    gjd_deploy_traffic_args=(--no-traffic --no-allow-unauthenticated)
+    gjd_deploy_traffic_args=(--no-traffic)
+    gjd_prior_public="$(gcloud run services get-iam-policy "$gjd_SERVICE" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json \
+      | python3 -c 'import json,sys; print(str(any(b.get("role") == "roles/run.invoker" and "allUsers" in b.get("members", []) for b in json.load(sys.stdin).get("bindings", []))).lower())')"
+    gjd_prior_serving="$(gcloud run services describe "$gjd_SERVICE" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json \
+      | python3 -c 'import json,sys; print(json.dumps({t.get("revisionName", "LATEST"): t["percent"] for t in json.load(sys.stdin)["status"].get("traffic", []) if t.get("percent")}, sort_keys=True))')"
+  fi
+
+  # The revision gets exactly the allowlisted settings; unset keys fall back to the Rust defaults.
+  gjd_app_env_file="$(mktemp)"
+  chmod 600 "$gjd_app_env_file"
+  printf '%s\n' "$gjd_app_env_json" >"$gjd_app_env_file"
+  gjd_app_env_args=(--env-vars-file="$gjd_app_env_file")
+  if [[ "$gjd_app_env_json" == '{}' ]]; then
+    gjd_app_env_args=(--clear-env-vars)
   fi
 
   gcloud beta run deploy "$gjd_SERVICE" \
@@ -251,7 +337,9 @@ if failed:
     --startup-probe="initialDelaySeconds=0,timeoutSeconds=2,periodSeconds=2,failureThreshold=15,httpGet.port=8080,httpGet.path=${gjd_STARTUP_PATH}" \
     --liveness-probe="initialDelaySeconds=10,timeoutSeconds=2,periodSeconds=10,failureThreshold=3,httpGet.port=8080,httpGet.path=${gjd_LIVENESS_PATH}" \
     --service-account="$gjd_RUNTIME_SERVICE_ACCOUNT" \
+    "${gjd_app_env_args[@]}" \
     --quiet
+  rm -f "$gjd_app_env_file"
 
   mkdir -p "$(dirname "$gjd_DEPLOY_OUTPUT")"
   gjd_service_json="$(mktemp)"
@@ -266,7 +354,7 @@ if failed:
   gcloud run revisions describe "$gjd_revision" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json >"$gjd_revision_json"
   gcloud run services get-iam-policy "$gjd_SERVICE" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json >"$gjd_iam_json"
 
-  python3 - "$gjd_service_json" "$gjd_revision_json" "$gjd_iam_json" "$gjd_image_digest" "$gjd_RUNTIME_SERVICE_ACCOUNT" "$gjd_revision" "$gjd_MIN_INSTANCES" "$gjd_MAX_INSTANCES" "$gjd_CONCURRENCY" "$gjd_CPU" "$gjd_MEMORY" "$gjd_TIMEOUT_SECONDS" "$gjd_STARTUP_PATH" "$gjd_LIVENESS_PATH" "$gjd_candidate_tag" "$([[ "$gjd_service_exists" == false ]] && printf true || printf false)" "$gjd_tmp_output" <<'PY'
+  python3 - "$gjd_service_json" "$gjd_revision_json" "$gjd_iam_json" "$gjd_image_digest" "$gjd_RUNTIME_SERVICE_ACCOUNT" "$gjd_revision" "$gjd_MIN_INSTANCES" "$gjd_MAX_INSTANCES" "$gjd_CONCURRENCY" "$gjd_CPU" "$gjd_MEMORY" "$gjd_TIMEOUT_SECONDS" "$gjd_STARTUP_PATH" "$gjd_LIVENESS_PATH" "$gjd_candidate_tag" "$([[ "$gjd_service_exists" == false ]] && printf true || printf false)" "$gjd_tmp_output" "$gjd_app_env_json" "$gjd_prior_public" "$gjd_prior_serving" <<'PY'
 import json
 import sys
 
@@ -278,6 +366,9 @@ expected_min, expected_max, expected_concurrency, expected_cpu, expected_memory,
 expected_startup, expected_liveness = sys.argv[13:15]
 expected_tag = sys.argv[15]
 expected_bootstrap = sys.argv[16].lower() == "true"
+expected_env = json.loads(sys.argv[18])
+expected_public = sys.argv[19] == "true"
+prior_serving = json.loads(sys.argv[20])
 metadata = revision["metadata"]
 spec = revision["spec"]
 container = spec["containers"][0]
@@ -303,9 +394,11 @@ actual = {
     "timeout_seconds": int(spec["timeoutSeconds"]),
     "startup_probe": container["startupProbe"],
     "liveness_probe": container["livenessProbe"],
+    "app_env": {item["name"]: item.get("value", "") for item in container.get("env", [])},
     "traffic": traffic,
     "public_invocation": public,
     "service_private": not public,
+    "serving": {item.get("revisionName", "LATEST"): item["percent"] for item in traffic if item.get("percent")},
     "candidate_zero_traffic": not expected_bootstrap,
     "candidate_tag": expected_tag,
     "candidate_url": tagged[0].get("url", "") if len(tagged) == 1 else "",
@@ -325,13 +418,15 @@ assert_effective_deployment(actual_cpu in {expected_cpu, f"{int(expected_cpu) * 
 assert_effective_deployment(actual["timeout_seconds"] == int(expected_timeout), "timeout")
 assert_effective_deployment(actual["startup_probe"].get("httpGet", {}).get("path") == expected_startup, "startup probe")
 assert_effective_deployment(actual["liveness_probe"].get("httpGet", {}).get("path") == expected_liveness, "liveness probe")
-assert_effective_deployment(not actual["public_invocation"], "service has public invocation IAM")
+assert_effective_deployment(actual["app_env"] == expected_env, "app environment variables")
+assert_effective_deployment(actual["public_invocation"] == expected_public, "service IAM changed during candidate deploy")
 assert_effective_deployment(len(tagged) == 1 and actual["candidate_url"].startswith("https://"), "candidate tag target or URL")
 if expected_bootstrap:
     candidate_traffic = tagged
     assert_effective_deployment(candidate_traffic[0].get("percent") == 100, "bootstrap candidate traffic")
 else:
     assert_effective_deployment(tagged[0].get("percent", 0) == 0, "tagged candidate has traffic")
+    assert_effective_deployment(actual["serving"] == prior_serving, "live traffic changed during candidate deploy")
 with open(sys.argv[17], "w", encoding="utf-8") as output:
     json.dump(actual, output, indent=2, sort_keys=True)
     output.write("\n")
@@ -339,20 +434,23 @@ PY
 
   gjd_candidate_url="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["candidate_url"])' "$gjd_tmp_output")"
   gjd_service_url="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["service_url"])' "$gjd_tmp_output")"
-  poll_private_urls() {
-    local attempt url status
+  gjd_identity_token="$(gcloud auth print-identity-token)"
+  VERIFY_BEARER="$gjd_identity_token" python3 "$gjd_REPO_ROOT/deploy/verify.py" "$gjd_candidate_url" || fail 'candidate checks failed'
+  gjd_identity_token=''
+  check_anonymous() {
+    local url="$1" expected="$2" attempt status
     for attempt in 1 2 3 4 5 6; do
-      local all_private=true
-      for url in "$gjd_candidate_url" "$gjd_service_url"; do
-        status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 10 "${url}/?privacy_check=${gjd_git_sha}-${attempt}")" || status=000
-        [[ "$status" =~ ^(401|403)$ ]] || all_private=false
-      done
-      [[ "$all_private" == true ]] && return 0
+      status="$(curl --silent --show-error --output /dev/null --write-out '%{http_code}' --max-time 10 "${url}/api/health?release_check=${gjd_git_sha}-${attempt}")" || status=000
+      [[ "$status" =~ ^(${expected})$ ]] && return 0
       sleep 5
     done
-    fail 'privacy propagation did not produce 401/403 for candidate and service URLs'
+    fail "anonymous request to $url returned $status, expected $expected"
   }
-  poll_private_urls
+  if [[ "$gjd_prior_public" == true ]]; then
+    check_anonymous "$gjd_service_url" 200
+  else
+    check_anonymous "$gjd_service_url" '401|403'
+  fi
 
   mv "$gjd_tmp_output" "$gjd_DEPLOY_OUTPUT"
   trap - EXIT
@@ -360,8 +458,9 @@ PY
   if [[ "$gjd_service_exists" == false ]]; then
     printf 'Validated private bootstrap revision %s at 100%% traffic\n' "$gjd_revision"
   else
-    printf 'Validated revision %s at 0%% traffic\n' "$gjd_revision"
+    printf 'Validated revision %s at 0%% traffic; live traffic and access unchanged\n' "$gjd_revision"
   fi
+  printf 'Promote with: deploy/promote.sh %s\n' "$gjd_revision"
   printf 'Captured verified effective settings in %s\n' "$gjd_DEPLOY_OUTPUT"
 )
 

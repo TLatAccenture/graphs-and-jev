@@ -1,0 +1,415 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>Technical guide · The MCP Tool Shed</title>
+<meta name="description" content="How each layer of the MCP Tool Shed architecture works: governed MCP servers, lineage graphs, System 1 gates and eval records. Runnable labs, engine grades and sources.">
+<link rel="stylesheet" href="../guide.css">
+<link rel="stylesheet" href="../styles/tech.css">
+<script src="../config.js"></script>
+<script src="../js/api.js"></script>
+</head>
+<body data-page-title="Technical guide">
+<a class="skip" href="#main">Skip to content</a>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../"><span data-brand="name">The MCP Tool Shed</span></a>
+  <nav class="site-nav" aria-label="Primary">
+    <a href="../#pillars">Approach</a>
+    <a href="../#use-cases">Use cases</a>
+    <a href="../technical-guide/" aria-current="page">Technical guide</a>
+    <a class="cta" href="../#example">Try the demo</a>
+  </nav>
+</div></header>
+<main id="main">
+
+<section class="page-hero" aria-labelledby="page-title">
+  <div class="wrap">
+    <div>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="../"><span data-brand="name">The MCP Tool Shed</span></a> / <span aria-current="page">Technical guide</span></nav>
+      <p class="eyebrow">Technical guide</p>
+      <h1 id="page-title">Technical guide</h1>
+      <p class="lede">How each layer works, from the MCP Tool Shed to the Modernisation Springboard, with runnable labs, engine grades, costs and sources.</p>
+    </div>
+    <ol class="pillar-key" aria-label="The layers, from the existing stack upwards">
+      <li style="--c:var(--muted)"><span>0</span>Existing Stack</li>
+      <li style="--c:var(--connect)"><span>1</span>MCP Tool Shed</li>
+      <li style="--c:var(--reflex)"><span>2</span>System 1 (Jev)</li>
+      <li style="--c:var(--logic)"><span>3</span>Gemini Enterprise Agent Platform</li>
+      <li style="--c:var(--context)"><span>3</span>Context fabric: Spanner Graph</li>
+      <li style="--c:var(--visibility)"><span>4</span>Modernisation Springboard</li>
+    </ol>
+  </div>
+</section>
+
+<nav class="toc" aria-label="On this page">
+  <ol>
+    <li><a href="#connectivity" style="--c:var(--connect)">MCP Tool Shed</a></li>
+    <li><a href="#reflexes" style="--c:var(--reflex)">System 1</a></li>
+    <li><a href="#logic" style="--c:var(--logic)">Skills and hooks</a></li>
+    <li><a href="#relational-context" style="--c:var(--context)">Context fabric</a></li>
+    <li><a href="#visibility-and-cost" style="--c:var(--visibility)">Springboard</a></li>
+  </ol>
+</nav>
+
+<!-- ================= 1. Connectivity ================= -->
+<section id="connectivity" class="band pillar" style="--c:var(--connect)" aria-labelledby="connectivity-title">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Layer 1 · MCP Tool Shed · Connectivity</span>
+      <h2 id="connectivity-title">Governed MCP servers replace one-off scripts.</h2>
+      <p>One MCP server per system, with scoped, short-lived credentials and an audit trail. Agents get only the servers they need. No spare tool definitions in context, no secrets in scripts.</p>
+    </div>
+
+    <h3>The MCP server catalogue</h3>
+    <p class="note">Official servers only, each verified on a working vendor page on 12 October 2026. Most are new or in preview; check the link before relying on a detail.</p>
+    <div class="panel scroll mcp-table-wrap">
+      <table class="mcp-table">
+        <caption class="sr-only">Official MCP servers by system, with transport, authentication, scope, source and date checked</caption>
+        <thead><tr><th scope="col">System</th><th scope="col">Official MCP server</th><th scope="col">Remote or local</th><th scope="col">Auth model</th><th scope="col">Typical read and write scope</th><th scope="col">Source</th><th scope="col">Checked</th></tr></thead>
+        <tbody>
+          <tr><th scope="row">AWS (S3)</th><td><span class="kind">Vendor</span> AWS MCP Server, which calls S3 and other AWS APIs through a small fixed set of tools</td><td>Remote (managed)</td><td>OAuth 2.1, or IAM SigV4 through the local MCP Proxy for AWS</td><td>Any AWS API the IAM principal may call; IAM condition keys can restrict agent actions, and SigV4 offers a read-only mode</td><td><a href="https://docs.aws.amazon.com/aws-mcp/latest/userguide/getting-started-aws-mcp-server.html">AWS documentation</a></td><td>12 October 2026</td></tr>
+          <tr><th scope="row">Azure (Blob Storage)</th><td><span class="kind">Vendor</span> Azure MCP Server, Storage tools</td><td>Local (self-hosted deployment also documented)</td><td>Microsoft Entra ID through the Azure Identity library; Azure RBAC</td><td>Create, get, list and upload storage resources, within the caller's RBAC role</td><td><a href="https://learn.microsoft.com/en-us/azure/developer/azure-mcp-server/tools/azure-storage">Microsoft Learn</a></td><td>12 October 2026</td></tr>
+          <tr><th scope="row">Google Cloud (BigQuery)</th><td><span class="kind">Vendor</span> BigQuery remote MCP server; a local server through MCP Toolbox for Databases also exists</td><td>Remote</td><td>Google Cloud IAM, with centralised audit logging</td><td>Run queries, get metadata, list resources</td><td><a href="https://cloud.google.com/bigquery/docs/use-bigquery-mcp">Google Cloud documentation</a></td><td>12 October 2026</td></tr>
+          <tr><th scope="row">SAP</th><td><span class="kind kind--none">Two routes, neither a ready-made SAP server</span> SAP does not ship a ready-made MCP server for SAP business data. You can use SAP's MCP Gateway in SAP Integration Suite, which exposes the SAP APIs you choose as MCP tools. Or you can use the AWS for SAP MCP Server, built by AWS and generally available since 1 May 2026. It runs on Amazon Bedrock AgentCore and uses SAP's OData APIs for S/4HANA and ECC.</td><td>Remote: the SAP gateway, or AgentCore Runtime on AWS</td><td>Gateway: OAuth 2.0 with OIDC, with the user's identity propagated into SAP. AWS: AgentCore Identity with OAuth 2.0</td><td>Gateway: only the APIs and operations you publish, under the signed-in user's SAP authorisations. AWS: create, read, update and delete SAP business objects such as sales orders, purchase orders, materials and finance documents</td><td><a href="https://architecture.learning.sap.com/docs/ref-arch/d2e34e">SAP Architecture Center</a>; <a href="https://aws.amazon.com/about-aws/whats-new/2026/05/aws-sap-mcp-amazon-bedrock/">AWS announcement</a></td><td>12 October 2026</td></tr>
+          <tr><th scope="row">Salesforce</th><td><span class="kind">Vendor</span> Salesforce Hosted MCP Servers</td><td>Remote</td><td>Per-user OAuth 2.0 with PKCE</td><td>Read, create, update and delete records, respecting field-level security and sharing rules; admins choose which servers are enabled</td><td><a href="https://developer.salesforce.com/docs/platform/hosted-mcp-servers/guide/hosted-mcp-servers-overview.html">Salesforce Developers</a></td><td>12 October 2026</td></tr>
+          <tr><th scope="row">Databricks</th><td><span class="kind">Vendor</span> Databricks managed MCP servers (public preview)</td><td>Remote</td><td>OAuth, including on behalf of the user; Databricks data permissions always apply</td><td>Genie servers are read-only; the Databricks SQL server reads and writes; AI Search queries indexes</td><td><a href="https://docs.databricks.com/aws/en/generative-ai/mcp/managed-mcp">Databricks documentation</a></td><td>12 October 2026</td></tr>
+          <tr><th scope="row">ServiceNow</th><td><span class="kind">Vendor</span> MCP Server Console, with a pre-configured Quickstart Server</td><td>Remote (Streamable HTTP; stdio not supported)</td><td>OAuth 2.0 authorisation code grant; third-party identity providers supported</td><td>Only the tools an administrator packages; existing access controls and roles apply</td><td><a href="https://www.servicenow.com/community/servicenow-otto-articles/mcp-server-console-faq/ta-p/3550125">ServiceNow FAQ</a></td><td>12 October 2026</td></tr>
+          <tr><th scope="row">Atlassian (Jira, Confluence)</th><td><span class="kind">Vendor</span> Atlassian Rovo MCP Server</td><td>Remote</td><td>OAuth 2.1; API token optional</td><td>Search and summarise Jira and Confluence; create and update work items and pages, within the user's permissions</td><td><a href="https://support.atlassian.com/atlassian-rovo-mcp-server/docs/getting-started-with-the-atlassian-remote-mcp-server/">Atlassian Support</a></td><td>12 October 2026</td></tr>
+          <tr><th scope="row">Microsoft 365 (SharePoint, OneDrive, Word, Excel, PowerPoint files)</th><td><span class="kind">Vendor</span> Work IQ MCP servers (preview), including SharePoint, OneDrive and Word servers</td><td>Remote</td><td>Microsoft Entra ID; admins allow or block servers centrally; needs a Microsoft 365 Copilot licence</td><td>SharePoint: files of 5 MB or less, lists and sharing; OneDrive: the user's own files; Word: create and read documents</td><td><a href="https://learn.microsoft.com/en-us/microsoft-agent-365/tooling-servers-overview">Work IQ overview</a>, <a href="https://learn.microsoft.com/en-us/microsoft-agent-365/mcp-server-reference/sharepoint">SharePoint reference</a></td><td>12 October 2026</td></tr>
+          <tr><th scope="row">Looker</th><td><span class="kind">Vendor</span> Looker-managed MCP server (preview); MCP Toolbox for Databases for customer-hosted instances</td><td>Remote (instance URL plus /mcp)</td><td>OAuth 2.1; the agent inherits the signed-in user's Looker roles</td><td>Every tool is disabled until an admin enables it; then queries, Looks and dashboards the user can already see</td><td><a href="https://docs.cloud.google.com/looker/docs/mcp">Google Cloud documentation</a></td><td>12 October 2026</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <p class="note">Marks belong to their owners. Excel and PowerPoint files come through SharePoint and OneDrive; we found no dedicated server for either.</p>
+
+    <div class="panel lab" id="labD">
+      <h3>Lab 4: tool scoping</h3>
+      <p class="note">Loading every tool definition into every request spends context before work starts <a href="https://www.anthropic.com/engineering/code-execution-with-mcp">[L5]</a>. A System 1 router loads only the servers the task needs. Every input is an assumption; set them for your estate.</p>
+      <div class="params">
+        <label>MCP servers in the shed (assumption) <input id="dServers" type="number" min="1" max="500" value="11"></label>
+        <label>Tools per server (assumption) <input id="dTools" type="number" min="1" max="1000" value="36"></label>
+        <label>Tokens per tool definition (assumption) <input id="dTokens" type="number" min="1" max="10000" value="150"></label>
+        <label>Servers the task needs (assumption) <input id="dNeed" type="number" min="0" max="500" value="2"></label>
+        <label>Context window, tokens (assumption) <input id="dWindow" type="number" min="1000" max="10000000" step="1000" value="200000"></label>
+        <button class="primary" type="button" data-run="D">Run</button>
+      </div>
+      <details><summary>View and edit the code</summary><label class="sr-only" for="dCode">Lab 4 code</label><textarea id="dCode" spellcheck="false"></textarea>
+        <div class="controls"><button type="button" data-runedit="D">Run edited code</button><button type="button" data-reset="D">Reset code</button></div></details>
+      <div class="out" id="dOut" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 4. Reflexes ================= -->
+<section id="reflexes" class="band pillar" style="--c:var(--reflex)" aria-labelledby="reflexes-title">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Layer 2 · System 1 (Jev) · Reflexes</span>
+      <h2 id="reflexes-title">Fast models gate every step.</h2>
+      <p>A System 1 model is small and fast. It returns a typed decision with calibrated confidence, not free text. TypeSafe calls these System One models <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">[L8]</a>. Jev takes a state and typed questions, and returns typed answers, probabilities and a confidence that code can branch on <a href="https://docs.typesafe.ai/introduction">[L9]</a>.</p>
+    </div>
+    <div class="latency">
+      <p>TypeSafe reports 70 to 500 ms end to end <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">[L8]</a> <span class="tag">Vendor-reported</span>, against seconds for a frontier model. Fast enough to gate every tool call. It does not stop hallucination; it stops uncalibrated output becoming action.</p>
+      <p>An independent review measured a 524 ms median for a hosted round trip <a href="https://hackernoon.com/inside-jev-how-decision-models-trade-text-generation-for-typed-calibrated-answers">[L10]</a>.</p>
+    </div>
+
+    <div class="panel lab" id="labC">
+      <h3>Lab 3: per-action confidence thresholds</h3>
+      <p class="note">A simulated confidence gate; no model is called. A case is automated if its confidence clears the action's threshold, else reviewed at a cost of 1. Error costs (50, 2 and 5), review cost and 3,000 cases are illustrative; thresholds are editable assumptions. Raise overconfidence to watch calibration break.</p>
+      <div class="params">
+        <label>Overconfidence <input id="cOver" type="range" min="0" max="0.6" step="0.05" value="0"> <strong id="cOverV">0.00</strong></label>
+        <label>Approve schema change threshold (assumption) <input id="cT0" type="number" min="0.5" max="1" step="0.01" value="0.97"></label>
+        <label>Route migration ticket threshold (assumption) <input id="cT1" type="number" min="0.5" max="1" step="0.01" value="0.70"></label>
+        <label>Flag for review threshold (assumption) <input id="cT2" type="number" min="0.5" max="1" step="0.01" value="0.80"></label>
+        <button class="primary" type="button" data-run="C">Run</button>
+      </div>
+      <details><summary>View and edit the code</summary><label class="sr-only" for="cCode">Lab 3 code</label><textarea id="cCode" spellcheck="false"></textarea>
+        <div class="controls"><button type="button" data-runedit="C">Run edited code</button><button type="button" data-reset="C">Reset code</button></div></details>
+      <div class="out" id="cOut" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 3. Logic ================= -->
+<section id="logic" class="band pillar" style="--c:var(--logic)" aria-labelledby="logic-title">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Layer 3 · Gemini Enterprise Agent Platform · Skills and hooks</span>
+      <h2 id="logic-title">Playbooks as enforced steps.</h2>
+      <p>Skills give agents a fixed playbook per migration pattern. Hooks run around tool calls to validate schemas, block unsafe actions and require approval. Less drift, broken code and malformed schemas.</p>
+    </div>
+    <div class="logic-grid">
+      <figure class="code-fig">
+        <figcaption><strong>A skill</strong> <span class="tag">Illustrative</span><br>A short <code>SKILL.md</code> for one migration pattern. Fixed steps mean two runs follow the same path.</figcaption>
+<pre><code>---
+name: migrate-sap-table-to-bigquery
+description: Migrate one SAP table to BigQuery without breaking downstream reports.
+---
+# Migrate an SAP table to BigQuery
+
+1. Read lineage. Ask the lineage graph for every column, job
+   and report downstream of the table. If the table is not in
+   the graph, stop and ask.
+2. Generate DDL. Write the BigQuery CREATE TABLE statement
+   from the SAP data dictionary, using the agreed type map.
+3. Generate view aliases. For every renamed column, create a
+   view that keeps the old name so downstream reports still work.
+4. Validate against the target schema. Fail on a missing
+   column, a type mismatch or a changed key.
+5. Write the eval record: decision, confidence, tools called,
+   tokens, latency and outcome.</code></pre>
+      </figure>
+      <figure class="code-fig">
+        <figcaption><strong>A pre-tool-call hook</strong> <span class="tag">Illustrative</span><br>Runs before every tool call and can block it. Agents cannot argue past it.</figcaption>
+<pre><code>def before_tool_call(call, context):
+    # Block writes to production unless a person has approved them
+    if call.is_write and call.target_env == "production":
+        if not context.has_valid_approval_token(call):
+            return block("Writes to production need an approval token.")
+
+    # Check generated DDL against the target schema before it runs
+    if call.tool == "bigquery.execute_ddl":
+        problems = validate_ddl(call.args["ddl"],
+                                target_schema(call.args["table"]))
+        if problems:
+            return block("DDL does not match the target schema: "
+                         + "; ".join(problems))
+
+    return allow()</code></pre>
+      </figure>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 2. Relational context ================= -->
+<section id="relational-context" class="band pillar" style="--c:var(--context)" aria-labelledby="context-title">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Layer 3 · Context fabric: Spanner Graph · Relational context</span>
+      <h2 id="context-title">A graph of lineage and meaning.</h2>
+      <p>A graph engine such as Spanner Graph records lineage across tables, jobs, files and reports, and what each business term means. Agents check upstream and downstream before any change.</p>
+    </div>
+
+    <article id="spanner-graph-spotlight" class="spotlight" aria-labelledby="spanner-title">
+      <div class="spotlight-main">
+        <div class="spotlight-copy">
+          <span class="eyebrow">Spotlight</span>
+          <p class="spotlight-product"><img src="../assets/engine-logos/google-cloud-spanner.svg" alt="" width="32" height="32">Google Cloud Spanner Graph</p>
+          <h3 id="spanner-title">One database. Relational and graph views.</h3>
+          <p class="spotlight-lede">Spanner Graph maps tables or SQL views into a property graph without copying data. GQL for graph patterns, SQL for relational work, or both.</p>
+          <ul class="spotlight-claims">
+            <li>Multi-model, per Google Cloud: a property graph schema declared over existing tables or views. Needs Enterprise or Enterprise Plus edition.</li>
+            <li>Graph queries use an ISO GQL-compatible interface.</li>
+            <li>GoogleSQL reads graph matches through <code>GRAPH_TABLE</code>, so graph and relational results meet in one query.</li>
+            <li>It inherits Spanner&rsquo;s scale, availability and strong consistency.</li>
+          </ul>
+          <p class="annotation">Capabilities are from Google Cloud documentation. Grades and scores below are this site&rsquo;s independent judgement. This spotlight does not change them; Spanner Graph keeps its evidence-based B grade. Jev, TypeSafe's System 1 decision model, is not a Google Cloud product.</p>
+          <ul class="spotlight-links" aria-label="Google Cloud documentation">
+            <li><a href="https://cloud.google.com/spanner/docs/graph/overview">Spanner Graph overview</a></li>
+            <li><a href="https://cloud.google.com/spanner/docs/graph/schema-overview">Graph schema overview</a></li>
+            <li><a href="https://cloud.google.com/spanner/docs/graph/queries-overview">Graph queries overview</a></li>
+            <li><a href="https://cloud.google.com/spanner/pricing">Spanner pricing</a></li>
+            <li><a href="https://cloud.google.com/discover/what-is-a-graph-database">What is a graph database?</a></li>
+          </ul>
+        </div>
+        <figure class="spotlight-art">
+          <img src="../assets/spanner-graph-architecture.svg" width="480" height="600" alt="Diagram: Spanner tables and SQL views hold one copy of the data, exposed both as a relational view queried with SQL and as a property graph queried with GQL. Together they give connected context to Jev, which answers, clarifies, sends for review or rejects.">
+        </figure>
+      </div>
+      <div class="spotlight-fit">
+        <section aria-labelledby="spanner-fit">
+          <h4 id="spanner-fit">Strong fit</h4>
+          <ul>
+            <li>Operational data already lives in Spanner.</li>
+            <li>You need relational and relationship queries over the same data.</li>
+            <li>Strong consistency and managed multi-region matter.</li>
+            <li>You prefer a managed Google Cloud database.</li>
+            <li>Graph context should sit next to transactional facts, not in a synced copy.</li>
+          </ul>
+        </section>
+        <section aria-labelledby="spanner-care">
+          <h4 id="spanner-care">Consider carefully</h4>
+          <ul>
+            <li>It is a Google Cloud service, not portable or embedded.</li>
+            <li>Cost and capacity follow Spanner&rsquo;s model.</li>
+            <li>Test schema mapping, query shape, latency and traversal depth on representative data.</li>
+            <li>Test the GQL features and graph algorithms you need; do not assume parity with graph-native products.</li>
+            <li>A dedicated graph store may suit some graph-first workloads better.</li>
+          </ul>
+        </section>
+      </div>
+    </article>
+
+    <details class="tech" open>
+      <summary><span>Engine grades and scores<small>Graded against the job each engine is built for.</small></span></summary>
+      <div class="body">
+        <p>Embedded and clustered engines do different jobs. Weights are the author's judgement: traversal depth 30%, operations 25%, total cost 20%, vendor viability 15%, fit for decision-model state 10%.</p>
+        <div class="controls" role="group" aria-label="Choose job">
+          <button type="button" id="jobShared" aria-pressed="true">Shared production service</button>
+          <button type="button" id="jobEmbed">Embedded or per-session memory</button>
+        </div>
+        <div class="legend">
+          <span style="--c:var(--native)">Native graph store</span>
+          <span style="--c:var(--over)">Graph over existing data</span>
+          <span style="--c:var(--doc)">Document store with graph features</span>
+          <span style="--c:var(--embed)">Embedded</span>
+        </div>
+        <div class="panel chart" id="gradeChart"></div>
+        <h3 style="margin:32px 0 8px">Scores by criterion</h3>
+        <p>Scores out of 5: judgement, not measurement. PuppyGraph's depth score rests on unverified vendor figures.</p>
+        <div class="panel scroll"><table class="heat" id="heat"></table></div>
+      </div>
+    </details>
+
+    <details class="tech">
+      <summary><span>Entry production cost<small>Approximate monthly list prices in USD, as at 25 September 2026; Spanner Graph checked 2 October 2026.</small></span></summary>
+      <div class="body">
+        <p>Paler bars show a range. Native stores' duplication and sync costs, often larger, are excluded. Vendor pricing: <a href="#sources">Sources and caveats</a>.</p>
+        <div class="panel chart" id="costChart"></div>
+      </div>
+    </details>
+
+    <h3 class="sub">Labs on the sample estate</h3>
+    <p>Both run in your browser on the landing page's 15-fact sample estate: SAP, BigQuery, Databricks, Looker, Salesforce and SharePoint objects linked by lineage. Edit the settings or the code.</p>
+
+    <div class="panel lab" id="labA">
+      <h3>Lab 1: hybrid text against graph retrieval</h3>
+      <p class="note">The usual text baseline: BM25 over node text plus all-MiniLM-L6-v2 dense similarity, fused by reciprocal rank fusion. <code>scripts/dense.py</code> precomputes dense scores for the four presets; typed questions use BM25 only. Graph retrieval follows relationships from the named entities.</p>
+      <div class="params">
+        <label class="wide">Question <input id="aQ" value="Which dashboards use KNA1.REGION?" list="aQList"></label>
+        <datalist id="aQList"><option value="Which dashboards use KNA1.REGION?"></option><option value="What feeds the regulatory return?"></option><option value="Which workbook is the source of the price list?"></option><option value="What does customer_sync write?"></option></datalist>
+        <label>Hops <input id="aK" type="number" min="1" max="4" value="2"></label>
+        <button class="primary" type="button" data-run="A">Run</button>
+      </div>
+      <details><summary>View and edit the code</summary><label class="sr-only" for="aCode">Lab 1 code</label><textarea id="aCode" spellcheck="false"></textarea>
+        <div class="controls"><button type="button" data-runedit="A">Run edited code</button><button type="button" data-reset="A">Reset code</button></div></details>
+      <div class="out" id="aOut" aria-live="polite"></div>
+    </div>
+
+    <div class="panel lab" id="labB">
+      <h3>Lab 2: best context for a token budget</h3>
+      <p class="note">Personalised PageRank ranks nodes by centrality to the start entity; the top text fills the budget. TypeSafe documents 64k tokens per request for Jev 1.13, 32k for state plus the longest question <a href="https://docs.typesafe.ai/models">[TypeSafe models]</a>. This tiny graph gets a scaled-down budget, at 1.3 tokens per word.</p>
+      <div class="params">
+        <label>Start at <select id="bSeed"></select></label>
+        <label>Budget <input id="bBudget" type="range" min="20" max="200" step="5" value="70"> <strong id="bBudgetV">70</strong> tokens</label>
+        <button class="primary" type="button" data-run="B">Run</button>
+      </div>
+      <details><summary>View and edit the code</summary><label class="sr-only" for="bCode">Lab 2 code</label><textarea id="bCode" spellcheck="false"></textarea>
+        <div class="controls"><button type="button" data-runedit="B">Run edited code</button><button type="button" data-reset="B">Reset code</button></div></details>
+      <div class="out" id="bOut" aria-live="polite"></div>
+    </div>
+
+    <div class="dialects">
+      <h3 class="sub">One question, five dialects</h3>
+      <p>Which dashboards use KNA1.REGION? One two-hop lineage query: SAP column, BigQuery mapping, Looker dashboards.</p>
+      <div class="tabs" id="snipTabs" role="group" aria-label="Query dialect"></div>
+      <div class="snip"><pre><code id="snipCode"></code></pre><button class="copy" type="button" id="snipCopy">Copy</button></div>
+      <p class="note" id="snipNote" aria-live="polite"></p>
+      <p class="note">MongoDB behaviour: <a href="https://www.mongodb.com/docs/manual/reference/operator/aggregation/graphLookup/">$graphLookup documentation</a>.</p>
+    </div>
+
+    <details class="tech">
+      <summary><span>Run it on your laptop<small>Local options, where they exist.</small></span></summary>
+      <div class="body">
+        <p>Neptune, Spanner Graph and Fabric graph are cloud-only.</p>
+        <div class="runlist" id="runList"></div>
+      </div>
+    </details>
+  </div>
+</section>
+
+<!-- ================= 5. Visibility and cost ================= -->
+<section id="visibility-and-cost" class="band pillar" style="--c:var(--visibility)" aria-labelledby="visibility-title">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Layer 4 · Modernisation Springboard · Visibility and cost</span>
+      <h2 id="visibility-title">What agents did, and what it cost.</h2>
+      <p>Every agent step writes an eval record: decision, confidence, tools called, tokens, latency and outcome. Engineers mine them for failure patterns. BigQuery is the destination lakehouse for migrated data and the store for telemetry, audit logs and these records. Looker reports cost per migrated object: today's spend and tomorrow's run cost.</p>
+    </div>
+    <div class="logic-grid">
+      <figure class="code-fig">
+        <figcaption><strong>One eval record</strong> <span class="tag">Illustrative</span><br>One JSON object per step; values are made up. <code>cost_usd</code> is null: compute it from tokens and your contracted rates.</figcaption>
+<pre><code>{
+  "run_id": "run-2026-10-12-0042",
+  "step": "validate_schema",
+  "agent": "migration-agent",
+  "skill": "migrate-sap-table-to-bigquery",
+  "tools_called": ["lineage.read", "bigquery.get_table_schema"],
+  "decision": "proceed",
+  "confidence": 0.94,
+  "outcome": "answer",
+  "tokens_in": 1820,
+  "tokens_out": 140,
+  "latency_ms": 310,
+  "cost_usd": null,
+  "object_id": "sap:KNA1",
+  "timestamp": "2026-10-12T04:15:00Z"
+}</code></pre>
+      </figure>
+      <figure class="code-fig">
+        <figcaption><strong>The BigQuery table</strong> <span class="tag">Illustrative</span><br>Partitioned by day, so reports scan only needed dates. Clustered by skill and outcome for the tiles <a href="https://cloud.google.com/bigquery/docs">[L11]</a>.</figcaption>
+<pre><code>CREATE TABLE IF NOT EXISTS migration_evals.eval_records (
+  run_id       STRING    NOT NULL,
+  step         STRING    NOT NULL,
+  agent        STRING,
+  skill        STRING,
+  tools_called ARRAY&lt;STRING&gt;,
+  decision     STRING,
+  confidence   FLOAT64,
+  outcome      STRING,
+  tokens_in    INT64,
+  tokens_out   INT64,
+  latency_ms   INT64,
+  cost_usd     NUMERIC,
+  object_id    STRING,
+  timestamp    TIMESTAMP NOT NULL
+)
+PARTITION BY DATE(timestamp)
+CLUSTER BY skill, outcome
+OPTIONS (description = "One row per agent step");</code></pre>
+      </figure>
+    </div>
+    <h3 class="sub">Three Looker tiles</h3>
+    <p>Built in Looker over this table <a href="https://cloud.google.com/looker/docs">[L12]</a>. No figures shown; none have been measured.</p>
+    <ol class="tiles">
+      <li><strong>Cost per migrated object.</strong> <code>cost_usd</code> summed over distinct <code>object_id</code> values whose final step ended in <code>answer</code>, by week. Is it falling as skills and thresholds improve?</li>
+      <li><strong>Outcomes by step.</strong> Step counts by <code>step</code>, stacked by <code>outcome</code> (answer, clarify, reject, review, no_data; shown as Proceed, Ask, Refuse, Escalate and No data). Where agents stop, and why.</li>
+      <li><strong>Escalation rate by skill.</strong> Share of steps with outcome <code>review</code> per <code>skill</code>, with median <code>confidence</code>. A rise flags a playbook or threshold to fix.</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ================= Sources ================= -->
+<section id="sources" class="band band--paper" aria-labelledby="sources-title">
+  <div class="wrap">
+    <h2 id="sources-title">Sources and caveats</h2>
+    <p class="annotation">Prices are vendor list prices checked on 25 September 2026. Confirm with each vendor's calculator before quoting. Memgraph was checked on 30 September 2026. Spanner Graph was checked on 2 October 2026: Enterprise edition in us-central1 is $0.41 per replica hour, three replicas per regional node, so $1.23 per node hour. Over 730 hours that is about $90 for 100 processing units and $898 for one node, before storage, backups and network. PuppyGraph, FalkorDB and Jev performance claims are vendor-reported. Kuzu was archived in October 2025; the forks named here are community-maintained. Grades are the author's judgement against the stated weights. The MCP server catalogue and TypeSafe context length were checked on 12 October 2026.</p>
+    <p class="annotation">Vendor pages: <a href="https://neo4j.com/pricing/">Neo4j</a>, <a href="https://www.falkordb.com/plans/">FalkorDB</a>, <a href="https://memgraph.com/pricing">Memgraph</a> (<a href="https://github.com/memgraph/memgraph/blob/master/licenses/BSL.txt">Community licence</a>: BSL 1.1; internal production use, no database-as-a-service; each version becomes Apache 2.0 on its licence's change date, at most four years after release), <a href="https://aws.amazon.com/neptune/pricing/">Neptune</a>, <a href="https://cloud.google.com/spanner/pricing">Spanner pricing</a> (capabilities: <a href="https://cloud.google.com/spanner/docs/graph/overview">Spanner Graph overview</a>, <a href="https://cloud.google.com/spanner/docs/graph/queries-overview">graph queries</a>, <a href="https://cloud.google.com/discover/what-is-a-graph-database">what is a graph database</a>), <a href="https://www.puppygraph.com/pricing">PuppyGraph</a>, <a href="https://learn.microsoft.com/en-us/fabric/graph/overview">Fabric graph</a>, <a href="https://www.mongodb.com/pricing">MongoDB</a>, <a href="https://www.puppygraph.com/blog/what-is-kuzudb">Kuzu status</a>.</p>
+    <ul class="annotation src-list">
+      <li>[L5] Anthropic, <a href="https://www.anthropic.com/engineering/code-execution-with-mcp">Code execution with MCP</a>: the token cost of tool definitions and results.</li>
+      <li>[L7] <a href="https://modelcontextprotocol.io/specification/2026-07-28/server">MCP specification, server features</a>.</li>
+      <li>[L8] TypeSafe, <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">Introducing System One models and Jev</a>: 70 to 500 ms end-to-end, vendor-reported.</li>
+      <li>[L9] <a href="https://docs.typesafe.ai/introduction">TypeSafe documentation</a>, and the <a href="https://docs.typesafe.ai/models">Models page</a> for Jev 1.13's context length.</li>
+      <li>[L10] HackerNoon, <a href="https://hackernoon.com/inside-jev-how-decision-models-trade-text-generation-for-typed-calibrated-answers">Inside Jev</a>: 524 ms median for a hosted round trip.</li>
+      <li>[L11] <a href="https://cloud.google.com/bigquery/docs">BigQuery documentation</a>.</li>
+      <li>[L12] <a href="https://cloud.google.com/looker/docs">Looker documentation</a>.</li>
+      <li>[L13] <a href="https://cloud.google.com/spanner/docs/graph/overview">Spanner Graph overview</a>.</li>
+      <li>MongoDB <a href="https://www.mongodb.com/docs/manual/reference/operator/aggregation/graphLookup/">$graphLookup</a>: memory behaviour above 100 MB.</li>
+      <li>MCP server sources are linked in each row of the catalogue table above.</li>
+    </ul>
+  </div>
+</section>
+</main>
+<footer class="site-footer">
+  <div class="wrap">
+    <p><span data-brand="org">Accenture</span> · <span data-brand="kind">Thought piece</span></p>
+    <p data-brand="disclaimer">An Accenture thought piece on agentic migration and modernisation. It is not a product or service offer from Accenture or Google Cloud. Product names and marks belong to their owners.</p>
+    <p><a href="../environmental-agency/">Environmental Agency catalogue discovery</a> · <a href="../lineage-migration/">Lineage-guarded migration</a> · <a href="../little-bunnies/">Little Bunnies</a> · <a href="../technical-guide/">Technical guide</a></p>
+  </div>
+</footer>
+<script src="../js/estate-graph.js"></script>
+<script src="../js/labs.js"></script>
+</body>
+</html>

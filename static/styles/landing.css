@@ -1,0 +1,48 @@
+/* Landing page only. Shared tokens and components live in guide.css. */
+.hero-art{margin:0}
+.problem-grid h3{margin-bottom:14px}
+
+/* Pillar stack */
+.stack{margin-bottom:clamp(40px,6vw,72px)}
+.stack-layer{flex-wrap:wrap;row-gap:4px}
+.stack-layer span{flex:1 1 24ch}
+.go-deeper{font-weight:600}
+.go-deeper::after{content:" →"}
+.glossary-title{margin-bottom:16px}
+
+/* Guided example */
+.result .why{margin:0}
+.hop-note{margin-top:12px}
+.graph-stage .node text{font-size:9.5px}
+.graph-stage .node text:not(.hopbadge),.graph-stage .edge text{paint-order:stroke;stroke:var(--white);stroke-width:3px;stroke-linejoin:round}
+.outcome-key{list-style:none;margin:16px 0 0;padding:0;display:flex;flex-wrap:wrap;gap:8px 18px;font:600 var(--tiny)/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.outcome-key li{display:inline-flex;align-items:center;gap:8px}
+.outcome-key li::before{content:"";width:11px;height:11px;background:var(--k)}
+.outcome-key [data-outcome="answer"]{--k:var(--answer)}
+.outcome-key [data-outcome="answer"]::before{border-radius:50%}
+.outcome-key [data-outcome="clarify"],.outcome-key [data-outcome="review"]{--k:var(--review)}
+.outcome-key [data-outcome="clarify"]::before,.outcome-key [data-outcome="review"]::before{transform:rotate(45deg) scale(.85)}
+.outcome-key [data-outcome="reject"]{--k:var(--reject)}
+.outcome-key [data-outcome="reject"]::before{clip-path:polygon(50% 0,100% 100%,0 100%)}
+.outcome-key [data-outcome="no_data"]{--k:var(--muted)}
+
+/* Use cases */
+.blast{width:100%;height:100%}
+.blast line{stroke:#7a7a7a;stroke-width:3}
+.blast .hit{stroke:var(--evidence);stroke-width:5}
+.blast .ring{fill:var(--evidence-wash);stroke:var(--evidence);stroke-width:2;stroke-dasharray:8 6}
+.blast .src{fill:var(--purple-mid)}.blast .mid{fill:var(--evidence)}.blast .out{fill:var(--black)}
+.blast text{font:600 20px var(--sans);fill:var(--ink);text-anchor:middle;paint-order:stroke;stroke:var(--paper);stroke-width:6px;stroke-linejoin:round}
+.blast .cap{font:600 15px var(--mono);letter-spacing:.14em;fill:var(--evidence)}
+
+/* Governance and closing */
+.scope-note{margin-top:28px}
+.closing .wrap{display:grid;gap:18px;justify-items:start}
+.closing p{margin:0;font-size:1.15rem}
+
+/* Hero headline: the longer line needs a smaller size so the lede stays above the fold */
+.hero h1{font-size:clamp(2.25rem,4vw,3.25rem);max-width:none}
+
+/* Existing Stack: the base layer is the estate itself, drawn in neutral grey */
+.stack>[data-pillar="estate"]{--c:var(--muted)}
+.stack-layer b{min-width:11ch}

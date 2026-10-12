@@ -1,0 +1,27 @@
+/* Lineage-guarded migration page. Shapes always sit beside a text label. */
+.boundary--change{border-left-color:var(--review);background:var(--review-wash)}
+.demo-grid > *{min-width:0}
+
+.ln-stages{list-style:none;padding:0!important;display:flex;flex-wrap:wrap;gap:8px;max-width:none}
+.ln-stages li{margin:0;padding:8px 12px;background:var(--white);border:1.5px solid var(--rule);font-size:var(--small);line-height:1.35}
+.ln-stages b{display:block;font:600 var(--tiny)/1.2 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--purple-mid);margin-bottom:2px}
+
+.ln-steps{list-style:none;padding:0!important;max-width:none}
+.ln-steps li{display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0;padding:8px 0;border-bottom:1px solid var(--line)}
+.ln-status{display:inline-flex;align-items:center;gap:6px;font:600 var(--tiny)/1 var(--mono);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;color:var(--muted)}
+.ln-status::before{content:"";width:10px;height:10px;background:var(--muted);flex:none}
+.ln-status[data-status="done"]{color:var(--answer)}
+.ln-status[data-status="done"]::before{background:var(--answer);border-radius:50%}
+.ln-status[data-status="blocked"]{color:var(--reject)}
+.ln-status[data-status="blocked"]::before{background:var(--reject);clip-path:polygon(50% 0,100% 100%,0 100%)}
+
+.ln-eval{background:var(--white)}
+.ln-eval th{width:42%;font-weight:600;border-bottom-color:var(--line)}
+.ln-eval td{font-family:var(--mono);font-size:.85rem;overflow-wrap:anywhere}
+.ln-eval caption{caption-side:bottom;text-align:left;font-size:var(--small);color:var(--muted);padding-top:8px}
+
+.ln-key dt{display:flex;align-items:center;gap:8px}
+.ln-key dt::before{content:"";width:12px;height:12px;flex:none;background:var(--muted)}
+.ln-key [data-o="answer"] dt::before{background:var(--answer);border-radius:50%}
+.ln-key [data-o="clarify"] dt::before,.ln-key [data-o="review"] dt::before{background:var(--review);transform:rotate(45deg) scale(.85)}
+.ln-key [data-o="reject"] dt::before{background:var(--reject);clip-path:polygon(50% 0,100% 100%,0 100%)}

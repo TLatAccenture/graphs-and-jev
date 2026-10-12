@@ -23,7 +23,7 @@ fi
 unexpected="$(grep -Ev '^(Dockerfile|Cargo\.toml|Cargo\.lock|catalogue\.json|src/.+|static/.+)$' <<<"$upload_files" || true)"
 [[ -z "$unexpected" ]] || fail "unexpected upload files: $unexpected"
 upload_count="$(wc -l <<<"$upload_files" | tr -d ' ')"
-upload_bytes="$(while IFS= read -r file; do stat -f '%z' "$root/$file"; done <<<"$upload_files" | awk '{sum += $1} END {print sum + 0}')"
+upload_bytes="$(while IFS= read -r file; do wc -c <"$root/$file"; done <<<"$upload_files" | awk '{sum += $1} END {print sum + 0}')"
 (( upload_count > 4 && upload_count < 500 )) || fail "unsafe upload file count: $upload_count"
 (( upload_bytes < 5242880 )) || fail "unsafe upload bytes: $upload_bytes"
 
@@ -104,6 +104,28 @@ mock_build_args="$(cat "$mock_log")"
 [[ "$mock_build_args" == *'--tag=australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app:0123456789abcdef0123456789abcdef01234567'* ]] || fail "build tag missing full SHA: $mock_build_args"
 [[ "$mock_build_args" == *'--gcs-log-dir=gs://956922431929-australia-southeast1-cloudbuild-logs/logs'* ]] || fail "explicit logs bucket missing: $mock_build_args"
 [[ "$mock_build_args" == *'--service-account=projects/ninth-airship-386815/serviceAccounts/graphs-and-jev-builder@ninth-airship-386815.iam.gserviceaccount.com'* ]] || fail "build service account missing: $mock_build_args"
+cat >"$mock_dir/app.env" <<'ENV'
+BRAND_NAME='Shed "test" \ </script>'
+API_MODE=live
+API_MODE_LINEAGE=fixtures
+API_BASE_URL=https://api.example.run.app
+ENV
+rm -f "$mock_log"
+set +e
+mock_output="$(PATH="$mock_dir/bin:$PATH" MOCK_BUILD_LOG="$mock_log" "$script" "$mock_dir/app.env" 2>&1)"
+mock_status=$?
+set -e
+[[ "$mock_status" == 73 ]] || fail "valid app settings did not reach the build: $mock_status $mock_output"
+for bad_setting in 'API_MODE=remote' 'API_MODE_LINEAGE=Live' 'API_TIMEOUT_MS=soon' 'API_BASE_URL="https://api.example.com; script-src *"' "API_BASE_URL='javascript:alert(1)'"; do
+  printf '%s\n' "$bad_setting" >"$mock_dir/bad.env"
+  rm -f "$mock_log"
+  set +e
+  mock_output="$(PATH="$mock_dir/bin:$PATH" MOCK_BUILD_LOG="$mock_log" "$script" "$mock_dir/bad.env" 2>&1)"
+  mock_status=$?
+  set -e
+  [[ "$mock_status" == 1 && "$mock_output" == *'invalid app environment variables'* ]] || fail "bad app setting passed preflight: $bad_setting ($mock_status) $mock_output"
+  [[ ! -e "$mock_log" ]] || fail "bad app setting reached the build: $bad_setting"
+done
 if rg -n '^  gjd_(git_sha|revision_suffix|image_tag)$' "$script"; then fail 'bare derived-variable command remains'; fi
 rm -rf "$mock_dir"
 
@@ -182,18 +204,10 @@ contains 'gcloud beta run deploy' "$script"
 contains '--tag="$gjd_candidate_tag"' "$script"
 contains 'candidate_url' "$script"
 contains 'candidate_tag' "$script"
-contains 'poll_private_urls' "$script"
+contains 'check_anonymous' "$script"
 contains '401|403' "$script"
-contains 'privacy propagation' "$script"
-for service_exists in false true; do
-  deploy_args=(--no-allow-unauthenticated)
-  if [[ "$service_exists" == true ]]; then deploy_args=(--no-traffic --no-allow-unauthenticated); fi
-  if [[ "$service_exists" == false ]]; then
-    [[ " ${deploy_args[*]} " == *' --no-allow-unauthenticated '* && " ${deploy_args[*]} " != *' --no-traffic '* ]] || fail 'bootstrap command branch is not private/traffic-bearing'
-  else
-    [[ " ${deploy_args[*]} " == *' --no-traffic '* && " ${deploy_args[*]} " == *' --no-allow-unauthenticated '* ]] || fail 'existing-service command branch is not private zero-traffic'
-  fi
-done
+contains 'deploy/verify.py' "$script"
+contains 'gcloud auth print-identity-token' "$script"
 contains 'gjd_service_exists=false' "$script"
 contains 'classify_service_describe()' "$script"
 contains 'gjd_describe_status' "$script"
@@ -227,15 +241,44 @@ printf '%s' '{"metadata":{}}' >"$classifier_dir/out"
 if classify_service_describe 0 graphs-and-jev "$classifier_dir/out" "$classifier_dir/err" >/dev/null 2>&1; then fail 'malformed success was classified present'; fi
 rm -rf "$classifier_dir"
 
+[[ "$(app_env_json)" == '{}' ]] || fail 'empty app settings did not render {}'
+app_env_rendered="$(app_env_json 'BRAND_NAME=Shed "test" \ </script>, a=b' API_MODE=fixtures API_TIMEOUT_MS=9000)"
+python3 -c 'import json,sys; data=json.loads(sys.argv[1]); assert data == {"API_MODE": "fixtures", "API_TIMEOUT_MS": "9000", "BRAND_NAME": "Shed \"test\" \\ </script>, a=b"}, data' "$app_env_rendered" || fail "app settings did not round-trip: $app_env_rendered"
+# Same cases as invalid_site_settings_fail_at_startup / browser_parseable_base_urls_are_accepted in tests/api_boundary.rs.
+for good_url in https://api.example.run.app http://localhost:8080 http://127.0.0.1:8080 'https://[::1]:8443'; do
+  app_env_json "API_BASE_URL=$good_url" >/dev/null || fail "app_env_json rejected $good_url"
+done
+for bad_setting in API_MODE=remote API_MODE_CATALOGUE=LIVE API_TIMEOUT_MS=0 API_TIMEOUT_MS=-5 'API_BASE_URL=ftp://x' 'API_BASE_URL=https://user@x' 'API_BASE_URL=https://x y' \
+  'API_BASE_URL=https://' 'API_BASE_URL=https://:' 'API_BASE_URL=https://[]' 'API_BASE_URL=https://[::1' 'API_BASE_URL=https://[::1]x' 'API_BASE_URL=https://[fe80::1%eth0]' \
+  'API_BASE_URL=https://api.example.com:' 'API_BASE_URL=https://api.example.com:99999' 'API_BASE_URL=https://api.example.com:+80' \
+  'API_BASE_URL=https://api..example.com' 'API_BASE_URL=https://-api.example.com' 'API_BASE_URL=https://1.2.3.999' 'API_BASE_URL=https://api.example.com/a b' \
+  'API_BASE_URL=https://api.example.run.app/v1' 'API_BASE_URL=https://api.example.run.app/' 'API_BASE_URL=https://[::1]:8443?x=1' 'API_BASE_URL=https://api.example.run.app#f' \
+  'API_ROUTE_HEALTH=api/health' 'API_ROUTE_CATALOGUE=//evil.example/catalogue' 'API_ROUTE_PIPELINE=/api/pipe line' 'API_ROUTE_PIPELINE=/\evil.example'; do
+  if app_env_json "$bad_setting" >/dev/null 2>&1; then fail "app_env_json accepted $bad_setting"; fi
+done
+for app_key in BRAND_ORG BRAND_NAME BRAND_TAGLINE BRAND_KIND BRAND_DISCLAIMER API_MODE API_BASE_URL API_TIMEOUT_MS API_ROUTE_HEALTH API_ROUTE_CATALOGUE API_ROUTE_PIPELINE API_MODE_CATALOGUE API_MODE_LINEAGE; do
+  contains "$app_key" "$script"
+  contains "#${app_key}=" "$env_example"
+done
+contains 'gjd_app_env_args=(--env-vars-file="$gjd_app_env_file")' "$script"
+contains 'gjd_app_env_args=(--clear-env-vars)' "$script"
+contains '"${gjd_app_env_args[@]}"' "$script"
+contains 'sys.argv[18]' "$script"
+contains 'sys.argv[20]' "$script"
+if rg -n -- '--(update|set)-env-vars' "$script"; then fail 'deploy must pass app settings through the validated env-vars file'; fi
+
 contains '--no-allow-unauthenticated' "$script"
 contains 'service_private' "$script"
 contains 'candidate_zero_traffic' "$script"
 contains 'expected_bootstrap' "$script"
 contains 'gjd_deploy_traffic_args=(--no-allow-unauthenticated)' "$script"
-contains 'gjd_deploy_traffic_args=(--no-traffic --no-allow-unauthenticated)' "$script"
+contains 'gjd_deploy_traffic_args=(--no-traffic)' "$script"
 contains 'Validated private bootstrap revision' "$script"
-contains '--no-traffic' "$script"
-if rg -n -- '--allow-unauthenticated' "$script"; then fail 'deploy workflow contains a public IAM grant'; fi
+# IAM is service-wide: a candidate deploy onto an existing service must not touch it in either direction.
+[[ "$(rg -c -- '--no-allow-unauthenticated' "$script")" == 1 ]] || fail 'IAM flag must appear only on the bootstrap deploy'
+if rg -n -- '(^|[^-])--allow-unauthenticated|add-iam-policy-binding|set-iam-policy' "$script"; then fail 'deploy workflow changes service IAM'; fi
+contains 'live traffic changed during candidate deploy' "$script"
+contains 'service IAM changed during candidate deploy' "$script"
 # shellcheck disable=SC2016
 contains 'gjd_MIN_INSTANCES="${MIN_INSTANCES:-0}"' "$script"
 # shellcheck disable=SC2016
@@ -295,7 +338,7 @@ python3 -c "$validator" \
   "$validator_dir/service.json" "$validator_dir/revision.json" "$validator_dir/iam.json" \
   'australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' \
   'graphs-and-jev-runner@ninth-airship-386815.iam.gserviceaccount.com' 'graphs-and-jev-abc123' \
-  0 2 20 1 512Mi 30 /api/ready /api/health candidate-abc123 false "$validator_dir/effective.json"
+  0 2 20 1 512Mi 30 /api/ready /api/health candidate-abc123 false "$validator_dir/effective.json" '{}' false '{}'
 python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); assert data["revision"] == "graphs-and-jev-abc123"; assert data["image_digest"].endswith("a" * 64); assert data["service_private"] is True; assert data["candidate_zero_traffic"] is True; assert data["public_invocation"] is False; assert data["candidate_tag"] == "candidate-abc123"; assert data["candidate_url"].startswith("https://candidate-abc123---")' "$validator_dir/effective.json"
 cat >"$validator_dir/service-bootstrap.json" <<'JSON'
 {"metadata":{"name":"graphs-and-jev"},"status":{"url":"https://candidate.example.run.app","traffic":[{"tag":"candidate-abc123","revisionName":"graphs-and-jev-abc123","percent":100,"url":"https://candidate-abc123---graphs-and-jev.example.run.app"}]}}
@@ -307,10 +350,96 @@ python3 -c "$validator" \
   "$validator_dir/service-bootstrap.json" "$validator_dir/revision.json" "$validator_dir/iam-private.json" \
   'australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' \
   'graphs-and-jev-runner@ninth-airship-386815.iam.gserviceaccount.com' 'graphs-and-jev-abc123' \
-  0 2 20 1 512Mi 30 /api/ready /api/health candidate-abc123 true "$validator_dir/effective-bootstrap.json"
+  0 2 20 1 512Mi 30 /api/ready /api/health candidate-abc123 true "$validator_dir/effective-bootstrap.json" '{}' false '{}'
 python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); assert data["service_private"] is True; assert data["candidate_zero_traffic"] is False; assert data["public_invocation"] is False; assert data["traffic"][0]["percent"] == 100; assert data["service_url"] == "https://candidate.example.run.app"' "$validator_dir/effective-bootstrap.json"
+python3 - "$validator_dir/revision.json" "$validator_dir/revision-env.json" <<'PYENV'
+import json, sys
+revision = json.load(open(sys.argv[1]))
+revision["spec"]["containers"][0]["env"] = [{"name": "API_MODE", "value": "live"}, {"name": "BRAND_NAME", "value": "Shed \"test\""}]
+json.dump(revision, open(sys.argv[2], "w"))
+PYENV
+validator_args=(
+  'australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+  'graphs-and-jev-runner@ninth-airship-386815.iam.gserviceaccount.com' 'graphs-and-jev-abc123'
+  0 2 20 1 512Mi 30 /api/ready /api/health candidate-abc123 false "$validator_dir/effective-env.json"
+)
+python3 -c "$validator" "$validator_dir/service.json" "$validator_dir/revision-env.json" "$validator_dir/iam.json" \
+  "${validator_args[@]}" '{"API_MODE": "live", "BRAND_NAME": "Shed \"test\""}' false '{}'
+python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); assert data["app_env"] == {"API_MODE": "live", "BRAND_NAME": "Shed \"test\""}, data' "$validator_dir/effective-env.json"
+for stale_env in '{}' '{"API_MODE": "fixtures", "BRAND_NAME": "Shed \"test\""}'; do
+  if python3 -c "$validator" "$validator_dir/service.json" "$validator_dir/revision-env.json" "$validator_dir/iam.json" \
+    "${validator_args[@]}" "$stale_env" false '{}' >/dev/null 2>&1; then fail "validator accepted mismatched app env: $stale_env"; fi
+done
+# Existing public service: the candidate deploy must leave allUsers access and live traffic exactly as they were.
+cat >"$validator_dir/service-live.json" <<'JSON'
+{"metadata":{"name":"graphs-and-jev"},"status":{"url":"https://graphs-and-jev.example.run.app","traffic":[{"revisionName":"graphs-and-jev-old","percent":100},{"tag":"candidate-abc123","revisionName":"graphs-and-jev-abc123","percent":0,"url":"https://candidate-abc123---graphs-and-jev.example.run.app"}]}}
+JSON
+cat >"$validator_dir/iam-public.json" <<'JSON'
+{"bindings":[{"role":"roles/run.invoker","members":["allUsers"]}]}
+JSON
+python3 -c "$validator" "$validator_dir/service-live.json" "$validator_dir/revision.json" "$validator_dir/iam-public.json" \
+  "${validator_args[@]}" '{}' true '{"graphs-and-jev-old": 100}' || fail 'validator rejected an untouched public service'
+for case in "iam.json|true|{\"graphs-and-jev-old\": 100}" "iam-public.json|true|{\"graphs-and-jev-older\": 100}" "iam-public.json|false|{\"graphs-and-jev-old\": 100}"; do
+  IFS='|' read -r iam_file public serving <<<"$case"
+  if python3 -c "$validator" "$validator_dir/service-live.json" "$validator_dir/revision.json" "$validator_dir/$iam_file" \
+    "${validator_args[@]}" '{}' "$public" "$serving" >/dev/null 2>&1; then fail "validator accepted changed access or traffic: $case"; fi
+done
 if rg -n '\b(gjd_|GJ_)[A-Za-z_]*' <<<"$validator"; then fail 'shell namespace leaked into embedded Python'; fi
 trap - EXIT
 rm -rf "$validator_dir"
+
+promote="$root/deploy/promote.sh"
+[[ -x "$promote" ]] || fail "$promote must exist and be executable"
+bash -n "$promote"
+python3 -c 'import ast, sys; ast.parse(open(sys.argv[1]).read())' "$root/deploy/verify.py"
+promote_dir="$(mktemp -d)"
+mkdir -p "$promote_dir/deploy" "$promote_dir/bin"
+cp "$promote" "$promote_dir/deploy/promote.sh"
+cat >"$promote_dir/deploy/verify.py" <<'FAKE'
+import os, sys
+open(os.environ["MOCK_LOG"], "a").write(f"verify {sys.argv[1]} bearer={'yes' if os.environ.get('VERIFY_BEARER') else 'no'}\n")
+sys.exit(1 if sys.argv[1] == os.environ.get("FAIL_VERIFY_URL") else 0)
+FAKE
+cat >"$promote_dir/bin/gcloud" <<'MOCK'
+printf 'gcloud %s\n' "$*" >>"$MOCK_LOG"
+case "$*" in
+  "auth list"*) printf '%s\n' anthony.lui@archegon.com ;;
+  "auth print-identity-token"*) printf '%s\n' fake-token ;;
+  "config get-value project"*) printf '%s\n' ninth-airship-386815 ;;
+  "run services describe"*)
+    if [[ -e "$MOCK_STATE/promoted" ]]; then
+      printf '%s\n' '{"status":{"url":"https://live.example.run.app","traffic":[{"revisionName":"graphs-and-jev-new","percent":100,"tag":"candidate-new","url":"https://candidate-new---live.example.run.app"}]}}'
+    else
+      printf '%s\n' '{"status":{"url":"https://live.example.run.app","traffic":[{"revisionName":"graphs-and-jev-old","percent":100},{"revisionName":"graphs-and-jev-new","percent":0,"tag":"candidate-new","url":"https://candidate-new---live.example.run.app"}]}}'
+    fi ;;
+  "run services get-iam-policy"*) printf '%s\n' '{"bindings":[{"role":"roles/run.invoker","members":["allUsers"]}],"etag":"BwX"}' ;;
+  "run revisions describe"*) printf '%s\n' True ;;
+  "run services update-traffic"*"graphs-and-jev-new=100"*) : >"$MOCK_STATE/promoted" ;;
+  "run services update-traffic"*|"run services add-iam-policy-binding"*|"run services set-iam-policy"*) ;;
+  *) printf 'unexpected gcloud: %s\n' "$*" >&2; exit 72 ;;
+esac
+MOCK
+chmod +x "$promote_dir/bin/gcloud" "$promote_dir/deploy/promote.sh"
+run_promote() {
+  rm -rf "$promote_dir/state" && mkdir "$promote_dir/state"
+  : >"$promote_dir/log"
+  PATH="$promote_dir/bin:$PATH" MOCK_LOG="$promote_dir/log" MOCK_STATE="$promote_dir/state" FAIL_VERIFY_URL="$1" \
+    "$promote_dir/deploy/promote.sh" graphs-and-jev-new >"$promote_dir/out" 2>&1
+}
+run_promote '' || fail "promotion failed: $(cat "$promote_dir/out")"
+log="$(cat "$promote_dir/log")"
+[[ "$log" == *'verify https://candidate-new---live.example.run.app bearer=yes'* ]] || fail "candidate not verified with a token: $log"
+[[ "$log" == *'--to-revisions=graphs-and-jev-new=100'* && "$log" == *'add-iam-policy-binding graphs-and-jev'*'--member=allUsers --role=roles/run.invoker'* ]] || fail "promotion did not switch traffic and restore public access: $log"
+[[ "$log" == *'verify https://live.example.run.app bearer=no'* ]] || fail "canonical URL not verified anonymously: $log"
+[[ "$log" != *'set-iam-policy'* && "$log" != *'graphs-and-jev-old=100'* ]] || fail "successful promotion rolled back: $log"
+[[ "$log" != *fake-token* && "$(cat "$promote_dir/out")" != *fake-token* ]] || fail 'identity token leaked into argv or output'
+if run_promote 'https://candidate-new---live.example.run.app'; then fail 'promotion passed with a failing candidate'; fi
+log="$(cat "$promote_dir/log")"
+[[ "$log" != *update-traffic* && "$log" != *iam-policy-binding* && "$log" != *set-iam-policy* ]] || fail "failed candidate still changed the service: $log"
+if run_promote 'https://live.example.run.app'; then fail 'promotion passed with a failing canonical URL'; fi
+log="$(cat "$promote_dir/log")"
+[[ "$log" == *'--to-revisions=graphs-and-jev-old=100'* && "$log" == *'set-iam-policy graphs-and-jev'* ]] || fail "failed canonical check did not roll back traffic and IAM: $log"
+[[ "$(cat "$promote_dir/out")" == *'rolling back'* ]] || fail 'rollback was not reported'
+rm -rf "$promote_dir"
 
 printf 'deploy static checks passed\n'
