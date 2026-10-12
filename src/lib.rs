@@ -374,7 +374,8 @@ async fn security_headers(
     request: Request<Body>,
     next: Next,
 ) -> Response {
-    let assets = request.uri().path().starts_with("/assets/");
+    let path = request.uri().path().to_owned();
+    let assets = path.starts_with("/assets/");
     let mut response = next.run(request).await;
     let html = response
         .headers()
@@ -391,7 +392,7 @@ async fn security_headers(
         header::REFERRER_POLICY,
         HeaderValue::from_static("strict-origin-when-cross-origin"),
     );
-    headers.insert(header::CONTENT_SECURITY_POLICY, app.site.csp().clone());
+    headers.insert(header::CONTENT_SECURITY_POLICY, app.site.csp(&path).clone());
     if html {
         headers.insert(header::CACHE_CONTROL, HeaderValue::from_static("no-cache"));
     } else if cache_asset {

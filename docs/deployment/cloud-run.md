@@ -28,7 +28,9 @@ gcloud run revisions describe graphs-and-jev-e7cead061975 \
 
 `RATE_LIMIT_PER_MINUTE` is not set in the revision, so the compiled default is 120 expensive requests per minute. The limiter is process-local and global within each instance. With at most two instances, the aggregate ceiling can therefore reach 240 requests per minute and is not a stable per-client quota. Move enforcement to an edge or shared store before increasing the instance limit or requiring client-level guarantees.
 
-The service makes bounded HTTPS requests to Wikipedia and Europe PMC for the Parkinson's research path. A live canonical-URL request returned citations from both providers. No hosted-model credential or API token is present in the runtime configuration.
+The service makes no outbound requests: the Parkinson's research path and its HTTP client were removed in the MCP Shed revamp. No hosted-model credential or API token is present in the runtime configuration.
+
+The revision's environment variables come only from the allowlist in `deploy/deploy.sh` (`BRAND_*`, `API_*`; see `deploy/cloud-run.env.example`). The script validates them before any `gcloud` call, passes them with `--env-vars-file`, and confirms them on the candidate revision. With none set, the revision is deployed with `--clear-env-vars` and `/config.js` uses the service defaults.
 
 ## Build provenance and access
 
@@ -55,9 +57,9 @@ Run `IMAGE=graphs-and-jev:test scripts/smoke-container.sh` to repeat the root-fi
 
 ## Logging and monitoring
 
-Application logs are one JSON object per request with `request_id`, `route`, `status`, `latency_ms`, `outcome`, and `upstream_error_class`. The API returns the request ID in `x-request-id`. Tests assert that request and preference text do not enter structured logs, and upstream error messages are reduced to a class. Cloud Run platform request logs remain separate from these application records.
+Application logs are one JSON object per request with `request_id`, `route`, `status`, `latency_ms`, and `outcome`. The API returns the request ID in `x-request-id`. Tests assert that request and preference text do not enter structured logs,. Cloud Run platform request logs remain separate from these application records.
 
-Do not add raw request text, response evidence bodies, credentials, tokens, or personal data to logs. Monitor request status and latency by route, decision outcomes, upstream error classes, revision health, instance count, and cost.
+Do not add raw request text, response evidence bodies, credentials, tokens, or personal data to logs. Monitor request status and latency by route, decision outcomes, revision health, instance count, and cost.
 
 ## Release verification gates
 
@@ -66,7 +68,7 @@ Do not send production traffic to a candidate until all gates pass:
 1. `cargo test` and `cargo build --release` succeed from the committed tree.
 2. The local scratch image builds and `scripts/smoke-container.sh` passes.
 3. The image is addressed by digest and its revision reports the expected account, probes, limits, and zero candidate traffic.
-4. Candidate checks pass for health, readiness, all static routes, DCCEEW answer/clarify/reject, Parkinson's clinical rejection before retrieval, and either HTTPS research citations or an explicit bounded upstream failure.
+4. Candidate checks pass for health, readiness, `/config.js`, all static routes, catalogue answer/clarify/reject, and the lineage 501.
 5. Boundary checks return the expected 413/422 and 429 responses; logs contain request IDs and no submitted request text.
 6. Desktop and 390 px browser checks have no console errors or horizontal overflow.
 7. Canonical-URL checks pass after the traffic update.
@@ -92,7 +94,7 @@ gcloud run services update-traffic graphs-and-jev \
   --to-revisions=graphs-and-jev-6a52f35f2aa7=100
 ```
 
-Verify `/api/health`, `/api/ready`, `/`, `/dcceew/`, `/parkinsons/`, `/little-bunnies/`, and representative API outcomes. Restore the current revision with:
+Verify `/api/health`, `/api/ready`, `/`, `/technical-guide/`, `/environmental-agency/`, `/lineage-migration/`, `/little-bunnies/`, `/config.js`, and representative API outcomes. Restore the current revision with:
 
 ```bash
 gcloud run services update-traffic graphs-and-jev \

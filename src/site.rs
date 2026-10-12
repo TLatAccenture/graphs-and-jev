@@ -7,6 +7,7 @@ const DISCLAIMER: &str = "A personal research thought piece on agentic migration
 pub struct Site {
     config_js: String,
     csp: HeaderValue,
+    csp_labs: HeaderValue,
 }
 
 impl Default for Site {
@@ -73,15 +74,23 @@ impl Site {
             .replace('<', "\\u003c")
             .replace('\u{2028}', "\\u2028")
             .replace('\u{2029}', "\\u2029");
-        let csp = format!(
-            "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; \
-             style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; \
-             font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src {connect}; \
-             object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
-        );
+        // The technical-guide labs run edited code with `new Function`, so only that page gets 'unsafe-eval'.
+        let policy = |eval: &str| {
+            format!(
+                "default-src 'self'; script-src 'self' 'unsafe-inline'{eval}; \
+                 style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; \
+                 font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src {connect}; \
+                 object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
+            )
+        };
+        let header = |value: String| {
+            HeaderValue::from_str(&value)
+                .map_err(|_| "API_BASE_URL is not a valid origin.".to_string())
+        };
         Ok(Self {
             config_js: format!("window.SITE_CONFIG = {body};\n"),
-            csp: HeaderValue::from_str(&csp).map_err(|_| "API_BASE_URL is not a valid origin.")?,
+            csp: header(policy(""))?,
+            csp_labs: header(policy(" 'unsafe-eval'"))?,
         })
     }
 
@@ -89,8 +98,12 @@ impl Site {
         &self.config_js
     }
 
-    pub fn csp(&self) -> &HeaderValue {
-        &self.csp
+    pub fn csp(&self, path: &str) -> &HeaderValue {
+        if path.starts_with("/technical-guide") {
+            &self.csp_labs
+        } else {
+            &self.csp
+        }
     }
 }
 

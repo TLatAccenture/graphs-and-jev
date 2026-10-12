@@ -439,7 +439,7 @@ fn technical_guide_keeps_spanner_spotlight_without_regrading() {
 
 #[test]
 fn technical_guide_preserves_labs_snippets_runs_and_sources() {
-    let html = page("technical-guide/index.html");
+    let html = page("technical-guide/index.html") + &page("js/labs.js");
     for contract in [
         "id=\"labA\"",
         "id=\"labB\"",
@@ -475,7 +475,7 @@ fn quoted_after<'a>(row: &'a str, key: &str) -> Option<&'a str> {
 
 #[test]
 fn engine_marks_are_local_and_documented() {
-    let html = page("technical-guide/index.html");
+    let html = page("js/labs.js");
     let rows = engine_rows(&html);
     assert!(rows.len() >= 11, "engine metadata rows: {}", rows.len());
     for row in rows {

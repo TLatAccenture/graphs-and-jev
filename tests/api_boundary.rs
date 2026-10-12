@@ -451,6 +451,11 @@ async fn responses_carry_security_and_cache_headers() {
         ] {
             assert!(csp.contains(directive), "{path}: {directive} in {csp}");
         }
+        assert_eq!(
+            csp.contains("'unsafe-eval'"),
+            path == "/technical-guide/",
+            "{path}: 'unsafe-eval' only on the technical guide"
+        );
         let cache = response
             .headers()
             .get("cache-control")
