@@ -2,41 +2,39 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Parkinson’s research evidence · Graphs + Jev</title>
+<title>Lineage-guarded migration · The MCP Shed</title>
 <meta name="description" content="Research retrieval over public sources: the graph keeps typed relationships with their citations, and Jev refuses clinical requests before any search runs.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/guide.css">
+<link rel="stylesheet" href="../guide.css">
+<script src="../config.js"></script>
+<script src="../js/api.js"></script>
+<script src="../fixtures/lineage.js"></script>
 </head>
-<body>
+<body data-page-title="Lineage-guarded migration">
 <a class="skip" href="#main">Skip to content</a>
-<header class="site-header">
-  <div class="in">
-    <a class="brand" href="/">Graphs + Jev</a>
-    <nav class="site-nav" aria-label="Primary">
-      <a href="/#how-it-works">How it works</a>
-      <a href="/#use-cases" aria-current="true">Use cases</a>
-      <a href="/#technical-guide">Technical guide</a>
-      <a class="cta" href="#demo">Try the demo</a>
-    </nav>
-  </div>
-</header>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../"><span data-brand="name">The MCP Shed</span></a>
+  <nav class="site-nav" aria-label="Primary">
+    <a href="../#pillars">Approach</a>
+    <a href="../#use-cases" aria-current="true">Use cases</a>
+    <a href="../technical-guide/">Technical guide</a>
+    <a class="cta" href="#demo">Try the demo</a>
+  </nav>
+</div></header>
 <main id="main">
 
 <section class="page-hero" aria-labelledby="page-title">
   <div class="wrap">
     <div>
-      <nav class="crumb" aria-label="Breadcrumb"><a href="/">Graphs + Jev</a> / <a href="/#use-cases">Use cases</a> / <span aria-current="page">Parkinson’s research evidence</span></nav>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="../">Graphs + Jev</a> / <a href="../#use-cases">Use cases</a> / <span aria-current="page">Parkinson’s research evidence</span></nav>
       <p class="eyebrow">Use case · Research evidence</p>
       <h1 id="page-title">Trace Parkinson’s research back to its source.</h1>
       <p class="lede">A question about Parkinson’s research uses live public-source retrieval from Wikipedia and Europe PMC. The graph keeps each relationship a retrieved page states, typed and tied to its citation. Jev answers only when a page states a relationship, and refuses clinical requests before any search runs.</p>
       <p class="boundary"><strong>Research retrieval, not clinical advice.</strong>This page does not diagnose, prescribe, or recommend a dose or treatment. Questions that ask for any of these are refused. Speak to a qualified clinician about care.</p>
-    </div>
-    <div class="page-art">
-      <img src="/assets/parkinsons-research.svg" width="640" height="400" alt="Three publications linked by dashed citation lines to a compound, a protein target and a condition. A typed path runs from the compound to the target to the condition.">
     </div>
   </div>
 </section>
@@ -114,7 +112,9 @@
 </main>
 <footer class="site-footer">
   <div class="wrap">
-    <p><a href="/">Back to Graphs + Jev</a> · <a href="/dcceew/">DCCEEW catalogue discovery</a> · <a href="/little-bunnies/">Small-world context</a></p>
+    <p><span data-brand="org">Accenture</span> · <span data-brand="kind">Thought piece</span></p>
+    <p data-brand="disclaimer">A personal research thought piece on agentic migration and modernisation. It is not an official Accenture or Google Cloud product, a service offer or a statement of capability. Product names and marks belong to their owners.</p>
+    <p><a href="../environmental-agency/">Environmental Agency catalogue discovery</a> · <a href="../lineage-migration/">Lineage-guarded migration</a> · <a href="../little-bunnies/">Little Bunnies</a> · <a href="../technical-guide/">Technical guide</a></p>
   </div>
 </footer>
 
@@ -216,11 +216,7 @@ pdForm.addEventListener("submit", async (ev) => {
   try {
     let res;
     try {
-      res = await fetch("/api/pipeline", {
-        method: "POST",
-        headers: {"content-type": "application/json"},
-        body: JSON.stringify({backend: "catalogue", domain: "parkinsons", request})
-      });
+      res = await siteApi.pipeline({domain: "lineage", request});
     } catch (e) {
       render({outcome: "error", detail: "The research service could not be reached. Reload the page, then try again."});
       setStatus("Unavailable: the research service did not complete the request.", "unavailable");

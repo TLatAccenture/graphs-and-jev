@@ -2,40 +2,41 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<link rel="icon" href="/favicon.svg" type="image/svg+xml">
+<link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>DCCEEW catalogue discovery · Graphs + Jev</title>
+<title>Environmental Agency catalogue discovery · The MCP Shed</title>
 <meta name="description" content="How evidence reaches an AI system through RAG and MCP, how a graph connects it, and how Jev makes a bounded decision over an air-quality catalogue.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
-<link rel="stylesheet" href="/guide.css">
+<link rel="stylesheet" href="../guide.css">
+<script src="../config.js"></script>
+<script src="../js/api.js"></script>
+<script src="../fixtures/catalogue.js"></script>
 </head>
-<body class="ctx">
+<body class="ctx" data-page-title="Environmental Agency catalogue discovery">
 <a class="skip" href="#main">Skip to content</a>
-<header class="site-header">
-  <div class="in">
-    <a class="brand" href="/">Graphs + Jev</a>
-    <nav class="site-nav" aria-label="Primary">
-      <a href="/#how-it-works">How it works</a>
-      <a href="/#use-cases" aria-current="true">Use cases</a>
-      <a href="/#technical-guide">Technical guide</a>
-      <a class="cta" href="#demo">Try the demo</a>
-    </nav>
-  </div>
-</header>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../"><span data-brand="name">The MCP Shed</span></a>
+  <nav class="site-nav" aria-label="Primary">
+    <a href="../#pillars">Approach</a>
+    <a href="../#use-cases" aria-current="true">Use cases</a>
+    <a href="../technical-guide/">Technical guide</a>
+    <a class="cta" href="#demo">Try the demo</a>
+  </nav>
+</div></header>
 <main id="main">
 
 <section class="page-hero" aria-labelledby="page-title">
   <div class="wrap">
     <div>
-      <nav class="crumb" aria-label="Breadcrumb"><a href="/">Graphs + Jev</a> / <a href="/#use-cases">Use cases</a> / <span aria-current="page">DCCEEW catalogue discovery</span></nav>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="../">Graphs + Jev</a> / <a href="../#use-cases">Use cases</a> / <span aria-current="page">DCCEEW catalogue discovery</span></nav>
       <p class="eyebrow">Use case · Catalogue discovery</p>
       <h1 id="page-title">Find the datasets that actually answer the question.</h1>
       <p class="lede">A demonstration for the Department of Climate Change, Energy, the Environment and Water (DCCEEW). The evidence behind an answer is spread across documents, tables, catalogue records and reference data. First it has to be brought within reach. Then it has to be connected. Then someone, or something, has to decide whether it is enough to answer.</p>
     </div>
     <div class="page-art">
-      <img src="/assets/dcceew-landscape.svg" width="640" height="400" alt="A landscape of monitoring stations under bands of atmosphere. A highlighted path links a pollutant to a place and then to the dataset that measures it.">
+      <img src="../assets/environmental-agency-landscape.svg" width="640" height="400" alt="A landscape of monitoring stations under bands of atmosphere. A highlighted path links a pollutant to a place and then to the dataset that measures it.">
     </div>
   </div>
 </section>
@@ -364,7 +365,9 @@
 </main>
 <footer class="site-footer">
   <div class="wrap">
-    <p><a href="/">Back to Graphs + Jev</a> · <a href="/parkinsons/">Parkinson&rsquo;s research evidence</a> · <a href="/little-bunnies/">Small-world context</a></p>
+    <p><span data-brand="org">Accenture</span> · <span data-brand="kind">Thought piece</span></p>
+    <p data-brand="disclaimer">A personal research thought piece on agentic migration and modernisation. It is not an official Accenture or Google Cloud product, a service offer or a statement of capability. Product names and marks belong to their owners.</p>
+    <p><a href="../environmental-agency/">Environmental Agency catalogue discovery</a> · <a href="../lineage-migration/">Lineage-guarded migration</a> · <a href="../little-bunnies/">Little Bunnies</a> · <a href="../technical-guide/">Technical guide</a></p>
   </div>
 </footer>
 
@@ -406,7 +409,7 @@ function fact(dl, term, value) {
   const d = el("div"); d.append(el("dt", term), el("dd", value)); dl.append(d);
 }
 
-fetch("/api/catalogue").then(r => {
+siteApi.catalogue().then(r => {
   if (!r.ok) throw new Error("catalogue unavailable");
   return r.json();
 }).then(cat => {
@@ -466,7 +469,7 @@ function render(body) {
     fact(tech, "Breakdown", Object.entries(body.query.levels || {}).map(([k, v]) => k + ": " + v).join(", ") || "none");
   }
   if (body.stages) fact(tech, "Stages run", body.stages.map(s => s.title).join(" → "));
-  if (body.model) fact(tech, "Decided by", body.backend_label + " (" + body.model + "), " + body.residency);
+  if (outcome !== "error") fact(tech, "Decided by", siteApi.source("catalogue") + (body.model ? ": " + body.backend_label + " (" + body.model + "), " + body.residency : ""));
   if (body.totals) fact(tech, "Decisions", body.totals.decisions + " in " + body.totals.calls + " calls, " + body.totals.wall_ms + " ms");
   $("#raw").textContent = JSON.stringify(body, null, 2);
   result.hidden = false;
@@ -485,11 +488,7 @@ form.addEventListener("submit", async (ev) => {
   try {
     let res;
     try {
-      res = await fetch("/api/pipeline", {
-        method: "POST",
-        headers: {"content-type": "application/json"},
-        body: JSON.stringify({backend: "catalogue", request, preference: preference || null})
-      });
+      res = await siteApi.pipeline({domain: "catalogue", request, preference: preference || null});
     } catch (e) {
       render({outcome: "error", detail: "The service could not be reached. Reload the page, then try again."});
       setStatus("Unavailable: the service did not complete the request.", "unavailable");
