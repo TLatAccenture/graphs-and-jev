@@ -22,7 +22,7 @@ main section{scroll-margin-top:0}
 .pillar h3.sub{margin:clamp(40px,6vw,64px) 0 10px}
 .tag{display:inline-block;font:600 var(--tiny)/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:3px 7px;border:1px solid currentColor;color:var(--muted);vertical-align:1px}
 
-/* MCP shed catalogue */
+/* MCP Tool Shed catalogue */
 .mcp-table-wrap{margin:14px 0 10px;padding:0}
 .mcp-table{min-width:980px;font-size:.88rem}
 .mcp-table th[scope=row]{font-weight:700;width:12%}

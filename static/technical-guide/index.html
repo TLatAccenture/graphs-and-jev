@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>Technical guide · The MCP Shed</title>
-<meta name="description" content="How the five MCP shed pillars work: governed MCP servers, lineage graphs, System 1 gates and eval records. Runnable labs, engine grades and sources.">
+<title>Technical guide · The MCP Tool Shed</title>
+<meta name="description" content="How each layer of the MCP Tool Shed architecture works: governed MCP servers, lineage graphs, System 1 gates and eval records. Runnable labs, engine grades and sources.">
 <link rel="stylesheet" href="../guide.css">
 <link rel="stylesheet" href="../styles/tech.css">
 <script src="../config.js"></script>
@@ -14,7 +14,7 @@
 <body data-page-title="Technical guide">
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-header"><div class="in">
-  <a class="brand" href="../"><span data-brand="name">The MCP Shed</span></a>
+  <a class="brand" href="../"><span data-brand="name">The MCP Tool Shed</span></a>
   <nav class="site-nav" aria-label="Primary">
     <a href="../#pillars">Approach</a>
     <a href="../#use-cases">Use cases</a>
@@ -27,28 +27,29 @@
 <section class="page-hero" aria-labelledby="page-title">
   <div class="wrap">
     <div>
-      <nav class="crumb" aria-label="Breadcrumb"><a href="../"><span data-brand="name">The MCP Shed</span></a> / <span aria-current="page">Technical guide</span></nav>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="../"><span data-brand="name">The MCP Tool Shed</span></a> / <span aria-current="page">Technical guide</span></nav>
       <p class="eyebrow">Technical guide</p>
       <h1 id="page-title">Technical guide</h1>
-      <p class="lede">How each pillar works, with runnable labs, engine grades, costs and sources.</p>
+      <p class="lede">How each layer works, from the MCP Tool Shed to the Modernisation Springboard, with runnable labs, engine grades, costs and sources.</p>
     </div>
-    <ol class="pillar-key" aria-label="The five pillars, bottom of the stack first">
-      <li style="--c:var(--connect)"><span>1</span>Connectivity</li>
-      <li style="--c:var(--context)"><span>2</span>Relational context</li>
-      <li style="--c:var(--logic)"><span>3</span>Logic</li>
-      <li style="--c:var(--reflex)"><span>4</span>Reflexes</li>
-      <li style="--c:var(--visibility)"><span>5</span>Visibility and cost</li>
+    <ol class="pillar-key" aria-label="The layers, from the existing stack upwards">
+      <li style="--c:var(--muted)"><span>0</span>Existing Stack</li>
+      <li style="--c:var(--connect)"><span>1</span>MCP Tool Shed</li>
+      <li style="--c:var(--reflex)"><span>2</span>System 1 (Jev)</li>
+      <li style="--c:var(--logic)"><span>3</span>Gemini Enterprise Agent Platform</li>
+      <li style="--c:var(--context)"><span>3</span>Context fabric: Spanner Graph</li>
+      <li style="--c:var(--visibility)"><span>4</span>Modernisation Springboard</li>
     </ol>
   </div>
 </section>
 
 <nav class="toc" aria-label="On this page">
   <ol>
-    <li><a href="#connectivity" style="--c:var(--connect)">Connectivity</a></li>
-    <li><a href="#relational-context" style="--c:var(--context)">Relational context</a></li>
-    <li><a href="#logic" style="--c:var(--logic)">Logic</a></li>
-    <li><a href="#reflexes" style="--c:var(--reflex)">Reflexes</a></li>
-    <li><a href="#visibility-and-cost" style="--c:var(--visibility)">Visibility and cost</a></li>
+    <li><a href="#connectivity" style="--c:var(--connect)">MCP Tool Shed</a></li>
+    <li><a href="#reflexes" style="--c:var(--reflex)">System 1</a></li>
+    <li><a href="#logic" style="--c:var(--logic)">Skills and hooks</a></li>
+    <li><a href="#relational-context" style="--c:var(--context)">Context fabric</a></li>
+    <li><a href="#visibility-and-cost" style="--c:var(--visibility)">Springboard</a></li>
   </ol>
 </nav>
 
@@ -56,7 +57,7 @@
 <section id="connectivity" class="band pillar" style="--c:var(--connect)" aria-labelledby="connectivity-title">
   <div class="wrap">
     <div class="section-head">
-      <span class="eyebrow">Pillar 1 · Connectivity</span>
+      <span class="eyebrow">Layer 1 · MCP Tool Shed · Connectivity</span>
       <h2 id="connectivity-title">Governed MCP servers replace one-off scripts.</h2>
       <p>One MCP server per system, with scoped, short-lived credentials and an audit trail. Agents get only the servers they need. No spare tool definitions in context, no secrets in scripts.</p>
     </div>
@@ -101,11 +102,92 @@
   </div>
 </section>
 
+<!-- ================= 4. Reflexes ================= -->
+<section id="reflexes" class="band pillar" style="--c:var(--reflex)" aria-labelledby="reflexes-title">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Layer 2 · System 1 (Jev) · Reflexes</span>
+      <h2 id="reflexes-title">Fast models gate every step.</h2>
+      <p>A System 1 model is small and fast. It returns a typed decision with calibrated confidence, not free text. TypeSafe calls these System One models <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">[L8]</a>. Jev takes a state and typed questions, and returns typed answers, probabilities and a confidence that code can branch on <a href="https://docs.typesafe.ai/introduction">[L9]</a>.</p>
+    </div>
+    <div class="latency">
+      <p>TypeSafe reports 70 to 500 ms end to end <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">[L8]</a> <span class="tag">Vendor-reported</span>, against seconds for a frontier model. Fast enough to gate every tool call. It does not stop hallucination; it stops uncalibrated output becoming action.</p>
+      <p>An independent review measured a 524 ms median for a hosted round trip <a href="https://hackernoon.com/inside-jev-how-decision-models-trade-text-generation-for-typed-calibrated-answers">[L10]</a>.</p>
+    </div>
+
+    <div class="panel lab" id="labC">
+      <h3>Lab 3: per-action confidence thresholds</h3>
+      <p class="note">A simulated confidence gate; no model is called. A case is automated if its confidence clears the action's threshold, else reviewed at a cost of 1. Error costs (50, 2 and 5), review cost and 3,000 cases are illustrative; thresholds are editable assumptions. Raise overconfidence to watch calibration break.</p>
+      <div class="params">
+        <label>Overconfidence <input id="cOver" type="range" min="0" max="0.6" step="0.05" value="0"> <strong id="cOverV">0.00</strong></label>
+        <label>Approve schema change threshold (assumption) <input id="cT0" type="number" min="0.5" max="1" step="0.01" value="0.97"></label>
+        <label>Route migration ticket threshold (assumption) <input id="cT1" type="number" min="0.5" max="1" step="0.01" value="0.70"></label>
+        <label>Flag for review threshold (assumption) <input id="cT2" type="number" min="0.5" max="1" step="0.01" value="0.80"></label>
+        <button class="primary" type="button" data-run="C">Run</button>
+      </div>
+      <details><summary>View and edit the code</summary><label class="sr-only" for="cCode">Lab 3 code</label><textarea id="cCode" spellcheck="false"></textarea>
+        <div class="controls"><button type="button" data-runedit="C">Run edited code</button><button type="button" data-reset="C">Reset code</button></div></details>
+      <div class="out" id="cOut" aria-live="polite"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= 3. Logic ================= -->
+<section id="logic" class="band pillar" style="--c:var(--logic)" aria-labelledby="logic-title">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Layer 3 · Gemini Enterprise Agent Platform · Skills and hooks</span>
+      <h2 id="logic-title">Playbooks as enforced steps.</h2>
+      <p>Skills give agents a fixed playbook per migration pattern. Hooks run around tool calls to validate schemas, block unsafe actions and require approval. Less drift, broken code and malformed schemas.</p>
+    </div>
+    <div class="logic-grid">
+      <figure class="code-fig">
+        <figcaption><strong>A skill</strong> <span class="tag">Illustrative</span><br>A short <code>SKILL.md</code> for one migration pattern. Fixed steps mean two runs follow the same path.</figcaption>
+<pre><code>---
+name: migrate-sap-table-to-bigquery
+description: Migrate one SAP table to BigQuery without breaking downstream reports.
+---
+# Migrate an SAP table to BigQuery
+
+1. Read lineage. Ask the lineage graph for every column, job
+   and report downstream of the table. If the table is not in
+   the graph, stop and ask.
+2. Generate DDL. Write the BigQuery CREATE TABLE statement
+   from the SAP data dictionary, using the agreed type map.
+3. Generate view aliases. For every renamed column, create a
+   view that keeps the old name so downstream reports still work.
+4. Validate against the target schema. Fail on a missing
+   column, a type mismatch or a changed key.
+5. Write the eval record: decision, confidence, tools called,
+   tokens, latency and outcome.</code></pre>
+      </figure>
+      <figure class="code-fig">
+        <figcaption><strong>A pre-tool-call hook</strong> <span class="tag">Illustrative</span><br>Runs before every tool call and can block it. Agents cannot argue past it.</figcaption>
+<pre><code>def before_tool_call(call, context):
+    # Block writes to production unless a person has approved them
+    if call.is_write and call.target_env == "production":
+        if not context.has_valid_approval_token(call):
+            return block("Writes to production need an approval token.")
+
+    # Check generated DDL against the target schema before it runs
+    if call.tool == "bigquery.execute_ddl":
+        problems = validate_ddl(call.args["ddl"],
+                                target_schema(call.args["table"]))
+        if problems:
+            return block("DDL does not match the target schema: "
+                         + "; ".join(problems))
+
+    return allow()</code></pre>
+      </figure>
+    </div>
+  </div>
+</section>
+
 <!-- ================= 2. Relational context ================= -->
 <section id="relational-context" class="band pillar" style="--c:var(--context)" aria-labelledby="context-title">
   <div class="wrap">
     <div class="section-head">
-      <span class="eyebrow">Pillar 2 · Relational context</span>
+      <span class="eyebrow">Layer 3 · Context fabric: Spanner Graph · Relational context</span>
       <h2 id="context-title">A graph of lineage and meaning.</h2>
       <p>A graph engine such as Spanner Graph records lineage across tables, jobs, files and reports, and what each business term means. Agents check upstream and downstream before any change.</p>
     </div>
@@ -238,94 +320,13 @@
   </div>
 </section>
 
-<!-- ================= 3. Logic ================= -->
-<section id="logic" class="band pillar" style="--c:var(--logic)" aria-labelledby="logic-title">
-  <div class="wrap">
-    <div class="section-head">
-      <span class="eyebrow">Pillar 3 · Logic</span>
-      <h2 id="logic-title">Playbooks as enforced steps.</h2>
-      <p>Skills give agents a fixed playbook per migration pattern. Hooks run around tool calls to validate schemas, block unsafe actions and require approval. Less drift, broken code and malformed schemas.</p>
-    </div>
-    <div class="logic-grid">
-      <figure class="code-fig">
-        <figcaption><strong>A skill</strong> <span class="tag">Illustrative</span><br>A short <code>SKILL.md</code> for one migration pattern. Fixed steps mean two runs follow the same path.</figcaption>
-<pre><code>---
-name: migrate-sap-table-to-bigquery
-description: Migrate one SAP table to BigQuery without breaking downstream reports.
----
-# Migrate an SAP table to BigQuery
-
-1. Read lineage. Ask the lineage graph for every column, job
-   and report downstream of the table. If the table is not in
-   the graph, stop and ask.
-2. Generate DDL. Write the BigQuery CREATE TABLE statement
-   from the SAP data dictionary, using the agreed type map.
-3. Generate view aliases. For every renamed column, create a
-   view that keeps the old name so downstream reports still work.
-4. Validate against the target schema. Fail on a missing
-   column, a type mismatch or a changed key.
-5. Write the eval record: decision, confidence, tools called,
-   tokens, latency and outcome.</code></pre>
-      </figure>
-      <figure class="code-fig">
-        <figcaption><strong>A pre-tool-call hook</strong> <span class="tag">Illustrative</span><br>Runs before every tool call and can block it. Agents cannot argue past it.</figcaption>
-<pre><code>def before_tool_call(call, context):
-    # Block writes to production unless a person has approved them
-    if call.is_write and call.target_env == "production":
-        if not context.has_valid_approval_token(call):
-            return block("Writes to production need an approval token.")
-
-    # Check generated DDL against the target schema before it runs
-    if call.tool == "bigquery.execute_ddl":
-        problems = validate_ddl(call.args["ddl"],
-                                target_schema(call.args["table"]))
-        if problems:
-            return block("DDL does not match the target schema: "
-                         + "; ".join(problems))
-
-    return allow()</code></pre>
-      </figure>
-    </div>
-  </div>
-</section>
-
-<!-- ================= 4. Reflexes ================= -->
-<section id="reflexes" class="band pillar" style="--c:var(--reflex)" aria-labelledby="reflexes-title">
-  <div class="wrap">
-    <div class="section-head">
-      <span class="eyebrow">Pillar 4 · Reflexes</span>
-      <h2 id="reflexes-title">Fast models gate every step.</h2>
-      <p>A System 1 model is small and fast. It returns a typed decision with calibrated confidence, not free text. TypeSafe calls these System One models <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">[L8]</a>. Jev takes a state and typed questions, and returns typed answers, probabilities and a confidence that code can branch on <a href="https://docs.typesafe.ai/introduction">[L9]</a>.</p>
-    </div>
-    <div class="latency">
-      <p>TypeSafe reports 70 to 500 ms end to end <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">[L8]</a> <span class="tag">Vendor-reported</span>, against seconds for a frontier model. Fast enough to gate every tool call. It does not stop hallucination; it stops uncalibrated output becoming action.</p>
-      <p>An independent review measured a 524 ms median for a hosted round trip <a href="https://hackernoon.com/inside-jev-how-decision-models-trade-text-generation-for-typed-calibrated-answers">[L10]</a>.</p>
-    </div>
-
-    <div class="panel lab" id="labC">
-      <h3>Lab 3: per-action confidence thresholds</h3>
-      <p class="note">A simulated confidence gate; no model is called. A case is automated if its confidence clears the action's threshold, else reviewed at a cost of 1. Error costs (50, 2 and 5), review cost and 3,000 cases are illustrative; thresholds are editable assumptions. Raise overconfidence to watch calibration break.</p>
-      <div class="params">
-        <label>Overconfidence <input id="cOver" type="range" min="0" max="0.6" step="0.05" value="0"> <strong id="cOverV">0.00</strong></label>
-        <label>Approve schema change threshold (assumption) <input id="cT0" type="number" min="0.5" max="1" step="0.01" value="0.97"></label>
-        <label>Route migration ticket threshold (assumption) <input id="cT1" type="number" min="0.5" max="1" step="0.01" value="0.70"></label>
-        <label>Flag for review threshold (assumption) <input id="cT2" type="number" min="0.5" max="1" step="0.01" value="0.80"></label>
-        <button class="primary" type="button" data-run="C">Run</button>
-      </div>
-      <details><summary>View and edit the code</summary><label class="sr-only" for="cCode">Lab 3 code</label><textarea id="cCode" spellcheck="false"></textarea>
-        <div class="controls"><button type="button" data-runedit="C">Run edited code</button><button type="button" data-reset="C">Reset code</button></div></details>
-      <div class="out" id="cOut" aria-live="polite"></div>
-    </div>
-  </div>
-</section>
-
 <!-- ================= 5. Visibility and cost ================= -->
 <section id="visibility-and-cost" class="band pillar" style="--c:var(--visibility)" aria-labelledby="visibility-title">
   <div class="wrap">
     <div class="section-head">
-      <span class="eyebrow">Pillar 5 · Visibility and cost</span>
+      <span class="eyebrow">Layer 4 · Modernisation Springboard · Visibility and cost</span>
       <h2 id="visibility-title">What agents did, and what it cost.</h2>
-      <p>Every agent step writes an eval record: decision, confidence, tools called, tokens, latency and outcome. Engineers mine them for failure patterns. BigQuery and Looker report cost per migrated object: today's spend and tomorrow's run cost.</p>
+      <p>Every agent step writes an eval record: decision, confidence, tools called, tokens, latency and outcome. Engineers mine them for failure patterns. BigQuery is the destination lakehouse for migrated data and the store for telemetry, audit logs and these records. Looker reports cost per migrated object: today's spend and tomorrow's run cost.</p>
     </div>
     <div class="logic-grid">
       <figure class="code-fig">
@@ -404,7 +405,7 @@ OPTIONS (description = "One row per agent step");</code></pre>
 <footer class="site-footer">
   <div class="wrap">
     <p><span data-brand="org">Accenture</span> · <span data-brand="kind">Thought piece</span></p>
-    <p data-brand="disclaimer">A personal research thought piece on agentic migration and modernisation. It is not an official Accenture or Google Cloud product, a service offer or a statement of capability. Product names and marks belong to their owners.</p>
+    <p data-brand="disclaimer">A personal research thought piece on agentic migration and modernisation. It is not an official Accenture or Google Cloud product or a service offer. Product names and marks belong to their owners.</p>
     <p><a href="../environmental-agency/">Environmental Agency catalogue discovery</a> · <a href="../lineage-migration/">Lineage-guarded migration</a> · <a href="../little-bunnies/">Little Bunnies</a> · <a href="../technical-guide/">Technical guide</a></p>
   </div>
 </footer>

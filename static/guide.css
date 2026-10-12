@@ -1,4 +1,4 @@
-/* The MCP Shed design system. Black, white and Accenture purple carry the identity;
+/* The MCP Tool Shed design system. Black, white and Accenture purple carry the identity;
    blue, green, amber and red carry meaning (evidence, answer, review, reject) and
    always appear with a text label. */
 :root{
@@ -11,7 +11,7 @@
   --reject:#b4141b;--reject-wash:#fbe4e4;
   /* Lab chart categories, read by the technical-guide scripts */
   --native:var(--purple);--over:var(--purple-mid);--doc:var(--black);--embed:var(--purple-deep);--warn:var(--reject);
-  /* MCP shed pillars, bottom of the stack first. Each passes AA (4.5:1 or more) as text on white and under white text. */
+  /* MCP Tool Shed pillars, bottom of the stack first. Each passes AA (4.5:1 or more) as text on white and under white text. */
   --connect:#00737a;--context:var(--evidence);--logic:#a3165a;--reflex:var(--purple-mid);--visibility:var(--black);
   --bg:var(--white);--code:#f4f2ed;
   --display:clamp(2.6rem,7.2vw,6rem);--h2:clamp(1.9rem,4.2vw,3.2rem);--h3:clamp(1.2rem,2vw,1.5rem);

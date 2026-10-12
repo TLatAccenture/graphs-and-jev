@@ -1,7 +1,7 @@
 use axum::http::HeaderValue;
 use serde_json::json;
 
-const DISCLAIMER: &str = "A personal research thought piece on agentic migration and modernisation. It is not an official Accenture or Google Cloud product, a service offer or a statement of capability. Product names and marks belong to their owners.";
+const DISCLAIMER: &str = "A personal research thought piece on agentic migration and modernisation. It is not an official Accenture or Google Cloud product or a service offer. Product names and marks belong to their owners.";
 
 /// Browser config and CSP, rendered once at start-up from environment variables.
 pub struct Site {
@@ -48,7 +48,7 @@ impl Site {
         let config = json!({
             "brand": {
                 "org": var("BRAND_ORG", "Accenture"),
-                "name": var("BRAND_NAME", "The MCP Shed"),
+                "name": var("BRAND_NAME", "The MCP Tool Shed"),
                 "tagline": var("BRAND_TAGLINE", "Agentic migration and modernisation"),
                 "kind": var("BRAND_KIND", "Thought piece"),
                 "disclaimer": var("BRAND_DISCLAIMER", DISCLAIMER),

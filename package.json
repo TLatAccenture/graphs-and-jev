@@ -1,7 +1,7 @@
 {
   "name": "mcp-shed-verification",
   "private": true,
-  "description": "Static checks and Playwright acceptance tests for The MCP Shed (handover Section 10).",
+  "description": "Static checks and Playwright acceptance tests for The MCP Tool Shed (handover Section 10).",
   "scripts": {
     "test:static": "bash tests/static-checks.sh",
     "test:e2e": "TARGET=root playwright test",

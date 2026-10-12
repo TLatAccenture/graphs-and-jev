@@ -1,10 +1,10 @@
-# The MCP Shed: architecture summary
+# The MCP Tool Shed: architecture summary
 
 A one-page summary of the architecture in [plans/2026-10-12-mcp-shed-cursor-handover.md](plans/2026-10-12-mcp-shed-cursor-handover.md) (Sections 1.2, 4 and 9). If anything here differs from the handover, the handover wins.
 
 ## Purpose
 
-A personal research thought piece on agentic migration and modernisation, built around the MCP shed: a governed, curated set of MCP servers, with System 1 decision models, skills and hooks, a lineage graph, and measurement around it. It is not an official Accenture or Google Cloud product.
+A personal research thought piece on agentic migration and modernisation, built around the MCP Tool Shed: a governed, curated set of MCP servers, with System 1 decision models, skills and hooks, a lineage graph, and measurement around it. It is not an official Accenture or Google Cloud product.
 
 ## Runtime
 

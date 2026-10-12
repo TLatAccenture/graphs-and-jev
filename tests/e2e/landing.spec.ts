@@ -39,18 +39,18 @@ for (const s of SCENARIOS) {
 
 // Section 10 item 4, pillar detail text as published on the landing page.
 const PILLARS = [
-  { name: "Connectivity", detail: "scoped, short-lived credentials" },
-  { name: "Relational context", detail: "check upstream and downstream" },
-  { name: "Logic", detail: "Hooks run around each tool call" },
-  { name: "Reflexes", detail: "it stops an unsure output becoming an action" },
-  { name: "Visibility and cost", detail: "cost per migrated object" },
+  { name: "Existing Stack", detail: "Nothing is ripped out on day one" },
+  { name: "MCP Tool Shed", detail: "scoped, short-lived credentials" },
+  { name: "System 1 (Jev)", detail: "it stops an unsure output becoming an action" },
+  { name: "Gemini Enterprise Agent Platform", detail: "Hooks run around each tool call" },
+  { name: "Modernisation Springboard", detail: "cost per migrated object" },
 ];
 
 const CONTROLS = "button, [role=button], [role=tab], summary, a[href^='#'], [tabindex='0']";
 
 for (const p of PILLARS) {
   const layer = (page: Page) =>
-    page.locator("#pillars").locator(CONTROLS).filter({ hasText: new RegExp(`^\\s*(?:\\d+\\s*)?${p.name}`) }).first();
+    page.locator("#pillars").locator(CONTROLS).filter({ hasText: p.name }).first();
 
   test(`pillar "${p.name}" opens by click`, async ({ page }) => {
     await page.goto("./#pillars");

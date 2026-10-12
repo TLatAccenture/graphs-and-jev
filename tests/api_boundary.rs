@@ -351,10 +351,10 @@ async fn config_js_renders_rust_defaults_over_the_static_file() {
         json!({
             "brand": {
                 "org": "Accenture",
-                "name": "The MCP Shed",
+                "name": "The MCP Tool Shed",
                 "tagline": "Agentic migration and modernisation",
                 "kind": "Thought piece",
-                "disclaimer": "A personal research thought piece on agentic migration and modernisation. It is not an official Accenture or Google Cloud product, a service offer or a statement of capability. Product names and marks belong to their owners."
+                "disclaimer": "A personal research thought piece on agentic migration and modernisation. It is not an official Accenture or Google Cloud product or a service offer. Product names and marks belong to their owners."
             },
             "api": {
                 "mode": "live",

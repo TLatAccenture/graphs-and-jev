@@ -28,7 +28,7 @@ gcloud run revisions describe graphs-and-jev-e7cead061975 \
 
 `RATE_LIMIT_PER_MINUTE` is not set in the revision, so the compiled default is 120 expensive requests per minute. The limiter is process-local and global within each instance. With at most two instances, the aggregate ceiling can therefore reach 240 requests per minute and is not a stable per-client quota. Move enforcement to an edge or shared store before increasing the instance limit or requiring client-level guarantees.
 
-The service makes no outbound requests: the Parkinson's research path and its HTTP client were removed in the MCP Shed revamp. No hosted-model credential or API token is present in the runtime configuration.
+The service makes no outbound requests: the Parkinson's research path and its HTTP client were removed in the MCP Tool Shed revamp. No hosted-model credential or API token is present in the runtime configuration.
 
 The revision's environment variables come only from the allowlist in `deploy/deploy.sh` (`BRAND_*`, `API_*`; see `deploy/cloud-run.env.example`). The script validates them before any `gcloud` call, passes them with `--env-vars-file`, and confirms them on the candidate revision. With none set, the revision is deployed with `--clear-env-vars` and `/config.js` uses the service defaults.
 

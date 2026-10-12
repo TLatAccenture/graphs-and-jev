@@ -1,6 +1,6 @@
 # Agent rules for this repository
 
-This repository is being converted into "The MCP Shed", a thought piece on agentic migration and modernisation.
+This repository is being converted into "The MCP Tool Shed", a thought piece on agentic migration and modernisation.
 
 **Before any work, read `docs/plans/2026-10-12-mcp-shed-cursor-handover.md` in full.** It defines the workstreams, who owns which files, the shared copy, the configuration and API contracts, and the acceptance tests. If anything conflicts with it, the handover wins.
 

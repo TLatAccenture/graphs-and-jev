@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>The MCP Shed: Agentic migration and modernisation</title>
-<meta name="description" content="A thought piece on agentic migration and modernisation: the MCP shed, five pillars from connectivity to cost, and a guided example of a System 1 gate deciding on a sample lineage graph.">
+<title>The MCP Tool Shed: Agentic migration and modernisation</title>
+<meta name="description" content="A thought piece on agentic migration and modernisation: the MCP Tool Shed, five layers from the existing stack to a BigQuery Modernisation Springboard, and a guided example of a System 1 gate deciding on a sample lineage graph.">
 <link rel="stylesheet" href="guide.css">
 <link rel="stylesheet" href="styles/landing.css">
 <script src="config.js"></script>
@@ -14,7 +14,7 @@
 <body data-page-title="">
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-header"><div class="in">
-  <a class="brand" href="./"><span data-brand="name">The MCP Shed</span></a>
+  <a class="brand" href="./"><span data-brand="name">The MCP Tool Shed</span></a>
   <nav class="site-nav" aria-label="Primary">
     <a href="#pillars">Approach</a>
     <a href="#use-cases">Use cases</a>
@@ -28,15 +28,15 @@
   <div class="wrap">
     <div>
       <span class="eyebrow">Agentic migration and modernisation</span>
-      <h1 id="hero-title">Give migration agents the right tools <em>for the job.</em></h1>
-      <p class="lede">Enterprise estates span AWS, Azure, SAP, Salesforce, Databricks, ServiceNow and decades of Microsoft 365 files. The MCP shed gives each migration agent only the tools its task needs, and counts the cost of the work and of the result.</p>
+      <h1 id="hero-title">Transform your old workflows into today&rsquo;s context <em>with the right tools.</em></h1>
+      <p class="lede">Every enterprise runs on decades of systems: storage in AWS and Azure, SAP, Salesforce, Databricks, ServiceNow, Atlassian and years of Microsoft 365 files. Agents can now migrate that estate, but only with the right tools, the right context and clear limits. The MCP Tool Shed is how we give them all three, and how we show what it cost.</p>
       <div class="actions">
-        <a class="btn" href="#pillars">See the five pillars</a>
-        <a class="btn btn--ghost" href="#example">Try one decision</a>
+        <a class="btn" href="#pillars">See the approach</a>
+        <a class="btn btn--ghost" href="#example">Watch one decision</a>
       </div>
     </div>
     <figure class="hero-art">
-      <img src="assets/hero-shed.svg" width="480" height="540" alt="An MCP shed holding ten labelled MCP servers. For the task of migrating SAP KNA1 to BigQuery, only the SAP and BigQuery servers are lit and lent to the migration agent.">
+      <img src="assets/hero-shed.svg" width="480" height="540" alt="An MCP Tool Shed holding ten labelled MCP servers. For the task of migrating SAP KNA1 to BigQuery, only the SAP and BigQuery servers are lit and lent to the migration agent.">
     </figure>
   </div>
 </section>
@@ -45,16 +45,17 @@
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">The problem</span>
-      <h2 id="problem-title">Too many systems, too much context.</h2>
+      <h2 id="problem-title">The models are ready. The estate is not.</h2>
     </div>
     <div class="split split--even problem-grid">
       <div>
         <h3>Many systems, no single map</h3>
-        <p>Each system has its own interface and credentials. How they connect lives in people's heads and one-off scripts. Give an agent too little and it acts blind. Give it everything and it slows down, costs more and makes confident mistakes.</p>
+        <p>Each system has its own interface, credentials and quirks. How they connect lives in people's heads and in one-off scripts. Give an agent too little and it acts blind. Give it everything and it slows down, costs more and makes confident mistakes.</p>
       </div>
       <div>
         <h3>Why now</h3>
-        <p>Context windows keep growing (<a href="https://ai.google.dev/gemini-api/docs/long-context">Google, long context</a>), but models still miss what sits mid-prompt (<a href="https://aclanthology.org/2024.tacl-1.9/">Lost in the Middle</a>), and tool definitions eat the window (<a href="https://www.anthropic.com/engineering/code-execution-with-mcp">Anthropic, code execution with MCP</a>; <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">Anthropic, context engineering</a>). MCP is now the standard way to connect agents to tools (<a href="https://modelcontextprotocol.io/specification/2026-07-28/server">MCP specification</a>). Stripe's coding agents merge over a thousand pull requests a week (<a href="https://stripe.dev/blog/minions-stripes-one-shot-end-to-end-coding-agents">Stripe</a>) through one MCP server with over 400 tools (<a href="https://visdom-maturity-matrix.virtuslab.com/guides/infrastructure/toolshed-model-400-tools-behind-one-mcp-stripe">VirtusLab, secondary report</a>). Enterprise migration is next.</p>
+        <p>Bigger context windows do not fix this (<a href="https://ai.google.dev/gemini-api/docs/long-context">Google, long context</a>). Models still miss what sits in the middle of a long prompt (<a href="https://aclanthology.org/2024.tacl-1.9/">Lost in the Middle</a>), and every tool definition takes space before the agent has done any work (<a href="https://www.anthropic.com/engineering/code-execution-with-mcp">Anthropic, code execution with MCP</a>; <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">Anthropic, context engineering</a>).</p>
+        <p>MCP has become the standard way to connect agents to systems (<a href="https://modelcontextprotocol.io/specification/2026-07-28/server">MCP specification</a>). Stripe shows where this goes: its coding agents merge over a thousand pull requests a week (<a href="https://stripe.dev/blog/minions-stripes-one-shot-end-to-end-coding-agents">Stripe</a>), drawing on one central MCP server reported to hold over 400 tools (<a href="https://visdom-maturity-matrix.virtuslab.com/guides/infrastructure/toolshed-model-400-tools-behind-one-mcp-stripe">VirtusLab, secondary report</a>). Enterprise migration is next.</p>
       </div>
     </div>
   </div>
@@ -64,44 +65,44 @@
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">The approach</span>
-      <h2 id="pillars-title">Five pillars, one stack.</h2>
-      <p>A governed set of MCP servers at the base. Above it: a lineage graph, enforced playbooks, fast decision gates, and measurement of what agents did and what it cost.</p>
+      <h2 id="pillars-title">Five layers. One way of working.</h2>
+      <p>It starts with the stack you already run. The MCP Tool Shed connects to it. A System 1 model gates every action. Agents on Gemini Enterprise Agent Platform do the work, with Spanner Graph as their context fabric. The Modernisation Springboard in BigQuery is where the estate lands, and where every step is measured.</p>
       <p class="annotation">Select a layer to open it.</p>
     </div>
-    <ol class="stack" aria-label="The five pillars, from the base of the stack upwards">
+    <ol class="stack" aria-label="The five layers, from the existing stack upwards">
+      <li data-pillar="estate">
+        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-estate"><b>00 · Today</b><strong>Existing Stack</strong><span>Decades of systems, all still running.</span></button>
+        <div class="stack-detail" id="pillar-estate" hidden>
+          <p>Storage in AWS and Azure, SAP, Salesforce, Databricks, ServiceNow, Atlassian and years of Word, Excel and PowerPoint files in Microsoft 365. Nothing is ripped out on day one. Every layer above reaches it where it is.</p>
+        </div>
+      </li>
       <li data-pillar="connect">
-        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-connect"><b>01</b><strong>Connectivity</strong><span>Governed MCP servers replace one-off scripts.</span></button>
+        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-connect"><b>01 · Connectivity</b><strong>MCP Tool Shed</strong><span>One governed door to every system.</span></button>
         <div class="stack-detail" id="pillar-connect" hidden>
-          <p>Every system sits behind an MCP server with scoped, short-lived credentials and an audit trail. Agents get only the servers their task needs: less context, no secrets in scripts.</p>
-          <p><a class="go-deeper" href="technical-guide/#connectivity">Go deeper: connectivity</a></p>
-        </div>
-      </li>
-      <li data-pillar="context">
-        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-context"><b>02</b><strong>Relational context</strong><span>A graph of lineage and meaning.</span></button>
-        <div class="stack-detail" id="pillar-context" hidden>
-          <p><a href="https://cloud.google.com/spanner/docs/graph/overview">Spanner Graph</a> or another graph engine records what feeds what, and what each business term means. Agents check upstream and downstream before they change anything.</p>
-          <p><a class="go-deeper" href="technical-guide/#relational-context">Go deeper: relational context</a></p>
-        </div>
-      </li>
-      <li data-pillar="logic">
-        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-logic"><b>03</b><strong>Logic</strong><span>Playbooks as enforced steps.</span></button>
-        <div class="stack-detail" id="pillar-logic" hidden>
-          <p>Skills give agents a playbook per migration pattern. Hooks run around each tool call to validate schemas, block unsafe actions and require approval. Less drift, fewer broken schemas.</p>
-          <p><a class="go-deeper" href="technical-guide/#logic">Go deeper: logic</a></p>
+          <p>Every system sits behind an MCP server with scoped, short-lived credentials and an audit trail. No passwords in scripts, no bespoke integration per project. Each agent gets only the servers its task needs, which also keeps its context lean.</p>
+          <p><a class="go-deeper" href="technical-guide/#connectivity">Go deeper: MCP Tool Shed</a></p>
         </div>
       </li>
       <li data-pillar="reflex">
-        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-reflex"><b>04</b><strong>Reflexes</strong><span>Fast models gate every step.</span></button>
+        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-reflex"><b>02 · Reflexes</b><strong>System 1 (Jev)</strong><span>A decision in milliseconds, before every action.</span></button>
         <div class="stack-detail" id="pillar-reflex" hidden>
-          <p>Jev, TypeSafe's System 1 decision model, returns a typed decision with a calibrated confidence in 70 to 500 ms (<a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">TypeSafe, vendor-reported</a>). That is fast enough to sit in front of every tool call. It does not stop hallucination; it stops an unsure output becoming an action.</p>
-          <p><a class="go-deeper" href="technical-guide/#reflexes">Go deeper: reflexes</a></p>
+          <p>Jev, TypeSafe's System 1 decision model, returns a typed decision with a calibrated confidence in 70 to 500 ms (<a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">TypeSafe, vendor-reported</a>). It routes requests, classifies data and gates every tool call without slowing the work. It does not stop a model hallucinating; it stops an unsure output becoming an action.</p>
+          <p><a class="go-deeper" href="technical-guide/#reflexes">Go deeper: System 1</a></p>
+        </div>
+      </li>
+      <li data-pillar="logic">
+        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-logic"><b>03 · Logic and context</b><strong>Gemini Enterprise Agent Platform</strong><span>Agents that follow the playbook and know what a change touches.</span></button>
+        <div class="stack-detail" id="pillar-logic" hidden>
+          <p>Migration agents run on <a href="https://docs.cloud.google.com/agent-builder/overview">Gemini Enterprise Agent Platform</a>. Skills give them a tested playbook for each migration pattern. Hooks run around each tool call to validate schemas, block unsafe actions and ask for approval where it matters. The hundredth migration follows the same steps as the first.</p>
+          <p><strong>Context fabric: <a href="https://cloud.google.com/spanner/docs/graph/overview">Spanner Graph</a>.</strong> It records what feeds what, and what each business term means. Agents check upstream and downstream before they change anything, so a fix in one place does not break a report in another.</p>
+          <p><a class="go-deeper" href="technical-guide/#logic">Go deeper: skills and hooks</a> · <a class="go-deeper" href="technical-guide/#relational-context">Go deeper: context fabric</a></p>
         </div>
       </li>
       <li data-pillar="visibility">
-        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-visibility"><b>05</b><strong>Visibility and cost</strong><span>What agents did, and what it cost.</span></button>
+        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-visibility"><b>04 · Visibility and cost</b><strong>Modernisation Springboard</strong><span>Where the estate lands, and the proof of how it got there.</span></button>
         <div class="stack-detail" id="pillar-visibility" hidden>
-          <p>Every step writes an eval record: decision, confidence, tools, tokens, latency, outcome. <a href="https://cloud.google.com/bigquery/docs">BigQuery</a> and <a href="https://cloud.google.com/looker/docs">Looker</a> report it, including cost per migrated object.</p>
-          <p><a class="go-deeper" href="technical-guide/#visibility-and-cost">Go deeper: visibility and cost</a></p>
+          <p><a href="https://cloud.google.com/bigquery/docs">BigQuery</a> is the destination lakehouse for migrated data, and the store for telemetry and audit logs. Every agent step writes an eval record: decision, confidence, tools, tokens, latency, outcome. <a href="https://cloud.google.com/looker/docs">Looker</a> turns those records into reporting your teams already use, including cost per migrated object. You see the spend today and the run cost tomorrow.</p>
+          <p><a class="go-deeper" href="technical-guide/#visibility-and-cost">Go deeper: Modernisation Springboard</a></p>
         </div>
       </li>
     </ol>
@@ -110,11 +111,13 @@
     <dl class="defs" aria-labelledby="glossary-title">
       <div><dt>MCP</dt><dd>Model Context Protocol. The open standard for connecting agents to tools and live systems (<a href="https://modelcontextprotocol.io/specification/2026-07-28/server">MCP specification</a>).</dd></div>
       <div><dt>MCP server</dt><dd>Exposes one system, such as a CMDB or data warehouse, to agents.</dd></div>
-      <div><dt>MCP shed</dt><dd>The governed set of MCP servers; each agent gets only what its task needs.</dd></div>
+      <div><dt>MCP Tool Shed</dt><dd>The governed set of MCP servers; each agent gets only what its task needs.</dd></div>
       <div><dt>Skill</dt><dd>A playbook an agent loads for one task, such as migrating a table.</dd></div>
       <div><dt>Hook</dt><dd>A check before or after a tool call that can block it.</dd></div>
       <div><dt>System 1 model</dt><dd>A small, fast model that returns a typed decision with a confidence, not free text (<a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">TypeSafe</a>). Jev is an example.</dd></div>
-      <div><dt>Lineage graph</dt><dd>Nodes and edges recording what feeds what.</dd></div>
+      <div><dt>Context fabric</dt><dd>The shared graph, here Spanner Graph, that agents query for lineage and meaning.</dd></div>
+      <div><dt>Modernisation Springboard</dt><dd>The BigQuery destination: migrated data, telemetry, audit logs and eval records.</dd></div>
+      <div><dt>Lineage graph</dt><dd>A graph of what feeds what: tables, jobs, files and reports.</dd></div>
       <div><dt>Eval record</dt><dd>A log of one agent step: decision, confidence, tools, tokens, latency, outcome.</dd></div>
     </dl>
   </div>
@@ -124,8 +127,8 @@
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">Guided example</span>
-      <h2 id="example-title">One request, one bounded decision.</h2>
-      <p>Pick a request. The graph lights its lineage; the gate decides. Runs in your browser on a 15-fact sample; no model is called.</p>
+      <h2 id="example-title">Watch the gate decide.</h2>
+      <p>Pick a request. The graph lights up what it touches, and the gate decides whether it may proceed. It runs in your browser on a 15-fact sample estate. No model is called.</p>
     </div>
     <div class="guided">
       <div>
@@ -171,8 +174,8 @@
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">Use cases</span>
-      <h2 id="uses-title">Three demos, one pattern.</h2>
-      <p>A question, a graph, a gate.</p>
+      <h2 id="uses-title">One pattern, three demos.</h2>
+      <p>Each demo asks a question, reads a graph and lets the gate decide. The systems change; the pattern does not.</p>
     </div>
 
     <article class="feature" aria-labelledby="uc-ea">
@@ -236,11 +239,37 @@
   </div>
 </section>
 
+<section id="start" class="band band--paper" aria-labelledby="start-title">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Where to start</span>
+      <h2 id="start-title">Start with one pattern. Scale on evidence.</h2>
+    </div>
+    <ol class="steps">
+      <li>
+        <h3>Map the estate</h3>
+        <p class="q">What do we hold, and what depends on what?</p>
+        <p>Connect the first systems through the MCP Tool Shed and build the lineage graph for one domain. The estate stops being tribal knowledge.</p>
+      </li>
+      <li>
+        <h3>Prove one pattern</h3>
+        <p class="q">Can agents do this safely, end to end?</p>
+        <p>Pick one migration pattern, such as SAP tables to BigQuery. Encode it as a skill with hooks, put a System 1 gate in front of every step and run it on Gemini Enterprise Agent Platform.</p>
+      </li>
+      <li>
+        <h3>Scale with evidence</h3>
+        <p class="q">What worked, and what did it cost?</p>
+        <p>The eval records in BigQuery show what proceeded, what was escalated and the cost per object. Add patterns and systems from there.</p>
+      </li>
+    </ol>
+  </div>
+</section>
+
 <section id="governance" class="band band--black" aria-labelledby="governance-title">
   <div class="wrap split">
     <div>
       <span class="eyebrow">Governance</span>
-      <h2 id="governance-title">Shows its working. Can say no.</h2>
+      <h2 id="governance-title">Built to show its working, and to say no.</h2>
     </div>
     <div>
       <ul class="proof">
@@ -249,9 +278,9 @@
         <li><strong>Bounded outcomes</strong>Proceed, ask, refuse, escalate or no data.</li>
         <li><strong>Traceable</strong>Every outcome returns its lineage path and evidence.</li>
         <li><strong>Measured</strong>Every step writes an eval record.</li>
-        <li><strong>Portable</strong>The same static pages run on in-browser fixtures or a Rust service on Cloud Run.</li>
+        <li><strong>Portable</strong>The same pages run on in-browser sample data or a live service on Cloud Run. Switching is configuration, not code.</li>
       </ul>
-      <p class="annotation scope-note">Demos use a small in-memory graph and fixed rules. Illustrative, not a production tool.</p>
+      <p class="annotation scope-note">The demos use a small in-memory graph and fixed rules. They are illustrative, not a production tool.</p>
     </div>
   </div>
 </section>
@@ -260,7 +289,7 @@
   <div class="wrap">
     <span class="eyebrow">Technical guide</span>
     <h2 id="next-title">How each pillar works.</h2>
-    <p>Runnable labs, graph-engine costs and every source, for technical advisers.</p>
+    <p>Runnable labs, graph-engine costs and every source behind the figures.</p>
     <a class="btn btn--purple" href="technical-guide/">Open the technical guide</a>
   </div>
 </section>
@@ -268,7 +297,7 @@
 <footer class="site-footer">
   <div class="wrap">
     <p><span data-brand="org">Accenture</span> · <span data-brand="kind">Thought piece</span></p>
-    <p data-brand="disclaimer">A personal research thought piece on agentic migration and modernisation. It is not an official Accenture or Google Cloud product, a service offer or a statement of capability. Product names and marks belong to their owners.</p>
+    <p data-brand="disclaimer">A personal research thought piece on agentic migration and modernisation. It is not an official Accenture or Google Cloud product or a service offer. Product names and marks belong to their owners.</p>
     <p><a href="environmental-agency/">Environmental Agency catalogue discovery</a> · <a href="lineage-migration/">Lineage-guarded migration</a> · <a href="little-bunnies/">Little Bunnies</a> · <a href="technical-guide/">Technical guide</a></p>
   </div>
 </footer>
@@ -297,7 +326,7 @@ const SCENARIOS={
   region:{q:"Which reports break if we drop KNA1.REGION?",start:"region",hops:2,
     path:[["region","MAPS_TO","bqreg"],["bqreg","USED_BY","lkreg"],["bqreg","USED_BY","lkchurn"]],
     outcome:"answer",answer:"Two Looker dashboards, Regional sales and Monthly churn, read the BigQuery column mapped from KNA1.REGION. Both are owned by Finance.",
-    why:"Two hops from the column reach every report that depends on it. The change can proceed once Finance is told, with the blast radius attached."},
+    why:"Two hops from the column reach every report that depends on it. The change proceeds, with Finance told and the blast radius attached."},
   pricing:{q:"Migrate the pricing workbook to BigQuery.",start:"price",hops:1,
     path:[["xlsx3","DESCRIBES","price"],["xlsxf","DESCRIBES","price"]],
     outcome:"clarify",answer:"Two workbooks describe the same price list: Pricing FY26 v3.xlsx and Pricing FY26 final.xlsx.",
@@ -305,7 +334,7 @@ const SCENARIOS={
   crm:{q:"Retire the legacy CRM sync job.",start:"crm",hops:2,
     path:[["crm","FEEDS","sfacct"],["sfacct","FEEDS","regret"]],
     outcome:"review",answer:"The job feeds Salesforce Account, which feeds the quarterly regulatory return. The return has no recorded owner.",
-    why:"The dependency is known; the person accountable for it is not. A person decides."},
+    why:"The dependency is known. The person accountable for it is not, so a person decides."},
   copy:{q:"Copy production customer records to the dev sandbox.",start:"bqcust",hops:1,
     path:[["policy","GOVERNS","bqcust"]],
     outcome:"reject",answer:"Refused. Production customer data may not be copied outside production.",
