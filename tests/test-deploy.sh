@@ -104,6 +104,28 @@ mock_build_args="$(cat "$mock_log")"
 [[ "$mock_build_args" == *'--tag=australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app:0123456789abcdef0123456789abcdef01234567'* ]] || fail "build tag missing full SHA: $mock_build_args"
 [[ "$mock_build_args" == *'--gcs-log-dir=gs://956922431929-australia-southeast1-cloudbuild-logs/logs'* ]] || fail "explicit logs bucket missing: $mock_build_args"
 [[ "$mock_build_args" == *'--service-account=projects/ninth-airship-386815/serviceAccounts/graphs-and-jev-builder@ninth-airship-386815.iam.gserviceaccount.com'* ]] || fail "build service account missing: $mock_build_args"
+cat >"$mock_dir/app.env" <<'ENV'
+BRAND_NAME='Shed "test" \ </script>'
+API_MODE=live
+API_MODE_LINEAGE=fixtures
+API_BASE_URL=https://api.example.run.app
+ENV
+rm -f "$mock_log"
+set +e
+mock_output="$(PATH="$mock_dir/bin:$PATH" MOCK_BUILD_LOG="$mock_log" "$script" "$mock_dir/app.env" 2>&1)"
+mock_status=$?
+set -e
+[[ "$mock_status" == 73 ]] || fail "valid app settings did not reach the build: $mock_status $mock_output"
+for bad_setting in 'API_MODE=remote' 'API_MODE_LINEAGE=Live' 'API_TIMEOUT_MS=soon' 'API_BASE_URL="https://api.example.com; script-src *"' "API_BASE_URL='javascript:alert(1)'"; do
+  printf '%s\n' "$bad_setting" >"$mock_dir/bad.env"
+  rm -f "$mock_log"
+  set +e
+  mock_output="$(PATH="$mock_dir/bin:$PATH" MOCK_BUILD_LOG="$mock_log" "$script" "$mock_dir/bad.env" 2>&1)"
+  mock_status=$?
+  set -e
+  [[ "$mock_status" == 1 && "$mock_output" == *'invalid app environment variables'* ]] || fail "bad app setting passed preflight: $bad_setting ($mock_status) $mock_output"
+  [[ ! -e "$mock_log" ]] || fail "bad app setting reached the build: $bad_setting"
+done
 if rg -n '^  gjd_(git_sha|revision_suffix|image_tag)$' "$script"; then fail 'bare derived-variable command remains'; fi
 rm -rf "$mock_dir"
 
@@ -227,6 +249,22 @@ printf '%s' '{"metadata":{}}' >"$classifier_dir/out"
 if classify_service_describe 0 graphs-and-jev "$classifier_dir/out" "$classifier_dir/err" >/dev/null 2>&1; then fail 'malformed success was classified present'; fi
 rm -rf "$classifier_dir"
 
+[[ "$(app_env_json)" == '{}' ]] || fail 'empty app settings did not render {}'
+app_env_rendered="$(app_env_json 'BRAND_NAME=Shed "test" \ </script>, a=b' API_MODE=fixtures API_TIMEOUT_MS=9000)"
+python3 -c 'import json,sys; data=json.loads(sys.argv[1]); assert data == {"API_MODE": "fixtures", "API_TIMEOUT_MS": "9000", "BRAND_NAME": "Shed \"test\" \\ </script>, a=b"}, data' "$app_env_rendered" || fail "app settings did not round-trip: $app_env_rendered"
+for bad_setting in API_MODE=remote API_MODE_CATALOGUE=LIVE API_TIMEOUT_MS=0 API_TIMEOUT_MS=-5 'API_BASE_URL=ftp://x' 'API_BASE_URL=https://user@x' 'API_BASE_URL=https://x y'; do
+  if app_env_json "$bad_setting" >/dev/null 2>&1; then fail "app_env_json accepted $bad_setting"; fi
+done
+for app_key in BRAND_ORG BRAND_NAME BRAND_TAGLINE BRAND_KIND BRAND_DISCLAIMER API_MODE API_BASE_URL API_TIMEOUT_MS API_ROUTE_HEALTH API_ROUTE_CATALOGUE API_ROUTE_PIPELINE API_MODE_CATALOGUE API_MODE_LINEAGE; do
+  contains "$app_key" "$script"
+  contains "#${app_key}=" "$env_example"
+done
+contains 'gjd_app_env_args=(--env-vars-file="$gjd_app_env_file")' "$script"
+contains 'gjd_app_env_args=(--clear-env-vars)' "$script"
+contains '"${gjd_app_env_args[@]}"' "$script"
+contains 'sys.argv[18]' "$script"
+if rg -n -- '--(update|set)-env-vars' "$script"; then fail 'deploy must pass app settings through the validated env-vars file'; fi
+
 contains '--no-allow-unauthenticated' "$script"
 contains 'service_private' "$script"
 contains 'candidate_zero_traffic' "$script"
@@ -295,7 +333,7 @@ python3 -c "$validator" \
   "$validator_dir/service.json" "$validator_dir/revision.json" "$validator_dir/iam.json" \
   'australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' \
   'graphs-and-jev-runner@ninth-airship-386815.iam.gserviceaccount.com' 'graphs-and-jev-abc123' \
-  0 2 20 1 512Mi 30 /api/ready /api/health candidate-abc123 false "$validator_dir/effective.json"
+  0 2 20 1 512Mi 30 /api/ready /api/health candidate-abc123 false "$validator_dir/effective.json" '{}'
 python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); assert data["revision"] == "graphs-and-jev-abc123"; assert data["image_digest"].endswith("a" * 64); assert data["service_private"] is True; assert data["candidate_zero_traffic"] is True; assert data["public_invocation"] is False; assert data["candidate_tag"] == "candidate-abc123"; assert data["candidate_url"].startswith("https://candidate-abc123---")' "$validator_dir/effective.json"
 cat >"$validator_dir/service-bootstrap.json" <<'JSON'
 {"metadata":{"name":"graphs-and-jev"},"status":{"url":"https://candidate.example.run.app","traffic":[{"tag":"candidate-abc123","revisionName":"graphs-and-jev-abc123","percent":100,"url":"https://candidate-abc123---graphs-and-jev.example.run.app"}]}}
@@ -307,8 +345,26 @@ python3 -c "$validator" \
   "$validator_dir/service-bootstrap.json" "$validator_dir/revision.json" "$validator_dir/iam-private.json" \
   'australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa' \
   'graphs-and-jev-runner@ninth-airship-386815.iam.gserviceaccount.com' 'graphs-and-jev-abc123' \
-  0 2 20 1 512Mi 30 /api/ready /api/health candidate-abc123 true "$validator_dir/effective-bootstrap.json"
+  0 2 20 1 512Mi 30 /api/ready /api/health candidate-abc123 true "$validator_dir/effective-bootstrap.json" '{}'
 python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); assert data["service_private"] is True; assert data["candidate_zero_traffic"] is False; assert data["public_invocation"] is False; assert data["traffic"][0]["percent"] == 100; assert data["service_url"] == "https://candidate.example.run.app"' "$validator_dir/effective-bootstrap.json"
+python3 - "$validator_dir/revision.json" "$validator_dir/revision-env.json" <<'PYENV'
+import json, sys
+revision = json.load(open(sys.argv[1]))
+revision["spec"]["containers"][0]["env"] = [{"name": "API_MODE", "value": "live"}, {"name": "BRAND_NAME", "value": "Shed \"test\""}]
+json.dump(revision, open(sys.argv[2], "w"))
+PYENV
+validator_args=(
+  'australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app@sha256:aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa'
+  'graphs-and-jev-runner@ninth-airship-386815.iam.gserviceaccount.com' 'graphs-and-jev-abc123'
+  0 2 20 1 512Mi 30 /api/ready /api/health candidate-abc123 false "$validator_dir/effective-env.json"
+)
+python3 -c "$validator" "$validator_dir/service.json" "$validator_dir/revision-env.json" "$validator_dir/iam.json" \
+  "${validator_args[@]}" '{"API_MODE": "live", "BRAND_NAME": "Shed \"test\""}'
+python3 -c 'import json,sys; data=json.load(open(sys.argv[1])); assert data["app_env"] == {"API_MODE": "live", "BRAND_NAME": "Shed \"test\""}, data' "$validator_dir/effective-env.json"
+for stale_env in '{}' '{"API_MODE": "fixtures", "BRAND_NAME": "Shed \"test\""}'; do
+  if python3 -c "$validator" "$validator_dir/service.json" "$validator_dir/revision-env.json" "$validator_dir/iam.json" \
+    "${validator_args[@]}" "$stale_env" >/dev/null 2>&1; then fail "validator accepted mismatched app env: $stale_env"; fi
+done
 if rg -n '\b(gjd_|GJ_)[A-Za-z_]*' <<<"$validator"; then fail 'shell namespace leaked into embedded Python'; fi
 trap - EXIT
 rm -rf "$validator_dir"

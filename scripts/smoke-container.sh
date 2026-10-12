@@ -82,25 +82,34 @@ else
     | grep -q 'NEEDED' && { echo "runtime binary has dynamic library dependencies" >&2; exit 1; }
 fi
 
+SMOKE_BRAND='Shed "smoke" \ </script>'
 docker run --platform linux/amd64 --detach --name "$NAME" \
+  --env BRAND_NAME="$SMOKE_BRAND" --env API_MODE_LINEAGE=fixtures \
   --publish "127.0.0.1:${PORT}:8080" "$IMAGE" >/dev/null
 
-python3 - "$BASE_URL" <<'PYTHON'
+python3 - "$BASE_URL" "$SMOKE_BRAND" <<'PYTHON'
 import json
 import sys
 import time
 import urllib.error
 import urllib.request
 
-base_url = sys.argv[1]
+base_url, smoke_brand = sys.argv[1:3]
 
 def request(path, body=None, timeout=2):
     data = json.dumps(body).encode() if body is not None else None
     headers = {"Content-Type": "application/json"} if body is not None else {}
-    with urllib.request.urlopen(
-        urllib.request.Request(base_url + path, data=data, headers=headers), timeout=timeout
-    ) as response:
-        return response.status, response.read()
+    try:
+        with urllib.request.urlopen(
+            urllib.request.Request(base_url + path, data=data, headers=headers), timeout=timeout
+        ) as response:
+            return response.status, response.read()
+    except urllib.error.HTTPError as error:
+        return error.code, error.read()
+
+def headers(path):
+    with urllib.request.urlopen(base_url + path, timeout=2) as response:
+        return response.headers
 
 last_error = None
 for _ in range(60):
@@ -137,21 +146,36 @@ status, decision = request(
 )
 decision = json.loads(decision)
 assert status == 200 and decision["answers"]["gate"]["top"] == "answer", decision
-status, page = request("/")
-assert status == 200 and b"Graphs + Jev" in page, "root page missing publication title"
+for path in ("/", "/technical-guide/", "/environmental-agency/", "/lineage-migration/", "/little-bunnies/"):
+    status, page = request(path)
+    assert status == 200 and b'data-brand="name"' in page, f"{path} missing brand binding"
+page_headers = headers("/")
+assert page_headers["X-Content-Type-Options"] == "nosniff", dict(page_headers)
+assert page_headers["Cache-Control"] == "no-cache", dict(page_headers)
+assert "connect-src 'self'" in page_headers["Content-Security-Policy"], dict(page_headers)
+
+status, config = request("/config.js")
+config_headers = headers("/config.js")
+assert status == 200 and config_headers["Content-Type"] == "text/javascript; charset=utf-8", dict(config_headers)
+assert config_headers["Cache-Control"] == "no-cache", dict(config_headers)
+text = config.decode()
+assert "</script>" not in text and "\\u003c/script>" in text, text
+prefix, suffix = "window.SITE_CONFIG = ", ";\n"
+assert text.startswith(prefix) and text.endswith(suffix), text
+site = json.loads(text[len(prefix):-len(suffix)])
+assert site["brand"]["name"] == smoke_brand, site
+assert site["api"]["mode"] == "live" and site["api"]["domains"] == {"catalogue": "live", "lineage": "fixtures"}, site
+
 status, answer = request(
     "/api/pipeline",
-    {"backend": "catalogue", "request": "annual CO2 for Australia in 2024"},
+    {"domain": "catalogue", "request": "annual CO2 for Australia in 2024", "preference": None},
 )
 answer = json.loads(answer)
 assert status == 200 and answer["outcome"] == "answer", answer
-status, research = request(
+status, lineage = request(
     "/api/pipeline",
-    {"backend": "catalogue", "domain": "parkinsons", "request": "LRRK2 associated with Parkinson's disease"},
-    timeout=20,
+    {"domain": "lineage", "request": "Drop table KNA1 after cutover", "preference": None},
 )
-research = json.loads(research)
-assert status == 200 and research.get("citations"), research
-assert research.get("outcome") in {"answer", "clarify", "review"}, research
+assert status == 501 and json.loads(lineage)["detail"] == "Lineage domain not implemented on this service.", lineage
 print(f"container smoke passed at {base_url}")
 PYTHON
