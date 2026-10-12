@@ -8,5 +8,5 @@ check "em dash"           grep -rn "—" static README.md docs/design.md docs/ap
 check "sub-100 claim"     grep -rn "sub-100" static README.md
 check "old brand"         grep -rn "Graphs + Jev" static README.md docs/design.md
 check "fetch outside api" bash -c 'grep -rln "fetch(" static | grep -v "^static/js/api.js$"'
-check "US spelling"       grep -rniE "\b(organiz|moderniz|optimiz|behavior|catalog\b)" static --include=*.html
+check "US spelling"       bash -c 'grep -rniE "\b(organiz|moderniz|optimiz|behavior|catalog\b)" static --include=*.html | grep -v "behavior:"' 
 exit "$fail"

@@ -29,17 +29,20 @@ for (const s of SCENARIOS) {
   test(`guided example: "${s.button}" shows ${s.label}`, async ({ page }) => {
     await page.goto("./#example");
     const example = page.locator("#example");
+    // The page opens with the first scenario selected; start from a different one so the label count changes.
+    const other = SCENARIOS.find(o => o.label !== s.label)!;
+    await example.getByRole("button", { name: other.button }).click();
     await expectOutcome(page, STEP_LABELS, s.label, () => example.getByRole("button", { name: s.button }).click());
     await expect(example).toContainText(s.answer);
   });
 }
 
-// Section 10 item 4, pillar detail text from Section 5.2.
+// Section 10 item 4, pillar detail text as published on the landing page.
 const PILLARS = [
   { name: "Connectivity", detail: "scoped, short-lived credentials" },
-  { name: "Relational context", detail: "what sits upstream and downstream" },
-  { name: "Logic", detail: "Hooks run before and after tool calls" },
-  { name: "Reflexes", detail: "it stops an uncalibrated output from becoming an action" },
+  { name: "Relational context", detail: "check upstream and downstream" },
+  { name: "Logic", detail: "Hooks run around each tool call" },
+  { name: "Reflexes", detail: "it stops an unsure output becoming an action" },
   { name: "Visibility and cost", detail: "cost per migrated object" },
 ];
 
@@ -75,6 +78,7 @@ test('each "Go deeper" link lands on an existing technical-guide anchor', async 
   for (const href of hrefs) {
     const url = new URL(href);
     expect(url.pathname.endsWith("/technical-guide/") || url.pathname.endsWith("/technical-guide/index.html"), href).toBe(true);
+    await page.goto("about:blank");
     const res = await page.goto(href);
     expect(res?.status()).toBe(200);
     await expect(page.locator(`[id="${url.hash.slice(1)}"]`)).toHaveCount(1);

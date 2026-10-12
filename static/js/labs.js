@@ -29,7 +29,7 @@ const CV=c=>`var(--${c})`;
 document.addEventListener("error",ev=>{if(ev.target.matches?.(".emark img"))ev.target.remove()},true);
 function engineLabel(e,pill){
   const name=e.displayName||e.n;
-  const mark=`<span class="emark" data-initials="${e.initials}" aria-hidden="true">${e.logo?`<img src="${e.logo}" alt="" width="60" height="22" loading="lazy" decoding="async">`:""}</span>`;
+  const mark=`<span class="emark" data-initials="${e.initials}" aria-hidden="true">${e.logo?`<img src="${e.logo}" alt="" width="60" height="22" decoding="async">`:""}</span>`;
   const label=pill?`<span class="pill" style="--c:${CV(e.cat)}">${name}</span>`:`<span class="ename">${name}</span>`;
   return `<span class="elabel${e.logo?'':' elabel--text'}">${mark}<span class="etext">${label}</span></span>`;
 }
