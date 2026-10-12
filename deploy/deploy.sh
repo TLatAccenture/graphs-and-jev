@@ -15,6 +15,25 @@ classify_service_describe() {
   return 1
 }
 
+# Validates KEY=VALUE app settings and prints them as a JSON object (also valid YAML for --env-vars-file).
+app_env_json() {
+  python3 - "$@" <<'PY'
+import json
+import re
+import sys
+
+settings = dict(arg.split("=", 1) for arg in sys.argv[1:])
+for key in ("API_MODE", "API_MODE_CATALOGUE", "API_MODE_LINEAGE"):
+    if key in settings and settings[key] not in ("live", "fixtures"):
+        raise SystemExit(f"{key} must be live or fixtures")
+if "API_TIMEOUT_MS" in settings and not re.fullmatch(r"[1-9][0-9]{0,8}", settings["API_TIMEOUT_MS"]):
+    raise SystemExit("API_TIMEOUT_MS must be a positive integer")
+if "API_BASE_URL" in settings and not re.fullmatch(r"https?://[A-Za-z0-9.:\[\]-]+([/?#]\S*)?", settings["API_BASE_URL"]):
+    raise SystemExit("API_BASE_URL must be an http or https URL with a plain host")
+print(json.dumps(settings, sort_keys=True))
+PY
+}
+
 main() (
   set -euo pipefail
   local gjd_REPO_ROOT gjd_PROJECT_ID gjd_REGION gjd_SERVICE gjd_ARTIFACT_REPOSITORY gjd_IMAGE
@@ -28,7 +47,8 @@ main() (
   local gjd_image_digest gjd_service_exists gjd_candidate_url gjd_service_url gjd_service_json gjd_describe_stdout gjd_describe_stderr
   local gjd_describe_status gjd_describe_result gjd_revision_json gjd_iam_json gjd_tmp_output gjd_revision
   local gjd_upload_files gjd_upload_count gjd_upload_bytes gjd_upload_file gjd_upload_unexpected
-  local -a gjd_required_apis gjd_deploy_traffic_args
+  local gjd_app_key gjd_app_env_json gjd_app_env_file
+  local -a gjd_required_apis gjd_deploy_traffic_args gjd_app_env_keys gjd_app_env gjd_app_env_args
 
   gjd_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
   cd "$gjd_REPO_ROOT"
@@ -70,6 +90,21 @@ main() (
   done
 
   fail() { printf 'preflight failed: %s\n' "$*" >&2; exit 1; }
+
+  # Only these app settings reach the revision; anything else in the env file stays local.
+  gjd_app_env_keys=(
+    BRAND_ORG BRAND_NAME BRAND_TAGLINE BRAND_KIND BRAND_DISCLAIMER
+    API_MODE API_BASE_URL API_TIMEOUT_MS
+    API_ROUTE_HEALTH API_ROUTE_CATALOGUE API_ROUTE_PIPELINE
+    API_MODE_CATALOGUE API_MODE_LINEAGE
+  )
+  gjd_app_env=()
+  for gjd_app_key in "${gjd_app_env_keys[@]}"; do
+    if [[ -n "${!gjd_app_key:-}" ]]; then
+      gjd_app_env+=("${gjd_app_key}=${!gjd_app_key}")
+    fi
+  done
+  gjd_app_env_json="$(app_env_json ${gjd_app_env[@]+"${gjd_app_env[@]}"})" || fail 'invalid app environment variables'
   require_permission() {
     local principal="$1" resource="$2" permission="$3" state
     state="$(gcloud policy-intelligence troubleshoot-policy iam "$resource" \
@@ -234,6 +269,15 @@ if failed:
     gjd_deploy_traffic_args=(--no-traffic --no-allow-unauthenticated)
   fi
 
+  # The revision gets exactly the allowlisted settings; unset keys fall back to the Rust defaults.
+  gjd_app_env_file="$(mktemp)"
+  chmod 600 "$gjd_app_env_file"
+  printf '%s\n' "$gjd_app_env_json" >"$gjd_app_env_file"
+  gjd_app_env_args=(--env-vars-file="$gjd_app_env_file")
+  if [[ "$gjd_app_env_json" == '{}' ]]; then
+    gjd_app_env_args=(--clear-env-vars)
+  fi
+
   gcloud beta run deploy "$gjd_SERVICE" \
     --project="$gjd_PROJECT_ID" \
     --region="$gjd_REGION" \
@@ -251,7 +295,9 @@ if failed:
     --startup-probe="initialDelaySeconds=0,timeoutSeconds=2,periodSeconds=2,failureThreshold=15,httpGet.port=8080,httpGet.path=${gjd_STARTUP_PATH}" \
     --liveness-probe="initialDelaySeconds=10,timeoutSeconds=2,periodSeconds=10,failureThreshold=3,httpGet.port=8080,httpGet.path=${gjd_LIVENESS_PATH}" \
     --service-account="$gjd_RUNTIME_SERVICE_ACCOUNT" \
+    "${gjd_app_env_args[@]}" \
     --quiet
+  rm -f "$gjd_app_env_file"
 
   mkdir -p "$(dirname "$gjd_DEPLOY_OUTPUT")"
   gjd_service_json="$(mktemp)"
@@ -266,7 +312,7 @@ if failed:
   gcloud run revisions describe "$gjd_revision" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json >"$gjd_revision_json"
   gcloud run services get-iam-policy "$gjd_SERVICE" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json >"$gjd_iam_json"
 
-  python3 - "$gjd_service_json" "$gjd_revision_json" "$gjd_iam_json" "$gjd_image_digest" "$gjd_RUNTIME_SERVICE_ACCOUNT" "$gjd_revision" "$gjd_MIN_INSTANCES" "$gjd_MAX_INSTANCES" "$gjd_CONCURRENCY" "$gjd_CPU" "$gjd_MEMORY" "$gjd_TIMEOUT_SECONDS" "$gjd_STARTUP_PATH" "$gjd_LIVENESS_PATH" "$gjd_candidate_tag" "$([[ "$gjd_service_exists" == false ]] && printf true || printf false)" "$gjd_tmp_output" <<'PY'
+  python3 - "$gjd_service_json" "$gjd_revision_json" "$gjd_iam_json" "$gjd_image_digest" "$gjd_RUNTIME_SERVICE_ACCOUNT" "$gjd_revision" "$gjd_MIN_INSTANCES" "$gjd_MAX_INSTANCES" "$gjd_CONCURRENCY" "$gjd_CPU" "$gjd_MEMORY" "$gjd_TIMEOUT_SECONDS" "$gjd_STARTUP_PATH" "$gjd_LIVENESS_PATH" "$gjd_candidate_tag" "$([[ "$gjd_service_exists" == false ]] && printf true || printf false)" "$gjd_tmp_output" "$gjd_app_env_json" <<'PY'
 import json
 import sys
 
@@ -278,6 +324,7 @@ expected_min, expected_max, expected_concurrency, expected_cpu, expected_memory,
 expected_startup, expected_liveness = sys.argv[13:15]
 expected_tag = sys.argv[15]
 expected_bootstrap = sys.argv[16].lower() == "true"
+expected_env = json.loads(sys.argv[18])
 metadata = revision["metadata"]
 spec = revision["spec"]
 container = spec["containers"][0]
@@ -303,6 +350,7 @@ actual = {
     "timeout_seconds": int(spec["timeoutSeconds"]),
     "startup_probe": container["startupProbe"],
     "liveness_probe": container["livenessProbe"],
+    "app_env": {item["name"]: item.get("value", "") for item in container.get("env", [])},
     "traffic": traffic,
     "public_invocation": public,
     "service_private": not public,
@@ -325,6 +373,7 @@ assert_effective_deployment(actual_cpu in {expected_cpu, f"{int(expected_cpu) * 
 assert_effective_deployment(actual["timeout_seconds"] == int(expected_timeout), "timeout")
 assert_effective_deployment(actual["startup_probe"].get("httpGet", {}).get("path") == expected_startup, "startup probe")
 assert_effective_deployment(actual["liveness_probe"].get("httpGet", {}).get("path") == expected_liveness, "liveness probe")
+assert_effective_deployment(actual["app_env"] == expected_env, "app environment variables")
 assert_effective_deployment(not actual["public_invocation"], "service has public invocation IAM")
 assert_effective_deployment(len(tagged) == 1 and actual["candidate_url"].startswith("https://"), "candidate tag target or URL")
 if expected_bootstrap:
