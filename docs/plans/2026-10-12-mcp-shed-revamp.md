@@ -4,7 +4,7 @@
 
 **Approach:** Keep the static site's architecture, design system and interaction components. Replace the narrative, the sample data and two of the three use cases. Write and approve the copy before touching any HTML.
 
-**Status:** Draft for review. Phase 0 decisions block everything else.
+**Status:** Superseded by 2026-10-12-mcp-shed-cursor-handover.md
 
 ---
 
