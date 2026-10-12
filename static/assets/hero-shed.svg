@@ -9,7 +9,7 @@
     .wtxt{font:600 15px system-ui,-apple-system,sans-serif;fill:#fff}
     .slot{fill:#fff;stroke:#bdbab3;stroke-width:1.5}
     .lit{fill:#7500C0}
-    @media (prefers-reduced-motion:no-preference){
+    @media screen and (prefers-reduced-motion:no-preference){
       .lit{animation:light .5s .4s both,glow 2.4s 1.4s ease-in-out infinite alternate}
       .lit+.on{animation:show .3s .6s both}
       .dot{animation:show .3s .8s both,blink 1.4s 1.4s ease-in-out infinite}
