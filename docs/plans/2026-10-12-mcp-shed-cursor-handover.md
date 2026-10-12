@@ -177,6 +177,8 @@ Rules:
 
 ## 5. Shared copy (use verbatim unless marked "draft"; improve wording only if it stays within Section 3)
 
+> **Owner edit (12 Oct):** the landing copy in `static/index.html` was tightened at the owner's request. Where it differs from this section, the page wins. Keep new copy equally direct: short headings, one idea per sentence.
+
 ### 5.1 Core message
 
 **Hero eyebrow:** Agentic migration and modernisation

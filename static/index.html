@@ -29,7 +29,7 @@
     <div>
       <span class="eyebrow">Agentic migration and modernisation</span>
       <h1 id="hero-title">Give migration agents the right tools <em>for the job.</em></h1>
-      <p class="lede">Most enterprise estates grew over decades: storage in AWS and Azure, platforms such as SAP, Salesforce, Databricks, ServiceNow and Atlassian, and years of Word, Excel and PowerPoint files in Microsoft 365. Migrating that estate with agents needs a different approach, one that counts what the work costs today and what the result will cost to run tomorrow. We call that approach the MCP shed.</p>
+      <p class="lede">Enterprise estates span AWS, Azure, SAP, Salesforce, Databricks, ServiceNow and decades of Microsoft 365 files. The MCP shed gives each migration agent only the tools its task needs, and counts the cost of the work and of the result.</p>
       <div class="actions">
         <a class="btn" href="#pillars">See the five pillars</a>
         <a class="btn btn--ghost" href="#example">Try one decision</a>
@@ -45,16 +45,16 @@
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">The problem</span>
-      <h2 id="problem-title">Agents need the right tools for the job.</h2>
+      <h2 id="problem-title">Too many systems, too much context.</h2>
     </div>
     <div class="split split--even problem-grid">
       <div>
         <h3>Many systems, no single map</h3>
-        <p>Enterprises rarely have one system of record. They have many, each with its own interface, credentials and quirks, and the knowledge of how they connect often lives in people's heads or in one-off scripts. An agent dropped into that estate either sees too little to act safely, or is handed so many tools and so much context that it slows down, costs more and makes confident mistakes.</p>
+        <p>Each system has its own interface and credentials. How they connect lives in people's heads and one-off scripts. Give an agent too little and it acts blind. Give it everything and it slows down, costs more and makes confident mistakes.</p>
       </div>
       <div>
         <h3>Why now</h3>
-        <p>Context windows keep growing (<a href="https://ai.google.dev/gemini-api/docs/long-context">Google, long context</a>), but well-architected agents still need careful context management: models use information in the middle of long prompts less well (<a href="https://aclanthology.org/2024.tacl-1.9/">Lost in the Middle</a>), and tool definitions and results consume the window (<a href="https://www.anthropic.com/engineering/code-execution-with-mcp">Anthropic, code execution with MCP</a>; <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">Anthropic, context engineering</a>). The Model Context Protocol has become the common standard for connecting agents to tools (<a href="https://modelcontextprotocol.io/specification/2026-07-28/server">MCP specification</a>): a shared language for networked function calling, much as APIs were for the previous generation of systems. It has its critics, but adoption has largely settled the argument. Stripe's in-house coding agents, Minions, now merge more than a thousand pull requests a week (<a href="https://stripe.dev/blog/minions-stripes-one-shot-end-to-end-coding-agents">Stripe</a>), drawing on a central MCP server reported to expose over 400 tools (<a href="https://visdom-maturity-matrix.virtuslab.com/guides/infrastructure/toolshed-model-400-tools-behind-one-mcp-stripe">VirtusLab, secondary report</a>). We expect the same shift in enterprise migration and modernisation.</p>
+        <p>Context windows keep growing (<a href="https://ai.google.dev/gemini-api/docs/long-context">Google, long context</a>), but models still miss what sits mid-prompt (<a href="https://aclanthology.org/2024.tacl-1.9/">Lost in the Middle</a>), and tool definitions eat the window (<a href="https://www.anthropic.com/engineering/code-execution-with-mcp">Anthropic, code execution with MCP</a>; <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">Anthropic, context engineering</a>). MCP is now the standard way to connect agents to tools (<a href="https://modelcontextprotocol.io/specification/2026-07-28/server">MCP specification</a>). Stripe's coding agents merge over a thousand pull requests a week (<a href="https://stripe.dev/blog/minions-stripes-one-shot-end-to-end-coding-agents">Stripe</a>) through one MCP server with over 400 tools (<a href="https://visdom-maturity-matrix.virtuslab.com/guides/infrastructure/toolshed-model-400-tools-behind-one-mcp-stripe">VirtusLab, secondary report</a>). Enterprise migration is next.</p>
       </div>
     </div>
   </div>
@@ -65,57 +65,57 @@
     <div class="section-head">
       <span class="eyebrow">The approach</span>
       <h2 id="pillars-title">Five pillars, one stack.</h2>
-      <p>The MCP shed is a governed, curated set of MCP servers that gives each migration agent the tools its task needs, and nothing more. Around it sit four further layers: fast decision models that gate each step, prescriptive playbooks, a graph of lineage and meaning, and measurement that shows what the agents did and what it cost.</p>
-      <p class="annotation">Each layer builds on the one beneath it. Select a layer to open it.</p>
+      <p>A governed set of MCP servers at the base. Above it: a lineage graph, enforced playbooks, fast decision gates, and measurement of what agents did and what it cost.</p>
+      <p class="annotation">Select a layer to open it.</p>
     </div>
     <ol class="stack" aria-label="The five pillars, from the base of the stack upwards">
       <li data-pillar="connect">
-        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-connect"><b>01</b><strong>Connectivity</strong><span>Standard, governed MCP servers replace brittle one-off scripts.</span></button>
+        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-connect"><b>01</b><strong>Connectivity</strong><span>Governed MCP servers replace one-off scripts.</span></button>
         <div class="stack-detail" id="pillar-connect" hidden>
-          <p>Each system in the estate is reached through an MCP server with scoped, short-lived credentials and an audit trail. Agents receive only the servers their task needs, which keeps tool definitions out of the context window and secrets out of scripts.</p>
+          <p>Every system sits behind an MCP server with scoped, short-lived credentials and an audit trail. Agents get only the servers their task needs: less context, no secrets in scripts.</p>
           <p><a class="go-deeper" href="technical-guide/#connectivity">Go deeper: connectivity</a></p>
         </div>
       </li>
       <li data-pillar="context">
-        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-context"><b>02</b><strong>Relational context</strong><span>A graph holds lineage and the enterprise ontology.</span></button>
+        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-context"><b>02</b><strong>Relational context</strong><span>A graph of lineage and meaning.</span></button>
         <div class="stack-detail" id="pillar-context" hidden>
-          <p><a href="https://cloud.google.com/spanner/docs/graph/overview">Spanner Graph</a>, or another graph engine, records which tables, jobs, files and reports feed which others, and what each business term means. Before an agent changes anything, it can see what sits upstream and downstream, so a change in one place does not silently break another.</p>
+          <p><a href="https://cloud.google.com/spanner/docs/graph/overview">Spanner Graph</a> or another graph engine records what feeds what, and what each business term means. Agents check upstream and downstream before they change anything.</p>
           <p><a class="go-deeper" href="technical-guide/#relational-context">Go deeper: relational context</a></p>
         </div>
       </li>
       <li data-pillar="logic">
-        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-logic"><b>03</b><strong>Logic</strong><span>Skills and hooks turn migration playbooks into enforced steps.</span></button>
+        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-logic"><b>03</b><strong>Logic</strong><span>Playbooks as enforced steps.</span></button>
         <div class="stack-detail" id="pillar-logic" hidden>
-          <p>Skills give agents a prescriptive playbook for each migration pattern. Hooks run before and after tool calls to validate schemas, block unsafe actions and require approval where needed. Together they reduce drift, broken code and malformed schemas.</p>
+          <p>Skills give agents a playbook per migration pattern. Hooks run around each tool call to validate schemas, block unsafe actions and require approval. Less drift, fewer broken schemas.</p>
           <p><a class="go-deeper" href="technical-guide/#logic">Go deeper: logic</a></p>
         </div>
       </li>
       <li data-pillar="reflex">
-        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-reflex"><b>04</b><strong>Reflexes</strong><span>System 1 models route, classify and gate in milliseconds, not seconds.</span></button>
+        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-reflex"><b>04</b><strong>Reflexes</strong><span>Fast models gate every step.</span></button>
         <div class="stack-detail" id="pillar-reflex" hidden>
-          <p>A System 1 model such as Jev, TypeSafe's System 1 decision model, returns a typed decision with a calibrated confidence. TypeSafe reports end-to-end response times of 70 to 500 ms (<a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">TypeSafe, vendor-reported</a>), against seconds for a frontier model, fast enough to sit in front of every tool call. It does not make a model stop hallucinating; it stops an uncalibrated output from becoming an action.</p>
+          <p>Jev, TypeSafe's System 1 decision model, returns a typed decision with a calibrated confidence in 70 to 500 ms (<a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">TypeSafe, vendor-reported</a>). That is fast enough to sit in front of every tool call. It does not stop hallucination; it stops an unsure output becoming an action.</p>
           <p><a class="go-deeper" href="technical-guide/#reflexes">Go deeper: reflexes</a></p>
         </div>
       </li>
       <li data-pillar="visibility">
-        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-visibility"><b>05</b><strong>Visibility and cost</strong><span>Evals show what agents did; BigQuery and Looker show users the result and the cost.</span></button>
+        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-visibility"><b>05</b><strong>Visibility and cost</strong><span>What agents did, and what it cost.</span></button>
         <div class="stack-detail" id="pillar-visibility" hidden>
-          <p>Every agent step writes an eval record: decision, confidence, tools called, tokens, latency and outcome. Engineers use the records to find failure patterns. <a href="https://cloud.google.com/bigquery/docs">BigQuery</a> and <a href="https://cloud.google.com/looker/docs">Looker</a> turn them into production reporting for users, including cost per migrated object, so the spend today and the run cost tomorrow are both visible.</p>
+          <p>Every step writes an eval record: decision, confidence, tools, tokens, latency, outcome. <a href="https://cloud.google.com/bigquery/docs">BigQuery</a> and <a href="https://cloud.google.com/looker/docs">Looker</a> report it, including cost per migrated object.</p>
           <p><a class="go-deeper" href="technical-guide/#visibility-and-cost">Go deeper: visibility and cost</a></p>
         </div>
       </li>
     </ol>
 
-    <h3 class="glossary-title" id="glossary-title">Terms used on this site</h3>
+    <h3 class="glossary-title" id="glossary-title">Terms</h3>
     <dl class="defs" aria-labelledby="glossary-title">
-      <div><dt>MCP</dt><dd>Model Context Protocol. An open standard for connecting AI applications to tools, resources and live systems (<a href="https://modelcontextprotocol.io/specification/2026-07-28/server">MCP specification</a>).</dd></div>
-      <div><dt>MCP server</dt><dd>A service that exposes one system's tools and data to agents over MCP, for example a CMDB, a data warehouse or a document store.</dd></div>
-      <div><dt>MCP shed</dt><dd>The governed set of MCP servers available to migration agents, with each agent given only what its task needs.</dd></div>
-      <div><dt>Skill</dt><dd>A packaged playbook an agent loads for a specific task, such as migrating a table or converting a batch job.</dd></div>
-      <div><dt>Hook</dt><dd>A check that runs automatically before or after a tool call and can block it.</dd></div>
-      <div><dt>System 1 model</dt><dd>A small, fast model that returns a typed decision with a calibrated confidence instead of free text (<a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">TypeSafe</a>). Jev is an example.</dd></div>
-      <div><dt>Lineage graph</dt><dd>Facts (nodes) and typed relationships (edges) recording which data, code and reports feed which others.</dd></div>
-      <div><dt>Eval record</dt><dd>A structured log of one agent step: decision, confidence, tools, tokens, latency, outcome.</dd></div>
+      <div><dt>MCP</dt><dd>Model Context Protocol. The open standard for connecting agents to tools and live systems (<a href="https://modelcontextprotocol.io/specification/2026-07-28/server">MCP specification</a>).</dd></div>
+      <div><dt>MCP server</dt><dd>Exposes one system, such as a CMDB or data warehouse, to agents.</dd></div>
+      <div><dt>MCP shed</dt><dd>The governed set of MCP servers; each agent gets only what its task needs.</dd></div>
+      <div><dt>Skill</dt><dd>A playbook an agent loads for one task, such as migrating a table.</dd></div>
+      <div><dt>Hook</dt><dd>A check before or after a tool call that can block it.</dd></div>
+      <div><dt>System 1 model</dt><dd>A small, fast model that returns a typed decision with a confidence, not free text (<a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">TypeSafe</a>). Jev is an example.</dd></div>
+      <div><dt>Lineage graph</dt><dd>Nodes and edges recording what feeds what.</dd></div>
+      <div><dt>Eval record</dt><dd>A log of one agent step: decision, confidence, tools, tokens, latency, outcome.</dd></div>
     </dl>
   </div>
 </section>
@@ -124,8 +124,8 @@
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">Guided example</span>
-      <h2 id="example-title">See a migration request become a bounded decision.</h2>
-      <p>Choose a migration request. The graph highlights the lineage that bears on it, and the result shows what the System 1 gate decides and why. This runs in your browser on a 15-fact sample estate; no model or database is called.</p>
+      <h2 id="example-title">One request, one bounded decision.</h2>
+      <p>Pick a request. The graph lights its lineage; the gate decides. Runs in your browser on a 15-fact sample; no model is called.</p>
     </div>
     <div class="guided">
       <div>
@@ -154,7 +154,7 @@
           <strong id="hopsLabel">Hop depth</strong>
           <button type="button" data-hop="1" aria-pressed="false">1</button><button type="button" data-hop="2" aria-pressed="true">2</button><button type="button" data-hop="3" aria-pressed="false">3</button>
         </div>
-        <p class="annotation hop-note">A hop is one relationship. Each extra hop reaches more connected facts and uses more of the agent's context. Numbers on the nodes show how many hops away they are.</p>
+        <p class="annotation hop-note">A hop is one relationship. More hops, more context. Node numbers show hop distance.</p>
         <ul class="outcome-key" aria-label="Possible outcomes">
           <li data-outcome="answer">Proceed</li>
           <li data-outcome="clarify">Ask</li>
@@ -171,8 +171,8 @@
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">Use cases</span>
-      <h2 id="uses-title">Three applications. One governed pattern.</h2>
-      <p>Each one starts from a migration question, reads a graph, and lets a System 1 gate decide what happens next.</p>
+      <h2 id="uses-title">Three demos, one pattern.</h2>
+      <p>A question, a graph, a gate.</p>
     </div>
 
     <article class="feature" aria-labelledby="uc-ea">
@@ -181,11 +181,11 @@
         <span class="label">Discover the estate before you migrate it</span>
         <h3 id="uc-ea">Environmental Agency catalogue discovery</h3>
         <dl class="facts">
-          <div><dt>Business question</dt><dd>Which catalogued datasets can answer this air-quality request?</dd></div>
-          <div><dt>What the graph adds</dt><dd>Links pollutants, places, years and breakdowns to the datasets that hold them.</dd></div>
-          <div><dt>What the gate controls</dt><dd>Answers only when a dataset covers the request; otherwise it asks, refuses or reports no data.</dd></div>
+          <div><dt>Business question</dt><dd>Which datasets answer this air-quality request?</dd></div>
+          <div><dt>What the graph adds</dt><dd>Links pollutants, places and years to datasets.</dd></div>
+          <div><dt>What the gate controls</dt><dd>Answers only when a dataset fits; otherwise asks, refuses or reports no data.</dd></div>
         </dl>
-        <p class="annotation">The Environmental Agency is fictional and its catalogue is illustrative.</p>
+        <p class="annotation">The Environmental Agency and its catalogue are fictional.</p>
         <a class="btn" href="environmental-agency/">Open the Environmental Agency demo</a>
       </div>
     </article>
@@ -212,9 +212,9 @@
         <span class="label">Change without breaking downstream</span>
         <h3 id="uc-lineage">Lineage-guarded migration</h3>
         <dl class="facts">
-          <div><dt>Business question</dt><dd>Can this migration step run without breaking anything downstream?</dd></div>
-          <div><dt>What the graph adds</dt><dd>Computes the blast radius: every table, job and report that depends on the object being changed.</dd></div>
-          <div><dt>What the gate controls</dt><dd>Proceeds, asks, refuses or escalates at each step, with a calibrated confidence.</dd></div>
+          <div><dt>Business question</dt><dd>Can this step run without breaking anything downstream?</dd></div>
+          <div><dt>What the graph adds</dt><dd>The blast radius: every table, job and report that depends on the change.</dd></div>
+          <div><dt>What the gate controls</dt><dd>Proceeds, asks, refuses or escalates at each step.</dd></div>
         </dl>
         <a class="btn" href="lineage-migration/">Open the lineage demo</a>
       </div>
@@ -226,9 +226,9 @@
         <span class="label">Experiment · Small-world context</span>
         <h3 id="uc-sw">Little Bunnies: two hops reach most of what matters</h3>
         <dl class="facts">
-          <div><dt>Business question</dt><dd>How much of the lineage graph does an agent need to load before it can act safely?</dd></div>
-          <div><dt>What the graph adds</dt><dd>In a small-world sample, a short neighbourhood around the changed object holds most of the connected context. Other graphs need their own measured bound.</dd></div>
-          <div><dt>What the gate controls</dt><dd>Works within a fixed state budget, so context stays bounded.</dd></div>
+          <div><dt>Business question</dt><dd>How much of the graph must an agent load to act safely?</dd></div>
+          <div><dt>What the graph adds</dt><dd>In a small-world sample, two hops hold most of the context. Other graphs need their own measurement.</dd></div>
+          <div><dt>What the gate controls</dt><dd>Works within a fixed context budget.</dd></div>
         </dl>
         <a class="btn" href="little-bunnies/">Open Little Bunnies</a>
       </div>
@@ -240,18 +240,18 @@
   <div class="wrap split">
     <div>
       <span class="eyebrow">Governance</span>
-      <h2 id="governance-title">Built to show its working, and to say no.</h2>
+      <h2 id="governance-title">Shows its working. Can say no.</h2>
     </div>
     <div>
       <ul class="proof">
-        <li><strong>Least privilege</strong>Each agent gets only the MCP servers and scopes its task needs.</li>
-        <li><strong>Refusal before tool call</strong>Unsafe requests, such as copying production customer data to a test environment, stop before any server is called.</li>
-        <li><strong>Bounded outcomes</strong>Proceed, ask, refuse, escalate or no data. Nothing in between.</li>
-        <li><strong>Traceable</strong>Every outcome returns the lineage path and the evidence behind it.</li>
-        <li><strong>Measured</strong>Every step writes an eval record, including tokens and latency.</li>
-        <li><strong>Portable</strong>Static pages and a documented API contract. The same pages run from in-browser fixtures or from a Rust service on Cloud Run that serves the pages and the API from one origin.</li>
+        <li><strong>Least privilege</strong>Agents get only the servers and scopes their task needs.</li>
+        <li><strong>Refusal before tool call</strong>Unsafe requests stop before any server is called.</li>
+        <li><strong>Bounded outcomes</strong>Proceed, ask, refuse, escalate or no data.</li>
+        <li><strong>Traceable</strong>Every outcome returns its lineage path and evidence.</li>
+        <li><strong>Measured</strong>Every step writes an eval record.</li>
+        <li><strong>Portable</strong>The same static pages run on in-browser fixtures or a Rust service on Cloud Run.</li>
       </ul>
-      <p class="annotation scope-note">The demonstrations use a small in-memory graph and deterministic rules. They are illustrative, not a production migration tool.</p>
+      <p class="annotation scope-note">Demos use a small in-memory graph and fixed rules. Illustrative, not a production tool.</p>
     </div>
   </div>
 </section>
@@ -259,8 +259,8 @@
 <section id="next" class="band band--tight closing" aria-labelledby="next-title">
   <div class="wrap">
     <span class="eyebrow">Technical guide</span>
-    <h2 id="next-title">See how each pillar works.</h2>
-    <p>For technical advisers: how each pillar works, with runnable labs, graph-engine grades and costs, and the sources behind every figure.</p>
+    <h2 id="next-title">How each pillar works.</h2>
+    <p>Runnable labs, graph-engine costs and every source, for technical advisers.</p>
     <a class="btn btn--purple" href="technical-guide/">Open the technical guide</a>
   </div>
 </section>
