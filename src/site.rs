@@ -1,3 +1,5 @@
+use std::net::{Ipv4Addr, Ipv6Addr};
+
 use axum::http::HeaderValue;
 use serde_json::json;
 
@@ -99,7 +101,7 @@ impl Site {
     }
 
     pub fn csp(&self, path: &str) -> &HeaderValue {
-        if path.starts_with("/technical-guide") {
+        if matches!(path, "/technical-guide/" | "/technical-guide/index.html") {
             &self.csp_labs
         } else {
             &self.csp
@@ -107,18 +109,56 @@ impl Site {
     }
 }
 
-/// Reduces an http(s) URL to `scheme://host[:port]` for the CSP, rejecting anything else.
+/// Reduces an http(s) URL to `scheme://host[:port]` for the CSP. The host must be a DNS name,
+/// IPv4 address or bracketed IPv6 address, and the port 0-65535, so browsers can parse it too.
 fn origin(url: &str) -> Result<String, String> {
-    let invalid = || "API_BASE_URL must be an http or https URL with a plain host.".to_string();
+    let invalid = || {
+        "API_BASE_URL must be an http or https URL with a DNS name, IPv4 or [IPv6] host and an optional port."
+            .to_string()
+    };
     let (scheme, rest) = url
         .strip_prefix("https://")
         .map(|rest| ("https://", rest))
         .or_else(|| url.strip_prefix("http://").map(|rest| ("http://", rest)))
         .ok_or_else(invalid)?;
-    let host = rest.split(['/', '?', '#']).next().unwrap_or("");
-    let plain = |c: char| c.is_ascii_alphanumeric() || "-.:[]".contains(c);
-    if host.is_empty() || !host.chars().all(plain) || url.chars().any(char::is_control) {
+    if url.chars().any(|c| c.is_control() || c.is_whitespace()) {
         return Err(invalid());
     }
-    Ok(format!("{scheme}{host}"))
+    let authority = rest.split(['/', '?', '#']).next().unwrap_or("");
+    let port = if let Some(v6) = authority.strip_prefix('[') {
+        let (addr, after) = v6.split_once(']').ok_or_else(invalid)?;
+        addr.parse::<Ipv6Addr>().map_err(|_| invalid())?;
+        match after {
+            "" => None,
+            _ => Some(after.strip_prefix(':').ok_or_else(invalid)?),
+        }
+    } else {
+        let (host, port) = match authority.split_once(':') {
+            Some((host, port)) => (host, Some(port)),
+            None => (authority, None),
+        };
+        let label = |l: &str| {
+            (1..=63).contains(&l.len())
+                && l.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
+                && !l.starts_with('-')
+                && !l.ends_with('-')
+        };
+        let numeric_tail = host
+            .rsplit('.')
+            .next()
+            .is_some_and(|l| l.bytes().all(|b| b.is_ascii_digit()));
+        if !host.split('.').all(label) || (numeric_tail && host.parse::<Ipv4Addr>().is_err()) {
+            return Err(invalid());
+        }
+        port
+    };
+    if let Some(port) = port {
+        if port.is_empty()
+            || !port.bytes().all(|b| b.is_ascii_digit())
+            || port.parse::<u16>().is_err()
+        {
+            return Err(invalid());
+        }
+    }
+    Ok(format!("{scheme}{authority}"))
 }

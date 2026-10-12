@@ -14,7 +14,7 @@ use axum::body::Body;
 use axum::extract::{DefaultBodyLimit, State};
 use axum::http::{header, HeaderName, HeaderValue, Request, StatusCode};
 use axum::middleware::{self, Next};
-use axum::response::{IntoResponse, Response};
+use axum::response::{IntoResponse, Redirect, Response};
 use axum::routing::{get, post};
 use axum::{Json, Router};
 use serde::Deserialize;
@@ -354,7 +354,19 @@ pub fn router(app: Arc<App>, static_dir: &std::path::Path) -> Router {
         .route("/api/pipeline", post(run_pipeline))
         .layer(DefaultBodyLimit::max(MAX_BODY_BYTES))
         .route_layer(middleware::from_fn_with_state(app.clone(), limit_expensive));
-    Router::new()
+    let mut router = Router::new();
+    // Retired pages keep their bookmarks and indexed links working.
+    for (old, new) in [
+        ("/dcceew", "/environmental-agency/"),
+        ("/parkinsons", "/lineage-migration/"),
+    ] {
+        let to = get(move || async move { Redirect::permanent(new) });
+        router = router
+            .route(old, to.clone())
+            .route(&format!("{old}/"), to.clone())
+            .route(&format!("{old}/{{*rest}}"), to);
+    }
+    router
         .route("/api/health", get(health))
         .route("/api/ready", get(ready))
         .route("/api/catalogue", get(catalogue))

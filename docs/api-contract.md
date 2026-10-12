@@ -17,6 +17,8 @@ The pages never call the API directly. `static/js/api.js` (`window.siteApi`) is 
 
 Route paths are configurable in the pages through `api.routes` (`API_ROUTE_HEALTH`, `API_ROUTE_CATALOGUE`, `API_ROUTE_PIPELINE`). `/api/ready` and `/api/decide` are not called by the pages.
 
+The Rust service also answers the retired page paths with `308 Permanent Redirect`: `/dcceew`, `/dcceew/` and anything below it go to `/environmental-agency/`; `/parkinsons` and below go to `/lineage-migration/`.
+
 ## Common rules
 
 - Request bodies are JSON with `Content-Type: application/json`, at most 64 KiB. Larger bodies return 413.
@@ -58,7 +60,7 @@ window.SITE_CONFIG = {"brand":{...},"api":{...}};
 | `BRAND_KIND` | Thought piece | `brand.kind` | Any text |
 | `BRAND_DISCLAIMER` | The disclaimer in handover Section 4.1 | `brand.disclaimer` | Any text |
 | `API_MODE` | `live` | `api.mode` | `live`, `fixtures` |
-| `API_BASE_URL` | empty (same origin) | `api.baseUrl` | Empty, or an `http`/`https` URL with a plain host |
+| `API_BASE_URL` | empty (same origin) | `api.baseUrl` | Empty, or an `http`/`https` URL whose host is a DNS name, an IPv4 address or a bracketed IPv6 address, with an optional port from 0 to 65535 and no user info or whitespace. The service refuses to start otherwise, and `deploy/deploy.sh` applies the same rule before any `gcloud` call. |
 | `API_TIMEOUT_MS` | `15000` | `api.timeoutMs` | Positive integer |
 | `API_ROUTE_HEALTH` | `/api/health` | `api.routes.health` | Path |
 | `API_ROUTE_CATALOGUE` | `/api/catalogue` | `api.routes.catalogue` | Path |
@@ -175,7 +177,7 @@ Response:
 ## Response headers (Rust service)
 
 - `X-Content-Type-Options: nosniff` and `Referrer-Policy: strict-origin-when-cross-origin` on every response.
-- `Content-Security-Policy` on every response: `default-src 'self'`; scripts from `'self'` plus `'unsafe-inline'` (the pages' inline scripts and handlers) and `'unsafe-eval'` (the technical-guide labs run edited code); styles from `'self'`, `'unsafe-inline'` and `https://fonts.googleapis.com`; fonts from `https://fonts.gstatic.com`; images from `'self'` and `data:`; `connect-src 'self'` plus the origin of `API_BASE_URL` when set; `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`.
+- `Content-Security-Policy` on every response: `default-src 'self'`; scripts from `'self'` plus `'unsafe-inline'` (the pages' inline scripts and handlers) and, only on `/technical-guide/` and `/technical-guide/index.html`, `'unsafe-eval'` (the labs run edited code); styles from `'self'`, `'unsafe-inline'` and `https://fonts.googleapis.com`; fonts from `https://fonts.gstatic.com`; images from `'self'` and `data:`; `connect-src 'self'` plus the origin of `API_BASE_URL` when set; `object-src 'none'`, `base-uri 'self'`, `form-action 'self'`, `frame-ancestors 'none'`.
 - `Cache-Control: no-cache` for HTML pages and `/config.js`; `public, max-age=604800` for `/assets/`.
 
 ## CORS

@@ -410,8 +410,63 @@ fn invalid_site_settings_fail_at_startup() {
         vec![("API_BASE_URL", "https://api.example.com; script-src *")],
         vec![("API_BASE_URL", "https://user@api.example.com")],
         vec![("API_BASE_URL", "https://")],
+        vec![("API_BASE_URL", "https://:")],
+        vec![("API_BASE_URL", "https://[]")],
+        vec![("API_BASE_URL", "https://[::1")],
+        vec![("API_BASE_URL", "https://[::1]x")],
+        vec![("API_BASE_URL", "https://api.example.com:")],
+        vec![("API_BASE_URL", "https://api.example.com:99999")],
+        vec![("API_BASE_URL", "https://api.example.com:+80")],
+        vec![("API_BASE_URL", "https://api..example.com")],
+        vec![("API_BASE_URL", "https://-api.example.com")],
+        vec![("API_BASE_URL", "https://1.2.3.999")],
+        vec![("API_BASE_URL", "https://api.example.com/a b")],
     ] {
         assert!(site(&vars).is_err(), "{vars:?}");
+    }
+}
+
+#[test]
+fn browser_parseable_base_urls_are_accepted() {
+    for url in [
+        "https://api.example.run.app/v1",
+        "http://localhost:8080",
+        "http://127.0.0.1:8080/",
+        "https://[::1]:8443/api?x=1",
+    ] {
+        assert!(site(&[("API_BASE_URL", url)]).is_ok(), "{url}");
+    }
+}
+
+#[tokio::test]
+async fn unsafe_eval_is_limited_to_the_labs_page() {
+    let (router, _) = app_with_site(10, site(&[]).unwrap());
+    for (path, eval) in [
+        ("/technical-guide/", true),
+        ("/technical-guide/index.html", true),
+        ("/technical-guide/missing", false),
+        ("/technical-guide-x/", false),
+        ("/environmental-agency/", false),
+    ] {
+        let response = get(router.clone(), path).await;
+        let csp = header(&response, "content-security-policy");
+        assert_eq!(csp.contains("'unsafe-eval'"), eval, "{path}");
+    }
+}
+
+#[tokio::test]
+async fn retired_pages_redirect_permanently() {
+    let (router, _) = app_with_site(10, site(&[]).unwrap());
+    for (path, to) in [
+        ("/dcceew", "/environmental-agency/"),
+        ("/dcceew/", "/environmental-agency/"),
+        ("/dcceew/index.html", "/environmental-agency/"),
+        ("/parkinsons/", "/lineage-migration/"),
+        ("/parkinsons/index.html", "/lineage-migration/"),
+    ] {
+        let response = get(router.clone(), path).await;
+        assert_eq!(response.status(), StatusCode::PERMANENT_REDIRECT, "{path}");
+        assert_eq!(header(&response, "location"), to, "{path}");
     }
 }
 
