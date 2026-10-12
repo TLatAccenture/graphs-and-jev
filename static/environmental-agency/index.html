@@ -474,6 +474,7 @@ function render(body) {
   if (body.totals) fact(tech, "Decisions", body.totals.decisions + " in " + body.totals.calls + " calls, " + body.totals.wall_ms + " ms");
   $("#raw").textContent = JSON.stringify(body, null, 2);
   result.hidden = false;
+  result.getAnimations({ subtree: true }).forEach(a => { a.cancel(); a.play(); });
   return OUTCOME_LABEL[outcome];
 }
 

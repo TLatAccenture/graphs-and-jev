@@ -353,15 +353,15 @@ function reachText(){const n=Object.keys(bfs(heroSel,heroHop)).length-1;return `
 function drawHero(){
   const svg=document.getElementById("heroGraph");svg.replaceChildren();
   const d=bfs(heroSel,heroHop);
-  const onPath=new Set(active?active.path.map(e=>e.join("|")):[]);
+  const pathOrder=active?active.path.map(e=>e.join("|")):[];
   const pathNodes=new Set(active?active.path.flatMap(([a,,b])=>[a,b]):[]);
   for(const [a,r,b] of G.edges){const A=G.node(a),B=G.node(b);
-    const lit=onPath.has([a,r,b].join("|"));
-    const g=el("g",{class:"edge"+(lit?" path":"")+((d[a]!==undefined&&d[b]!==undefined)||lit?"":" dim")},svg);
-    el("line",{x1:A.x,y1:A.y,x2:B.x,y2:B.y},g);
+    const i=pathOrder.indexOf([a,r,b].join("|")),lit=i>=0;
+    const g=el("g",{class:"edge"+(lit?" path":"")+((d[a]!==undefined&&d[b]!==undefined)||lit?"":" dim"),style:`--i:${i}`},svg);
+    el("line",{x1:A.x,y1:A.y,x2:B.x,y2:B.y,pathLength:1},g);
     const t=el("text",{x:(A.x+B.x)/2,y:(A.y+B.y)/2-3,"text-anchor":"middle"},g);t.textContent=r.toLowerCase();}
   for(const n of G.nodes){const on=d[n.id]!==undefined||pathNodes.has(n.id);
-    const g=el("g",{class:"node"+(on?"":" dim"),tabindex:0,role:"button","data-id":n.id,"aria-label":n.label+(pathNodes.has(n.id)?", on the lineage path":"")},svg);
+    const g=el("g",{class:"node"+(on?"":" dim"),style:`--hop:${d[n.id]??0}`,tabindex:0,role:"button","data-id":n.id,"aria-label":n.label+(pathNodes.has(n.id)?", on the lineage path":"")},svg);
     el("circle",{cx:n.x,cy:n.y,r:n.id===heroSel?13:10,fill:pathNodes.has(n.id)?"var(--evidence)":G.colours[n.type]},g);
     if(d[n.id]>0){const b=el("text",{x:n.x,y:n.y+3,"text-anchor":"middle",class:"hopbadge"},g);b.textContent=d[n.id]}
     labelLines(n.label).forEach((line,i)=>{const t=el("text",{x:n.x,y:n.y+22+i*11,"text-anchor":"middle"},g);t.textContent=line});
@@ -382,6 +382,7 @@ function renderScenario(s){
   const paths=document.getElementById("examplePath");paths.replaceChildren();
   for(const [a,r,b] of s.path){const ol=document.createElement("ol");ol.className="evidence-path";ol.append(node(G.node(a).label),rel(r),node(G.node(b).label));paths.append(ol)}
   document.getElementById("exampleWhy").textContent=s.why;
+  box.getAnimations({subtree:true}).forEach(a=>{a.cancel();a.play()});
 }
 function choose(key){const s=SCENARIOS[key];active=s;heroSel=s.start;setHop(s.hops);markScenario(key);drawHero();renderScenario(s);
   exampleStatus.dataset.state="done";

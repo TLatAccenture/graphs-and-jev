@@ -232,6 +232,7 @@ function render(body) {
   if (body.totals) fact(tech, "Totals", "decisions " + body.totals.decisions + ", calls " + body.totals.calls + ", wall time " + body.totals.wall_ms + " ms");
   $("#lnRaw").textContent = JSON.stringify(body, null, 2);
   result.hidden = false;
+  result.getAnimations({ subtree: true }).forEach(a => { a.cancel(); a.play(); });
   return OUTCOME_LABEL[outcome];
 }
 

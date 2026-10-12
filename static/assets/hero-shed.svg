@@ -9,6 +9,18 @@
     .wtxt{font:600 15px system-ui,-apple-system,sans-serif;fill:#fff}
     .slot{fill:#fff;stroke:#bdbab3;stroke-width:1.5}
     .lit{fill:#7500C0}
+    @media (prefers-reduced-motion:no-preference){
+      .lit{animation:light .5s .4s both,glow 2.4s 1.4s ease-in-out infinite alternate}
+      .lit+.on{animation:show .3s .6s both}
+      .dot{animation:show .3s .8s both,blink 1.4s 1.4s ease-in-out infinite}
+      .wire{stroke-dasharray:30;stroke-dashoffset:30;animation:wire .5s 1s ease-out forwards}
+      .lent{animation:show .4s 1.4s both}
+    }
+    @keyframes light{from{fill:#fff}}
+    @keyframes glow{to{fill:#A100FF}}
+    @keyframes show{from{opacity:0}}
+    @keyframes blink{50%{opacity:.3}}
+    @keyframes wire{to{stroke-dashoffset:0}}
   </style>
   <rect width="480" height="540" fill="#fff"/>
 
@@ -28,11 +40,11 @@
     <rect class="slot" x="76" y="380" width="156" height="40"/><text class="off" x="92" y="405">Microsoft 365</text>
     <rect class="slot" x="248" y="380" width="156" height="40"/><text class="off" x="264" y="405">Looker</text>
   </g>
-  <circle cx="216" cy="244" r="5" fill="#fff"/>
-  <circle cx="388" cy="244" r="5" fill="#fff"/>
+  <circle class="dot" cx="216" cy="244" r="5" fill="#fff"/>
+  <circle class="dot" cx="388" cy="244" r="5" fill="#fff"/>
 
-  <line x1="240" y1="442" x2="240" y2="472" stroke="#7500C0" stroke-width="3"/>
-  <text class="lab" x="252" y="462">2 OF 10 LENT</text>
+  <line class="wire" x1="240" y1="442" x2="240" y2="472" stroke="#7500C0" stroke-width="3"/>
+  <text class="lab lent" x="252" y="462">2 OF 10 LENT</text>
   <rect x="52" y="472" width="376" height="48" fill="#000"/>
   <text class="wtxt" x="70" y="502">Agent task: migrate SAP KNA1 to BigQuery</text>
 </svg>
