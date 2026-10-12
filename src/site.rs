@@ -94,8 +94,8 @@ impl Site {
         let policy = |eval: &str| {
             format!(
                 "default-src 'self'; script-src 'self' 'unsafe-inline'{eval}; \
-                 style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; \
-                 font-src https://fonts.gstatic.com; img-src 'self' data:; connect-src {connect}; \
+                 style-src 'self' 'unsafe-inline'; \
+                 font-src 'self'; img-src 'self' data:; connect-src {connect}; \
                  object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'"
             )
         };

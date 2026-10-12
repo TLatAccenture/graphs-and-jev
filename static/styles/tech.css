@@ -1,6 +1,5 @@
 /* Technical guide. Pillar colours come from guide.css (--connect, --context, --logic, --reflex, --visibility). */
 html{scroll-padding-top:calc(var(--toc-top,65px) + 64px)}
-main section{scroll-margin-top:0}
 
 /* Hero: the five pillars as a small stack, bottom layer first */
 .pillar-key{list-style:none;margin:0;padding:0;display:flex;flex-direction:column-reverse;gap:6px;max-width:none}

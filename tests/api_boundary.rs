@@ -507,13 +507,17 @@ async fn responses_carry_security_and_cache_headers() {
         for directive in [
             "default-src 'self'",
             "connect-src 'self' https://api.example.run.app;",
-            "https://fonts.googleapis.com",
-            "font-src https://fonts.gstatic.com",
+            "style-src 'self' 'unsafe-inline';",
+            "font-src 'self';",
             "frame-ancestors 'none'",
             "object-src 'none'",
         ] {
             assert!(csp.contains(directive), "{path}: {directive} in {csp}");
         }
+        assert!(
+            !csp.contains("fonts.googleapis") && !csp.contains("fonts.gstatic"),
+            "{path}: no third-party font hosts in {csp}"
+        );
         assert_eq!(
             csp.contains("'unsafe-eval'"),
             path == "/technical-guide/",

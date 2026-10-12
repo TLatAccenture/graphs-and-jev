@@ -351,25 +351,52 @@ fn browser_assets_contain_no_runtime_secrets_analytics_or_raw_personal_data() {
 }
 
 #[test]
-fn pages_load_no_remote_scripts_and_only_google_fonts_styles() {
+fn pages_load_no_remote_scripts_styles_fonts_or_images() {
     for rel in PAGES {
         let html = page(rel);
         for tag in tags(&html, "script") {
             assert!(!tag.contains("src=\"http"), "{rel}: remote script: {tag}");
         }
         for tag in tags(&html, "link") {
-            if let Some(href) = attr(tag, "href").filter(|h| h.starts_with("http")) {
-                assert!(
-                    href.starts_with("https://fonts.googleapis.com")
-                        || href.starts_with("https://fonts.gstatic.com"),
-                    "{rel}: remote link outside Google Fonts: {tag}"
-                );
-            }
+            assert!(
+                !attr(tag, "href").is_some_and(|h| h.starts_with("http") || h.starts_with("//")),
+                "{rel}: remote link: {tag}"
+            );
         }
         for img in tags(&html, "img") {
             assert!(!img.contains("src=\"http"), "{rel}: remote image: {img}");
         }
     }
+}
+
+#[test]
+fn fonts_are_served_by_the_site() {
+    let css = page("guide.css");
+    let faces: Vec<&str> = css.split("@font-face{").skip(1).collect();
+    assert_eq!(
+        faces.len(),
+        6,
+        "three weights each of Instrument Sans and JetBrains Mono"
+    );
+    for face in faces {
+        let url = face
+            .split("url(\"")
+            .nth(1)
+            .and_then(|rest| rest.split('"').next())
+            .expect("font url");
+        assert!(
+            url.starts_with("assets/fonts/") && url.ends_with(".woff2"),
+            "{url}"
+        );
+        assert!(root().join(url).is_file(), "{url} is missing");
+    }
+    for licence in ["OFL-InstrumentSans.txt", "OFL-JetBrainsMono.txt"] {
+        assert!(
+            root().join("assets/fonts").join(licence).is_file(),
+            "{licence} must ship with the fonts"
+        );
+    }
+    assert!(!css.contains("fonts.googleapis") && !css.contains("fonts.gstatic"));
 }
 
 #[test]

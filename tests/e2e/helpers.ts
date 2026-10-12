@@ -101,8 +101,8 @@ export async function expectOutcome(page: Page, vocabulary: string[], expected: 
 
 /** Section 5.3 UI labels (landing, lineage). */
 export const STEP_LABELS = ["Proceed", "Ask", "Refuse", "Escalate", "No data", "Service unavailable"];
-/** Environmental Agency catalogue wording (Section 5.3 allows it). */
-export const CATALOGUE_LABELS = ["Answer", "Clarify", "Reject", "Review", "No data", "Service unavailable"];
+/** Environmental Agency: the same vocabulary, with Answer in place of Proceed (presentation plan, item 7). */
+export const CATALOGUE_LABELS = ["Answer", "Ask", "Refuse", "Escalate", "No data", "Service unavailable"];
 
 /** Expands every <details> around the target, as a reader would before using it. */
 export async function openDetails(target: Locator) {

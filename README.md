@@ -22,7 +22,7 @@ An Accenture thought piece on agentic migration and modernisation. It shows how 
 - [Lineage-guarded migration](https://graphs-and-jev-956922431929.australia-southeast1.run.app/lineage-migration/): seeing the blast radius of a change before it runs.
 - [Little Bunnies](https://graphs-and-jev-956922431929.australia-southeast1.run.app/little-bunnies/): why two hops of lineage are usually enough context.
 
-The pages are static HTML, CSS and vanilla JavaScript. They are served together with the API by one Rust process on Cloud Run, from one origin. The demonstrations use a small sample graph and deterministic rules; they are illustrative, not a production migration tool.
+The pages are static HTML, CSS and vanilla JavaScript, with their fonts served from the site, so they make no request to any other host. They are served together with the API by one Rust process on Cloud Run, from one origin. The demonstrations use a small sample graph and deterministic rules; they are illustrative, not a production migration tool.
 
 ## Run locally
 
@@ -49,7 +49,7 @@ Open <http://127.0.0.1:8080/>. Readiness and liveness are at `/api/ready` and `/
 
 ## Deploy
 
-Deployment to Cloud Run uses two guarded scripts: `deploy/deploy.sh` builds and checks a zero-traffic candidate without changing live traffic or access, and `deploy/promote.sh` moves traffic to it, keeps the service public and verifies the canonical URL, rolling back on failure. See [docs/deployment/cloud-run.md](docs/deployment/cloud-run.md) for the procedure and the current deployment record.
+Deployment to Cloud Run uses two guarded scripts: `deploy/deploy.sh` builds and checks a zero-traffic candidate without changing live traffic or access, and `deploy/promote.sh` moves traffic to it, keeps the service public and verifies the canonical URL, rolling back on failure. See [docs/deployment/cloud-run.md](docs/deployment/cloud-run.md) for the procedure and the current deployment record. For a live presentation, the settings in the "Event build" block of `deploy/cloud-run.env.example` run the catalogue demo in the browser and keep one instance warm; [the presentation plan](docs/plans/2026-10-13-presentation-readiness.md) has the steps.
 
 ## About
 
@@ -58,3 +58,5 @@ An Accenture thought piece on agentic migration and modernisation, published by 
 ## Reuse
 
 No reuse licence is granted yet. All rights are reserved unless a licence is added later.
+
+The fonts in `static/assets/fonts/`, Instrument Sans and JetBrains Mono, are third-party works under the SIL Open Font Licence 1.1; their licences are in the same folder.

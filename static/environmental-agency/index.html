@@ -6,13 +6,11 @@
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Environmental Agency catalogue discovery · The MCP Tool Shed</title>
 <meta name="description" content="Discover the estate before you migrate it. A fictional Environmental Agency reaches its air-quality catalogue through RAG and an MCP Tool Shed, links it in a graph, and lets a System 1 model decide.">
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../guide.css">
 <script src="../config.js"></script>
 <script src="../js/api.js"></script>
 <script src="../fixtures/catalogue.js"></script>
+<script src="../js/ui.js"></script>
 </head>
 <body class="ctx" data-page-title="Environmental Agency catalogue discovery">
 <a class="skip" href="#main">Skip to content</a>
@@ -44,10 +42,10 @@
 <section class="band band--tight band--paper" aria-label="The four layers on this page">
   <div class="wrap">
     <ol class="layers">
-      <li style="--c:var(--rag)"><a href="#reach"><b>Reach</b><span>RAG and MCP reach documents, records and live systems.</span></a></li>
-      <li style="--c:var(--graph)"><a href="#connect"><b>Connect</b><span>The graph links pollutant, place, year and dataset.</span></a></li>
-      <li style="--c:var(--jev)"><a href="#decide"><b>Decide</b><span>A System 1 model answers, asks, refuses or escalates.</span></a></li>
-      <li style="--c:var(--answer)"><a href="#demo"><b>Show</b><span>Every outcome shows its path and datasets.</span></a></li>
+      <li style="--c:var(--connect)"><a href="#reach"><b>Reach</b><span><strong>MCP Tool Shed.</strong> MCP servers, some with a RAG index behind them, reach documents, records and live systems.</span></a></li>
+      <li style="--c:var(--context)"><a href="#connect"><b>Connect</b><span><strong>Context fabric.</strong> The graph links pollutant, place, year and dataset.</span></a></li>
+      <li style="--c:var(--reflex)"><a href="#decide"><b>Decide</b><span><strong>System 1 (Jev).</strong> Answers, asks, refuses or escalates.</span></a></li>
+      <li style="--c:var(--visibility)"><a href="#demo"><b>Show</b><span><strong>Visibility.</strong> Every outcome shows its path and datasets.</span></a></li>
     </ol>
   </div>
 </section>
@@ -156,7 +154,7 @@
           <b>Sift · bounded decisions</b>
           <strong>A System 1 decision model</strong>
           <ul><li>Relevant?</li><li>What shape?</li><li>Who may see it?</li><li>Where does it go?</li></ul>
-          <p>Each call has a confidence. Below threshold means review.</p>
+          <p>Each call has a confidence. Below the threshold, it escalates to a person.</p>
         </div>
         <div class="arrow" aria-hidden="true">→</div>
         <div class="outlets">
@@ -215,14 +213,14 @@
       </div>
       <div>
         <ol class="asks">
-          <li><strong>Can the catalogue answer?</strong><span>answer · clarify · reject</span></li>
+          <li><strong>Can the catalogue answer?</strong><span>answer · ask · refuse</span></li>
           <li><strong>Which pollutants?</strong><span>yes or no per graph candidate</span></li>
           <li><strong>At what breakdown?</strong><span>one level per dimension</span></li>
           <li><strong>Best fit to preference?</strong><span>ranked, only among graph-proven options</span></li>
-          <li><strong>Too uncertain?</strong><span>below threshold → review</span></li>
+          <li><strong>Too uncertain?</strong><span>below threshold → escalate</span></li>
         </ol>
         <ul class="outcomes" aria-label="The five possible outcomes">
-          <li>Answer</li><li>Clarify</li><li>Reject</li><li>Review</li><li>No data</li>
+          <li>Answer</li><li>Ask</li><li>Refuse</li><li>Escalate</li><li>No data</li>
         </ul>
       </div>
     </div>
@@ -286,11 +284,12 @@
         <h3 id="read-title">Reading the result</h3>
         <dl class="facts">
           <div><dt>Answer</dt><dd>Datasets hold the pollutants at the breakdown asked.</dd></div>
-          <div><dt>Clarify</dt><dd>A detail is missing. Jev asks, not guesses.</dd></div>
-          <div><dt>Reject</dt><dd>Outside the catalogue. Jev stops before searching.</dd></div>
-          <div><dt>Review</dt><dd>Below the confidence threshold. A person checks.</dd></div>
+          <div><dt>Ask</dt><dd>A detail is missing. Jev asks, not guesses.</dd></div>
+          <div><dt>Refuse</dt><dd>Outside the catalogue. Jev stops before searching.</dd></div>
+          <div><dt>Escalate</dt><dd>Below the confidence threshold. A person checks.</dd></div>
           <div><dt>No data</dt><dd>Clear request, but no sources cover it.</dd></div>
         </dl>
+        <p class="annotation">The same five outcomes as the migration demos. Here the first is Answer rather than Proceed, because the catalogue answers a question instead of running a step.</p>
         <p class="annotation"><strong style="color:var(--graph)">Graph</strong> stages find and check evidence. <strong style="color:var(--purple-mid)">Decision</strong> stages are Jev's bounded calls.</p>
         <p class="boundary boundary--scope"><strong>Scope</strong>Illustrative sources. Decision stages follow Jev's bounded-decision contract, answered by deterministic rules in your browser or on the Rust service. No hosted model is called; request text is not logged.</p>
         <p class="annotation" id="catalogue-summary"></p>
@@ -378,9 +377,9 @@ const form = $("#ask"), statusEl = $("#status"), submit = $("#submit"), result =
 const scenarios = [...document.querySelectorAll("[data-q]")];
 const OUTCOME_LABEL = {
   answer: "Answer",
-  clarify: "Clarify: more detail needed",
-  reject: "Reject: outside the catalogue",
-  review: "Review: pass to a person",
+  clarify: "Ask: more detail needed",
+  reject: "Refuse: outside the catalogue",
+  review: "Escalate: pass to a person",
   no_data: "No data",
   error: "Service unavailable"
 };
@@ -475,6 +474,7 @@ function render(body) {
   $("#raw").textContent = JSON.stringify(body, null, 2);
   result.hidden = false;
   result.getAnimations({ subtree: true }).forEach(a => { a.cancel(); a.play(); });
+  siteUi.reveal(result);
   return OUTCOME_LABEL[outcome];
 }
 
