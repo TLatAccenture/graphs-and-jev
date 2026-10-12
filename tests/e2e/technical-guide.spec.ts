@@ -43,18 +43,45 @@ for (let i = 0; i < 4; i++) {
   });
 }
 
-test("the five dialect tabs switch", async ({ page }) => {
+// Every run, including a syntax error, flashes the output unless the reader asks for reduced motion.
+for (const motion of ["no-preference", "reduce"] as const) {
+  test(`Lab output flash on every run (${motion} motion)`, async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: motion });
+    await page.addInitScript(() => {
+      const animate = Element.prototype.animate;
+      (window as any).__flashes = 0;
+      Element.prototype.animate = function (...args: Parameters<Element["animate"]>) {
+        if (this.classList.contains("out")) (window as any).__flashes++;
+        return animate.apply(this, args);
+      };
+    });
+    await page.goto(PAGE);
+    const lab = page.locator("main .lab").first();
+    const code = lab.locator("textarea").first();
+    await openDetails(code);
+    const flashes = () => page.evaluate(() => (window as any).__flashes as number);
+    const start = await flashes();
+    await lab.getByRole("button", { name: "Run edited code" }).click();
+    await code.fill("(");
+    await lab.getByRole("button", { name: "Run edited code" }).click();
+    await lab.getByRole("button", { name: "Reset code" }).click();
+    expect(await flashes() - start).toBe(motion === "reduce" ? 0 : 3);
+  });
+}
+
+test("the five dialect buttons switch", async ({ page }) => {
   await page.goto(PAGE);
-  const tablist = page.locator("main [role=tablist]").filter({ hasText: "Cypher" });
+  const tablist = page.getByRole("group", { name: "Query dialect" });
   await expect(tablist).toHaveCount(1);
   await openDetails(tablist);
-  const tabs = tablist.getByRole("tab");
+  const tabs = tablist.getByRole("button");
   await expect(tabs).toHaveCount(5);
   const code = tablist.locator("xpath=..").locator("pre").first();
   const seen = new Set<string>();
   for (let i = 0; i < 5; i++) {
     await tabs.nth(i).click();
-    await expect(tabs.nth(i)).toHaveAttribute("aria-selected", "true");
+    await expect(tabs.nth(i)).toHaveAttribute("aria-pressed", "true");
+    await expect(tablist.locator("[aria-pressed=true]")).toHaveCount(1);
     seen.add((await code.textContent()) || "");
   }
   expect(seen.size, "each dialect shows different code").toBe(5);

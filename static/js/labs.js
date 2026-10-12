@@ -178,14 +178,15 @@ function params(k){
   return ["dServers","dTools","dTokens","dNeed","dWindow"].map(id=>Math.max(0,+$(id).value||0));
 }
 const RENDER={A:renderA,B:renderB,C:renderC,D:renderD};
+function flash(out){if(!matchMedia("(prefers-reduced-motion: reduce)").matches)out.animate([{backgroundColor:"#f3e6ff"},{backgroundColor:"transparent"}],{duration:700,easing:"ease-out"})}
 function run(k,fn){const out=$(k.toLowerCase()+"Out");
   try{RENDER[k](fn(...params(k)))}catch(e){out.innerHTML=`<span class="err">Your code threw an error: ${esc(e.message)}. Fix it and run again, or reset the code.</span>`}
-  if(!matchMedia("(prefers-reduced-motion: reduce)").matches)out.animate([{backgroundColor:"#f3e6ff"},{backgroundColor:"transparent"}],{duration:700,easing:"ease-out"})}
+  flash(out)}
 document.querySelectorAll("[data-run]").forEach(b=>b.onclick=()=>run(b.dataset.run,FN[b.dataset.run]));
 document.querySelectorAll("[data-reset]").forEach(b=>b.onclick=()=>{const k=b.dataset.reset;$(k.toLowerCase()+"Code").value=DEFAULT[k];run(k,FN[k])});
 document.querySelectorAll("[data-runedit]").forEach(b=>b.onclick=()=>{const k=b.dataset.runedit,out=$(k.toLowerCase()+"Out");
   let fn;try{fn=new Function("return ("+$(k.toLowerCase()+"Code").value+")")()}
-  catch(e){out.innerHTML=e instanceof EvalError?`<span class="err">This page's security settings block running edited code. Copy the code into your browser console or a Node.js file to experiment.</span>`:`<span class="err">Your code has a syntax error: ${esc(e.message)}</span>`;return}
+  catch(e){out.innerHTML=e instanceof EvalError?`<span class="err">This page's security settings block running edited code. Copy the code into your browser console or a Node.js file to experiment.</span>`:`<span class="err">Your code has a syntax error: ${esc(e.message)}</span>`;flash(out);return}
   run(k,fn)});
 
 const bSeed=$("bSeed");G.nodes.forEach(n=>bSeed.add(new Option(n.label,n.id,n.id==="bqcust",n.id==="bqcust")));
@@ -251,8 +252,8 @@ while r.has_next():
 ];
 const tabs=$("snipTabs");let cur=0;
 function showSnip(i){cur=i;$("snipCode").textContent=SNIPS[i].c;$("snipNote").textContent=SNIPS[i].who;
-  [...tabs.children].forEach((b,j)=>{b.setAttribute("aria-pressed",j===i);b.setAttribute("aria-selected",j===i)})}
-SNIPS.forEach((s,i)=>{const b=document.createElement("button");b.type="button";b.textContent=s.t;b.setAttribute("role","tab");b.onclick=()=>showSnip(i);tabs.appendChild(b)});
+  [...tabs.children].forEach((b,j)=>{b.setAttribute("aria-pressed",j===i)})}
+SNIPS.forEach((s,i)=>{const b=document.createElement("button");b.type="button";b.textContent=s.t;b.onclick=()=>showSnip(i);tabs.appendChild(b)});
 showSnip(0);
 async function copyText(text,btn){try{await navigator.clipboard.writeText(text);btn.textContent="Copied"}catch(e){btn.textContent="Select and copy"}setTimeout(()=>btn.textContent="Copy",1600)}
 $("snipCopy").onclick=e=>copyText(SNIPS[cur].c,e.target);
