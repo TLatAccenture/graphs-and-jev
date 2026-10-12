@@ -1,57 +1,59 @@
-<div align="center">
+# The MCP Shed
 
-# Graphs + Jev
+### Agentic migration and modernisation
 
-### Turn connected evidence into bounded decisions.
+[**Open the live site**](https://graphs-and-jev-956922431929.australia-southeast1.run.app/)
 
-[**Open the interactive field guide →**](https://graphs-and-jev-956922431929.australia-southeast1.run.app/)
+A personal research thought piece on agentic migration and modernisation. It shows how we think about giving migration agents the right tools for the job: a governed, curated set of MCP servers (the MCP shed), with fast decision models, playbooks, a lineage graph and measurement around it. It is not a product, a service offer or a pricing page.
 
-<img src="assets/evidence-path.svg" width="560" alt="A question moves through connected evidence to a bounded Jev decision, with the evidence path returned alongside the answer.">
+## The five pillars
 
-</div>
+1. **Connectivity**: standard, governed MCP servers replace brittle one-off scripts.
+2. **Relational context**: a graph holds lineage and the enterprise ontology.
+3. **Logic**: skills and hooks turn migration playbooks into enforced steps.
+4. **Reflexes**: System 1 models route, classify and gate in milliseconds, not seconds.
+5. **Visibility and cost**: evals show what agents did; BigQuery and Looker show users the result and the cost.
 
-Graphs preserve the relationships between facts. Jev decides, from that evidence, whether an agent may answer, must ask, must refuse, or must hand the question to a person.
+## Pages
 
-## Explore the publication
+- [Landing page](https://graphs-and-jev-956922431929.australia-southeast1.run.app/): the problem, the MCP shed, the five pillars, a guided example on a sample estate, use cases and governance.
+- [Technical guide](https://graphs-and-jev-956922431929.australia-southeast1.run.app/technical-guide/): each pillar in depth, with browser labs, graph-engine grades and costs, and sources.
+- [Environmental Agency catalogue discovery](https://graphs-and-jev-956922431929.australia-southeast1.run.app/environmental-agency/): discovering a fictional agency's data estate before migrating it.
+- [Lineage-guarded migration](https://graphs-and-jev-956922431929.australia-southeast1.run.app/lineage-migration/): seeing the blast radius of a change before it runs.
+- [Little Bunnies](https://graphs-and-jev-956922431929.australia-southeast1.run.app/little-bunnies/): why two hops of lineage are usually enough context.
 
-- [How graphs and Jev work together](https://graphs-and-jev-956922431929.australia-southeast1.run.app/#how-it-works)
-- [DCCEEW catalogue discovery](https://graphs-and-jev-956922431929.australia-southeast1.run.app/dcceew/)
-- [Parkinson’s research evidence](https://graphs-and-jev-956922431929.australia-southeast1.run.app/parkinsons/)
-- [Little Bunnies: why two hops are usually enough](https://graphs-and-jev-956922431929.australia-southeast1.run.app/little-bunnies/)
-- [Graph-engine guide and browser labs](https://graphs-and-jev-956922431929.australia-southeast1.run.app/#technical-guide)
-
-The publication is served by the current Rust application from one Cloud Run origin. The field guide calls the same-origin catalogue and decision APIs; Parkinson’s research questions use bounded live public-page retrieval. No browser credentials, API tokens, analytics, or cookies are required.
-
-## About
-
-This is a personal open-source research and demonstration project by TLatAccenture. It is not an official Accenture or Google Cloud product. Product names and marks belong to their respective owners.
+The pages are static HTML, CSS and vanilla JavaScript. They are served together with the API by one Rust process on Cloud Run, from one origin. The demonstrations use a small sample graph and deterministic rules; they are illustrative, not a production migration tool.
 
 ## Run locally
 
-Run the current Rust application from the repository root:
+In-browser fixtures only (no server code):
+
+```bash
+cd static && python3 -m http.server 8000
+```
+
+Open <http://127.0.0.1:8000/>.
+
+Full service (pages, `/config.js` and the API from one process):
 
 ```bash
 cargo run
 ```
 
-Open <http://localhost:8080/>. The service reads `catalogue.json` and serves `static/` by default. Set `PORT`, `CATALOGUE_PATH`, or `STATIC_DIR` only when you need different paths or a different port. Readiness and liveness endpoints are available at `/api/ready` and `/api/health`.
+Open <http://127.0.0.1:8080/>. Readiness and liveness are at `/api/ready` and `/api/health`.
 
-### Run the Rust container
+## Configure
 
-Build the same Linux architecture used by Cloud Run, then smoke-test it on a random local port:
+- **Static hosting:** edit `static/config.js`. It holds the brand text and API settings (`api.mode` is `"fixtures"` or `"live"`, with optional per-domain overrides).
+- **Rust service:** the service answers `GET /config.js` itself, rendered from environment variables, so no files change between environments. The variables are `BRAND_ORG`, `BRAND_NAME`, `BRAND_TAGLINE`, `BRAND_KIND`, `BRAND_DISCLAIMER`, `API_MODE`, `API_BASE_URL`, `API_TIMEOUT_MS`, `API_ROUTE_HEALTH`, `API_ROUTE_CATALOGUE`, `API_ROUTE_PIPELINE`, `API_MODE_CATALOGUE` and `API_MODE_LINEAGE`. Unset variables fall back to the service defaults.
 
-```bash
-docker build --platform linux/amd64 -t graphs-and-jev:test .
-./scripts/smoke-container.sh
-```
+## Deploy
 
-To run it directly:
+Deployment to Cloud Run uses the guarded release script `deploy/deploy.sh` (private candidate, verify, promote). See [docs/deployment/cloud-run.md](docs/deployment/cloud-run.md) for the procedure and the current deployment record.
 
-```bash
-docker run --rm -p 8080:8080 -e PORT=8080 graphs-and-jev:test
-```
+## About
 
-Open <http://localhost:8080/>. The scratch image runs as non-root UID 65532 and contains only the static service binary, catalogue, and field-guide assets. The smoke script verifies the static x86-64 ELF, exact scratch rootfs allowlist, image UID, and every API route, including a non-clinical live LRRK2 research request. `CATALOGUE_PATH` and `STATIC_DIR` default to the packaged catalogue and field guide; override them only when mounting replacements. Cloud Run should configure external startup and liveness probes for `/api/ready` and `/api/health`; the image deliberately contains no HTTP client, cloud SDK, or credentials.
+A personal research thought piece on agentic migration and modernisation by TLatAccenture. It is not an official Accenture or Google Cloud product, a service offer or a statement of capability. Product names and marks belong to their owners.
 
 ## Reuse
 

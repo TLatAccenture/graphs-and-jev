@@ -1,5 +1,7 @@
 # Migration-First Graphs + Jev Homepage Design
 
+**Status:** Superseded by 2026-10-12-mcp-shed-cursor-handover.md
+
 ## Decision
 
 Reorder and rewrite the homepage around one primary promise:

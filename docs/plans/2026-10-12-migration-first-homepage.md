@@ -1,5 +1,7 @@
 # Migration-First Homepage Implementation Plan
 
+**Status:** Superseded by 2026-10-12-mcp-shed-cursor-handover.md
+
 > **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
 
 **Goal:** Rebuild the Graphs + Jev homepage as a clear migration-to-AI-acceleration story while preserving all functioning demonstrations and technical evidence.
