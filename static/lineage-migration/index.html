@@ -5,11 +5,12 @@
 <link rel="icon" href="../favicon.svg" type="image/svg+xml">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Lineage-guarded migration · The MCP Shed</title>
-<meta name="description" content="Research retrieval over public sources: the graph keeps typed relationships with their citations, and Jev refuses clinical requests before any search runs.">
+<meta name="description" content="A migration step checked against lineage before it runs: the graph computes the blast radius, a skill sets the steps, hooks validate them, and a System 1 gate proceeds, asks, escalates or refuses.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="../guide.css">
+<link rel="stylesheet" href="../styles/lineage.css">
 <script src="../config.js"></script>
 <script src="../js/api.js"></script>
 <script src="../fixtures/lineage.js"></script>
@@ -30,11 +31,14 @@
 <section class="page-hero" aria-labelledby="page-title">
   <div class="wrap">
     <div>
-      <nav class="crumb" aria-label="Breadcrumb"><a href="../">Graphs + Jev</a> / <a href="../#use-cases">Use cases</a> / <span aria-current="page">Parkinson’s research evidence</span></nav>
-      <p class="eyebrow">Use case · Research evidence</p>
-      <h1 id="page-title">Trace Parkinson’s research back to its source.</h1>
-      <p class="lede">A question about Parkinson’s research uses live public-source retrieval from Wikipedia and Europe PMC. The graph keeps each relationship a retrieved page states, typed and tied to its citation. Jev answers only when a page states a relationship, and refuses clinical requests before any search runs.</p>
-      <p class="boundary"><strong>Research retrieval, not clinical advice.</strong>This page does not diagnose, prescribe, or recommend a dose or treatment. Questions that ask for any of these are refused. Speak to a qualified clinician about care.</p>
+      <nav class="crumb" aria-label="Breadcrumb"><a href="../"><span data-brand="name">The MCP Shed</span></a> / <a href="../#use-cases">Use cases</a> / <span aria-current="page">Lineage-guarded migration</span></nav>
+      <p class="eyebrow">Use case · Change without breaking downstream</p>
+      <h1 id="page-title">See the blast radius before the change runs.</h1>
+      <p class="lede">A migration agent that renames a column or drops a table can break a report it never saw. Here every step is checked against a lineage graph first. A migration skill sets the steps, hooks validate them, and a System 1 model such as <a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">Jev, TypeSafe's System 1 decision model</a>, decides whether the step runs.</p>
+      <p class="boundary boundary--change"><strong>Illustrative, not a migration tool.</strong>The demo runs on a sample estate in your browser. It never connects to a real system.</p>
+    </div>
+    <div class="page-art">
+      <img src="../assets/lineage-blast-radius.svg" width="640" height="400" alt="Rings spread out from the column KNA1.REGION. One hop away is the BigQuery column customers.region. Two hops away are the Looker dashboards Regional sales and Monthly churn, both owned by Finance.">
     </div>
   </div>
 </section>
@@ -42,10 +46,10 @@
 <section class="band band--tight band--paper" aria-label="Use case summary">
   <div class="wrap">
     <dl class="brief">
-      <div><dt>Business question</dt><dd>What does published work state about this research question, and where does it say so?</dd></div>
-      <div><dt>Graph contribution</dt><dd>Turns retrieved pages into typed relationships, such as gene associates disease, each tied to the page that states it.</dd></div>
-      <div><dt>Jev control</dt><dd>Answers only from a stated relationship. Otherwise it asks for a narrower question, reports no data, or refuses.</dd></div>
-      <div><dt>Safety boundary</dt><dd>Dose, diagnosis and prescription requests are refused before retrieval. Nothing is fetched for them.</dd></div>
+      <div><dt>Business question</dt><dd>Can this migration step run without breaking anything downstream?</dd></div>
+      <div><dt>Graph contribution</dt><dd>Computes the blast radius: every table, job and report that depends on the object being changed.</dd></div>
+      <div><dt>Playbook and hooks</dt><dd>A migration skill sets the steps; hooks validate the schema and block unsafe writes.</dd></div>
+      <div><dt>System 1 gate</dt><dd>Proceeds, asks, refuses or escalates at each step, with a calibrated confidence.</dd></div>
     </dl>
   </div>
 </section>
@@ -53,57 +57,66 @@
 <section class="band" id="demo" aria-labelledby="demo-title">
   <div class="wrap">
     <div class="section-head">
-      <p class="eyebrow">Static demonstration</p>
-      <h2 id="demo-title">Ask a Parkinson’s research question.</h2>
-      <p class="lede">This page asks the same-origin Rust service to retrieve live public research from Wikipedia and Europe PMC. It does not provide clinical advice.</p>
+      <p class="eyebrow">Interactive demonstration</p>
+      <h2 id="demo-title">Put a migration step through the gate.</h2>
+      <p class="lede">Choose an example or describe a change to the sample estate. The result shows what the gate decided, the lineage behind it, the playbook steps and the eval record.</p>
     </div>
 
     <div class="demo-grid">
       <div>
         <fieldset class="scenarios">
           <legend>Start with an example</legend>
-          <button type="button" class="scenario" aria-pressed="false" data-pd="LRRK2 associated with Parkinson's disease"><strong>Mechanism evidence</strong><span>“LRRK2 associated with Parkinson’s disease.” See a representative typed relationship linked to the publication that states it.</span></button>
-          <button type="button" class="scenario" aria-pressed="false" data-pd="What has been reported as approved for motor symptoms?"><strong>Reported regulatory status</strong><span>“What has been reported as approved for motor symptoms?” Jev answers only when the representative evidence states it; otherwise it asks for a narrower question.</span></button>
-          <button type="button" class="scenario" aria-pressed="false" data-pd="What dose of levodopa should I prescribe"><strong>Unsafe prescribing request</strong><span>“What dose of levodopa should I prescribe?” Expect a refusal before any search runs.</span></button>
+          <button type="button" class="scenario" aria-pressed="false" data-req="Rename KNA1.REGION to SALES_REGION in the BigQuery target"><strong>Rename a mapped column</strong><span>"Rename KNA1.REGION to SALES_REGION in the BigQuery target." Two dashboards read the column.</span></button>
+          <button type="button" class="scenario" aria-pressed="false" data-req="Migrate COBOL job CUSTUPD to BigQuery SQL"><strong>Convert a batch job</strong><span>"Migrate COBOL job CUSTUPD to BigQuery SQL." The record layout it reads is ambiguous.</span></button>
+          <button type="button" class="scenario" aria-pressed="false" data-req="Drop table KNA1 after cutover"><strong>Retire a source table</strong><span>"Drop table KNA1 after cutover." A downstream report has no owner.</span></button>
+          <button type="button" class="scenario" aria-pressed="false" data-req="Copy the production customer table to dev for testing"><strong>Copy production data</strong><span>"Copy the production customer table to dev for testing." A policy forbids it.</span></button>
+          <button type="button" class="scenario" aria-pressed="false" data-req="Migrate table ZLEGACY_TMP"><strong>Migrate an unknown table</strong><span>"Migrate table ZLEGACY_TMP." The graph has never seen it.</span></button>
         </fieldset>
 
-        <form id="askPd" class="demo" aria-describedby="pdStatus">
+        <form id="askLn" class="demo" aria-describedby="lnStatus">
           <div class="field">
-            <label for="pdRequest">Your research question</label>
-            <p class="hint" id="pd-hint">Ask what published work states, for example which compounds target a protein. Do not include personal or health details about anyone.</p>
-            <textarea id="pdRequest" name="request" maxlength="500" required aria-describedby="pd-hint">LRRK2 associated with Parkinson's disease</textarea>
+            <label for="lnRequest">Migration request</label>
+            <p class="hint" id="ln-hint">Name an object in the sample estate and the change to make, for example "rename KNA1.REGION". Do not enter real system names or credentials.</p>
+            <textarea id="lnRequest" name="request" maxlength="500" required aria-describedby="ln-hint">Rename KNA1.REGION to SALES_REGION in the BigQuery target</textarea>
           </div>
           <div class="actions">
-            <button class="btn btn--purple" type="submit" id="pdSubmit">Search and decide</button>
+            <button class="btn btn--purple" type="submit" id="lnSubmit">Check and decide</button>
           </div>
-          <p class="demo-status" id="pdStatus" aria-live="polite" data-state="idle">Ready. Submit a question to search Wikipedia and Europe PMC.</p>
+          <p class="demo-status" id="lnStatus" aria-live="polite" data-state="idle">Ready. Submit a request to see what the gate decides.</p>
         </form>
 
-        <section class="result" id="pdResult" aria-labelledby="pd-result-heading" tabindex="-1" hidden>
-          <h3 class="outcome" id="pd-result-heading"><span id="pdOutcome"></span></h3>
-          <p class="answer" id="pdAnswer"></p>
-          <p id="pdDetail"></p>
-          <h3>Evidence path</h3>
-          <div class="paths" id="pdPaths"></div>
-          <h3>Retrieved sources</h3>
-          <ol id="pdCitations"></ol>
+        <section class="result" id="lnResult" aria-labelledby="ln-result-heading" tabindex="-1" hidden>
+          <h3 class="outcome" id="ln-result-heading"><span id="lnOutcome"></span></h3>
+          <p class="answer" id="lnAnswer"></p>
+          <ul id="lnWhy"></ul>
+          <h3>Stages</h3>
+          <ol class="ln-stages" id="lnStages" aria-label="Stages the request passed through"></ol>
+          <h3>Blast radius</h3>
+          <div class="paths" id="lnPaths"></div>
+          <h3>Playbook steps</h3>
+          <p id="lnSkill"></p>
+          <ol class="ln-steps" id="lnSteps"></ol>
+          <h3>Eval record</h3>
+          <div class="scroll" id="lnEval"></div>
           <details class="inline">
-            <summary>Technical explanation</summary>
-            <dl class="facts" id="pdTech"></dl>
-            <pre id="pdRaw"></pre>
+            <summary>Technical details</summary>
+            <p id="lnSource"></p>
+            <dl class="facts" id="lnTech"></dl>
+            <pre id="lnRaw"></pre>
           </details>
         </section>
       </div>
 
       <aside aria-labelledby="read-title">
         <h3 id="read-title">How to read the result</h3>
-        <dl class="facts">
-          <div><dt>Answer</dt><dd>A retrieved page states a typed relationship. The path shows it and links the page.</dd></div>
-          <div><dt>Clarify</dt><dd>Pages came back, but none stated a relationship Jev can stand behind. Try a narrower question.</dd></div>
-          <div><dt>Reject</dt><dd>The question asks for a dose, diagnosis or prescription. Nothing was searched.</dd></div>
-          <div><dt>No data</dt><dd>The search returned nothing to cite.</dd></div>
+        <dl class="facts ln-key">
+          <div data-o="answer"><dt>Proceed</dt><dd>The lineage supports the step. It runs, with the blast radius attached.</dd></div>
+          <div data-o="clarify"><dt>Ask</dt><dd>A detail is missing or ambiguous. The agent asks rather than guesses.</dd></div>
+          <div data-o="review"><dt>Escalate</dt><dd>The dependency is known but a fact, such as an owner, is missing. A person decides.</dd></div>
+          <div data-o="reject"><dt>Refuse</dt><dd>The step is unsafe or out of scope. It stops before any tool call.</dd></div>
+          <div data-o="no_data"><dt>No data</dt><dd>The request is clear, but the object is not in the lineage graph.</dd></div>
         </dl>
-        <p class="boundary boundary--scope"><strong>How paths are found</strong>Relationships are extracted from titles and abstracts with simple patterns: targets, binds, associated with, approved for, studied in. Read the source before relying on any path. Citations are always HTTPS links to the pages this request retrieved.</p>
+        <p class="boundary boundary--scope"><strong>How the gate works here</strong>In this demonstration the gate is a short list of in-browser rules that match words in the request. A System 1 model would return the same typed outcomes with a calibrated confidence. The confidence values and the eval record shown here are illustrative.</p>
       </aside>
     </div>
   </div>
@@ -120,126 +133,141 @@
 
 <script>
 const $ = s => document.querySelector(s);
-const pdForm = $("#askPd"), pdStatus = $("#pdStatus"), pdSubmit = $("#pdSubmit"), pdResult = $("#pdResult");
+const form = $("#askLn"), statusLine = $("#lnStatus"), submit = $("#lnSubmit"), result = $("#lnResult");
 const OUTCOME_LABEL = {
-  answer: "Answer: stated in a retrieved source",
-  clarify: "Clarify: no stated relationship",
-  reject: "Reject: outside research retrieval",
-  review: "Review: pass to a person",
+  answer: "Proceed",
+  clarify: "Ask",
+  review: "Escalate",
+  reject: "Refuse",
   no_data: "No data",
-  error: "Sources unavailable"
+  error: "Service unavailable"
 };
+const STAGE_NAME = {gate: "Gate", lineage: "Lineage", playbook: "Playbook", hook: "Hook check", eval: "Eval record"};
+const EVAL_FIELDS = [
+  ["run_id", "Run ID"], ["decision", "Decision"], ["confidence", "Confidence"], ["tools_called", "Tools called"],
+  ["tokens_in", "Tokens in"], ["tokens_out", "Tokens out"], ["latency_ms", "Latency (ms)"], ["cost_usd", "Cost (USD)"]
+];
 
-function httpsUrl(value) {
-  try {
-    const url = new URL(value);
-    return url.protocol === "https:" ? url.href : "";
-  } catch (e) {
-    return "";
-  }
-}
 function el(tag, text, cls) { const n = document.createElement(tag); if (text != null) n.textContent = text; if (cls) n.className = cls; return n; }
-function sourceLink(url, title) {
-  const href = httpsUrl(url);
-  if (!href) return null;
-  const a = el("a", title || href);
-  a.href = href;
-  a.target = "_blank";
-  a.rel = "noopener noreferrer";
-  return a;
-}
 function fact(dl, term, value) { const d = el("div"); d.append(el("dt", term), el("dd", value)); dl.append(d); }
-function setStatus(text, state) { pdStatus.textContent = text; pdStatus.dataset.state = state; }
+function setStatus(text, state) { statusLine.textContent = text; statusLine.dataset.state = state; }
+function rel(ty) { return String(ty || "").replace(/_/g, " "); }
 
 function pathItem(edge) {
-  const wrap = el("div");
+  const from = edge.from_label || edge.from, to = edge.to_label || edge.to;
   const ol = el("ol", null, "evidence-path");
-  ol.setAttribute("aria-label", edge.from + " " + edge.ty.replace("_", " ") + " " + edge.to);
-  const node = (label, name) => { const li = el("li"); li.append(el("span", label + ": " + name, "n")); return li; };
-  const rel = el("li"); rel.append(el("span", edge.ty.replace("_", " "), "e"));
-  ol.append(node(edge.from_label, edge.from), rel, node(edge.to_label, edge.to));
-  wrap.append(ol);
-  const link = sourceLink(edge.url, edge.title);
-  if (link) { const p = el("p", "Stated in ", "annotation"); p.append(link); wrap.append(p); }
-  return wrap;
+  ol.setAttribute("aria-label", from + " " + rel(edge.ty) + " " + to);
+  const node = name => { const li = el("li"); li.append(el("span", name, "n")); return li; };
+  const r = el("li"); r.append(el("span", rel(edge.ty), "e"));
+  ol.append(node(from), r, node(to));
+  return ol;
 }
 
 function render(body) {
   const outcome = OUTCOME_LABEL[body.outcome] ? body.outcome : "error";
-  pdResult.dataset.outcome = outcome;
-  $("#pdOutcome").textContent = OUTCOME_LABEL[outcome];
-  const explanation = body.explanation && body.explanation.text ? body.explanation.text : "";
-  $("#pdAnswer").textContent = body.message || body.detail || "No answer was returned.";
-  $("#pdDetail").textContent = explanation;
-  $("#pdDetail").hidden = !explanation;
+  result.dataset.outcome = outcome;
+  $("#lnOutcome").textContent = OUTCOME_LABEL[outcome];
+  $("#lnAnswer").textContent = body.message || body.detail || "No result was returned.";
+
+  const why = $("#lnWhy");
+  const reasons = (body.explanation && body.explanation.text ? body.explanation.text.split("\n").slice(1) : []).filter(Boolean);
+  why.replaceChildren(...reasons.map(t => el("li", t)));
+  why.hidden = !reasons.length;
+
+  const stages = $("#lnStages");
+  stages.replaceChildren();
+  (body.stages || []).forEach(s => { const li = el("li"); li.append(el("b", STAGE_NAME[s.stage] || s.stage), s.title || ""); stages.append(li); });
+  if (!stages.children.length) stages.append(el("li", outcome === "error" ? "None. The request did not complete." : "None returned.", "empty"));
 
   const edges = (body.graph && body.graph.edges) || [];
-  const paths = $("#pdPaths");
-  paths.replaceChildren();
-  const emptyPath = {reject: "None. Nothing was searched for this question.", error: "None. The request did not complete."};
-  const emptyCite = {reject: "None. No pages were retrieved.", error: "None. The request did not complete."};
-  if (edges.length) edges.forEach(e => paths.append(pathItem(e)));
-  else paths.append(el("p", emptyPath[outcome] || "None. No retrieved page stated a typed relationship.", "empty"));
+  const paths = $("#lnPaths");
+  const emptyPath = {
+    reject: "None. The gate refused the request before the graph was read.",
+    no_data: "None. The object is not in the lineage graph.",
+    error: "None. The request did not complete."
+  };
+  paths.replaceChildren(...(edges.length ? edges.map(pathItem) : [el("p", emptyPath[outcome] || "None. No object was named to trace.", "empty")]));
 
-  const cites = $("#pdCitations");
-  cites.replaceChildren();
-  const links = (body.citations || []).map(c => sourceLink(c.url, c.title)).filter(Boolean);
-  if (links.length) links.forEach(a => { const li = el("li"); li.append(a); cites.append(li); });
-  else cites.append(el("li", emptyCite[outcome] || "No sources came back for this question.", "empty"));
+  const playbook = body.playbook;
+  const list = (playbook && playbook.steps) || [];
+  $("#lnSkill").textContent = playbook && playbook.skill ? "Skill: " + playbook.skill : "";
+  $("#lnSkill").hidden = !(playbook && playbook.skill);
+  const steps = $("#lnSteps");
+  steps.replaceChildren();
+  list.forEach(s => {
+    const li = el("li");
+    const status = el("span", s.status, "ln-status");
+    status.dataset.status = s.status;
+    li.append(el("span", s.name), status);
+    steps.append(li);
+  });
+  if (!list.length) steps.append(el("li", outcome === "error" ? "None. The request did not complete." : "None. No playbook ran for this request.", "empty"));
 
-  const tech = $("#pdTech");
-  tech.replaceChildren();
-  if (body.model) fact(tech, "Decided by", body.backend_label + " (" + body.model + "), " + body.residency);
-  if (body.graph) fact(tech, "Graph", body.graph.nodes.length + " source nodes, " + edges.length + " typed edges");
-  const gate = body.stages && body.stages[0];
-  if (gate && gate.question && gate.question.criteria) {
-    fact(tech, "Gate rule", gate.question.criteria[body.outcome] || "");
+  const evalBox = $("#lnEval");
+  evalBox.replaceChildren();
+  if (body.eval) {
+    const table = el("table", null, "ln-eval");
+    table.append(el("caption", body.residency === "browser"
+      ? "Illustrative record from the in-browser rules. No model or system is called, so tokens, latency and cost are zero, not measured."
+      : "As returned by the service."));
+    const tbody = el("tbody");
+    EVAL_FIELDS.forEach(([key, label]) => {
+      const v = body.eval[key];
+      if (v === undefined) return;
+      const tr = el("tr"), th = el("th", label);
+      th.scope = "row";
+      tr.append(th, el("td", Array.isArray(v) ? (v.length ? v.join(", ") : "none") : String(v)));
+      tbody.append(tr);
+    });
+    table.append(tbody);
+    evalBox.append(table);
+  } else {
+    evalBox.append(el("p", "None. No eval record was returned.", "empty"));
   }
-  $("#pdRaw").textContent = JSON.stringify(body, null, 2);
-  pdResult.hidden = false;
-  return {label: OUTCOME_LABEL[outcome], sources: links.length};
+
+  $("#lnSource").textContent = "Decided by: " + siteApi.source("lineage");
+  const tech = $("#lnTech");
+  tech.replaceChildren();
+  if (body.backend_label) fact(tech, "Backend", body.backend_label + (body.model ? " (" + body.model + ")" : "") + (body.residency ? ", " + body.residency : ""));
+  if (body.totals) fact(tech, "Totals", "decisions " + body.totals.decisions + ", calls " + body.totals.calls + ", wall time " + body.totals.wall_ms + " ms");
+  $("#lnRaw").textContent = JSON.stringify(body, null, 2);
+  result.hidden = false;
+  return OUTCOME_LABEL[outcome];
 }
 
-document.querySelectorAll("[data-pd]").forEach(btn => btn.addEventListener("click", () => {
-  document.querySelectorAll("[data-pd]").forEach(b => b.setAttribute("aria-pressed", b === btn ? "true" : "false"));
-  $("#pdRequest").value = btn.dataset.pd;
-  pdForm.requestSubmit();
+document.querySelectorAll("[data-req]").forEach(btn => btn.addEventListener("click", () => {
+  document.querySelectorAll("[data-req]").forEach(b => b.setAttribute("aria-pressed", b === btn ? "true" : "false"));
+  $("#lnRequest").value = btn.dataset.req;
+  form.requestSubmit();
 }));
 
-pdForm.addEventListener("submit", async (ev) => {
+let latest = 0;
+form.addEventListener("submit", async (ev) => {
   ev.preventDefault();
-  if (pdSubmit.disabled) return;
-  const request = $("#pdRequest").value.trim();
-  pdSubmit.disabled = true;
-  pdForm.setAttribute("aria-busy", "true");
-  setStatus("Working: searching Wikipedia and Europe PMC…", "working");
+  const request = $("#lnRequest").value.trim();
+  if (!request) return;
+  const mine = ++latest;
+  submit.disabled = true;
+  form.setAttribute("aria-busy", "true");
+  setStatus("Working: checking the request against the lineage graph…", "working");
+  let body, ok = false, status = 0;
   try {
-    let res;
-    try {
-      res = await siteApi.pipeline({domain: "lineage", request});
-    } catch (e) {
-      render({outcome: "error", detail: "The research service could not be reached. Reload the page, then try again."});
-      setStatus("Unavailable: the research service did not complete the request.", "unavailable");
-      return;
-    }
-    let body;
-    try { body = await res.json(); }
-    catch (e) {
-      render({outcome: "error", detail: "The research service returned an unexpected response (HTTP " + res.status + ")."});
-      setStatus("Error: the research service returned an unreadable response.", "error");
-      return;
-    }
-    if (!res.ok) {
-      render({outcome: "error", detail: body.detail || "The research service returned HTTP " + res.status + "."});
-      setStatus("Unavailable: " + (res.status === 502 ? "Wikipedia or Europe PMC could not be reached." : "the research service could not complete the request."), "unavailable");
-      return;
-    }
-    const r = render(body);
-    setStatus("Done. Outcome: " + r.label + ". " + r.sources + (r.sources === 1 ? " source" : " sources") + " retrieved.", "done");
-  } finally {
-    pdSubmit.disabled = false;
-    pdForm.removeAttribute("aria-busy");
+    const res = await siteApi.pipeline({domain: "lineage", request});
+    status = res.status;
+    ok = res.ok;
+    body = await res.json();
+  } catch (e) {
+    body = null;
   }
+  if (mine !== latest) return;
+  submit.disabled = false;
+  form.removeAttribute("aria-busy");
+  if (!body || !ok) {
+    render({outcome: "error", detail: (body && body.detail) || "The service did not complete the request" + (status ? " (HTTP " + status + ")." : ".")});
+    setStatus("Service unavailable. Nothing was decided and no result was substituted.", "error");
+    return;
+  }
+  setStatus("Done. Outcome: " + render(body) + ".", "done");
 });
 </script>
 </body>
