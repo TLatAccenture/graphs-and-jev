@@ -4,7 +4,7 @@ A one-page summary of the architecture in [plans/2026-10-12-mcp-shed-cursor-hand
 
 ## Purpose
 
-A personal research thought piece on agentic migration and modernisation, built around the MCP Tool Shed: a governed, curated set of MCP servers, with System 1 decision models, skills and hooks, a lineage graph, and measurement around it. It is not an official Accenture or Google Cloud product.
+An Accenture thought piece on agentic migration and modernisation, built around the MCP Tool Shed: a governed, curated set of MCP servers, with System 1 decision models, skills and hooks, a lineage graph, and measurement around it. It is not an official Accenture or Google Cloud product.
 
 ## Runtime
 

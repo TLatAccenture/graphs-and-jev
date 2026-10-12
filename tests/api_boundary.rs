@@ -354,7 +354,7 @@ async fn config_js_renders_rust_defaults_over_the_static_file() {
                 "name": "The MCP Tool Shed",
                 "tagline": "Agentic migration and modernisation",
                 "kind": "Thought piece",
-                "disclaimer": "A personal research thought piece on agentic migration and modernisation. It is not an official Accenture or Google Cloud product or a service offer. Product names and marks belong to their owners."
+                "disclaimer": "An Accenture thought piece on agentic migration and modernisation. It is not a product or service offer from Accenture or Google Cloud. Product names and marks belong to their owners."
             },
             "api": {
                 "mode": "live",

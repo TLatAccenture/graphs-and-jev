@@ -4,7 +4,7 @@
 
 [**Open the live site**](https://graphs-and-jev-956922431929.australia-southeast1.run.app/)
 
-A personal research thought piece on agentic migration and modernisation. It shows how we think about giving migration agents the right tools for the job: a governed, curated set of MCP servers (the MCP Tool Shed), with fast decision models, playbooks, a lineage graph and measurement around it. It is not a product, a service offer or a pricing page.
+An Accenture thought piece on agentic migration and modernisation. It shows how we think about giving migration agents the right tools for the job: a governed, curated set of MCP servers (the MCP Tool Shed), with fast decision models, playbooks, a lineage graph and measurement around it. It is not a product, a service offer or a pricing page.
 
 ## The architecture
 
@@ -53,7 +53,7 @@ Deployment to Cloud Run uses two guarded scripts: `deploy/deploy.sh` builds and 
 
 ## About
 
-A personal research thought piece on agentic migration and modernisation by TLatAccenture. It is not an official Accenture or Google Cloud product or a service offer. Product names and marks belong to their owners.
+An Accenture thought piece on agentic migration and modernisation, published by TLatAccenture. It is not a product or service offer from Accenture or Google Cloud. Product names and marks belong to their owners.
 
 ## Reuse
 

@@ -3,7 +3,7 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 use axum::http::HeaderValue;
 use serde_json::json;
 
-const DISCLAIMER: &str = "A personal research thought piece on agentic migration and modernisation. It is not an official Accenture or Google Cloud product or a service offer. Product names and marks belong to their owners.";
+const DISCLAIMER: &str = "An Accenture thought piece on agentic migration and modernisation. It is not a product or service offer from Accenture or Google Cloud. Product names and marks belong to their owners.";
 
 /// Browser config and CSP, rendered once at start-up from environment variables.
 pub struct Site {
