@@ -21,6 +21,21 @@ html{scroll-padding-top:calc(var(--toc-top,65px) + 64px)}
 .pillar h3.sub{margin:clamp(40px,6vw,64px) 0 10px}
 .tag{display:inline-block;font:600 var(--tiny)/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;padding:3px 7px;border:1px solid currentColor;color:var(--muted);vertical-align:1px}
 
+/* Planned reference flow */
+.reference-flow{display:grid;gap:0;max-width:none;margin:38px 0 0;padding:0;list-style:none;counter-reset:reference}
+.reference-flow li{counter-increment:reference;min-width:0;padding:18px 20px 18px 0;border-top:4px solid var(--purple);font-size:var(--small)}
+.reference-flow li::before{content:"0" counter(reference);display:block;margin-bottom:9px;font:700 var(--tiny)/1 var(--mono);color:var(--purple-deep)}
+.reference-flow strong,.reference-flow span{display:block}
+.reference-flow strong{font-size:1rem;margin-bottom:5px}
+.reference-flow span{color:var(--muted)}
+.reference-boundary{margin-top:26px;padding-left:16px;border-left:4px solid var(--purple)}
+.reference-sources{display:grid;gap:6px 28px;max-width:none;margin:22px 0 0;padding:18px 18px 18px 38px;border-top:1px solid var(--rule)}
+@media (min-width:980px){
+  .reference-flow{grid-template-columns:repeat(5,minmax(0,1fr))}
+  .reference-flow li+li{padding-left:20px;border-left:1px solid var(--line)}
+  .reference-sources{grid-template-columns:repeat(2,minmax(0,1fr))}
+}
+
 /* MCP Tool Shed catalogue */
 .mcp-table-wrap{margin:14px 0 10px;padding:0}
 .mcp-table{min-width:980px;font-size:.88rem}
@@ -64,3 +79,8 @@ html{scroll-padding-top:calc(var(--toc-top,65px) + 64px)}
 /* Sources */
 .src-list{padding-left:1.1em}
 .src-list li{margin:0 0 6px}
+
+@media print{
+  .reference-flow{display:block}
+  .reference-flow li{border-left:0!important;padding-left:0!important;break-inside:avoid}
+}

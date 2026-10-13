@@ -1,4 +1,4 @@
-/* The MCP Tool Shed design system. Black, white and Accenture purple carry the identity;
+/* Migration acceleration design system. Black, white and Accenture purple carry the identity;
    blue, green, amber and red carry meaning (evidence, answer, review, reject) and
    always appear with a text label. */
 /* Fonts are served by the site itself, so every page renders the same type with no request to
@@ -158,7 +158,7 @@ button{cursor:pointer}
 .graph-stage{background:var(--white);border:1px solid var(--rule);padding:clamp(12px,2vw,24px)}
 .graph-stage svg{width:100%}
 .hops{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:16px;font-size:var(--small)}
-.hops button{min-width:44px;min-height:40px;border:1.5px solid var(--black);background:var(--white);border-radius:var(--r-sm);font-weight:600}
+.hops button{min-width:44px;min-height:44px;border:1.5px solid var(--black);background:var(--white);border-radius:var(--r-sm);font-weight:600}
 .hops button[aria-pressed="true"]{background:var(--black);color:var(--white)}
 .node circle{stroke:var(--white);stroke-width:2;cursor:pointer}
 .node text{font-size:10px;fill:var(--ink);pointer-events:none}
@@ -352,7 +352,7 @@ pre{background:var(--code);border:1px solid var(--line);border-radius:var(--r-sm
 
 /* Context story (Environmental Agency), in the landing page's layer colours: MCP is the MCP Tool Shed
    teal, the graph is the context-fabric blue and Jev is the System 1 purple. RAG is not one of the
-   five layers, so it is neutral grey; raspberry stays with Gemini Enterprise Agent Platform. */
+   five layers, so it is neutral grey; raspberry stays with ADK and Gemini. */
 .ctx{--rag:var(--muted);--rag-wash:#ededeb;--mcp:var(--connect);--mcp-wash:#e0f2f1;--graph:var(--context);--jev:var(--reflex)}
 .layers{display:grid;gap:0;margin:0;padding:0;list-style:none;max-width:none;counter-reset:layer}
 @media (min-width:860px){.layers{grid-template-columns:repeat(4,minmax(0,1fr))}}

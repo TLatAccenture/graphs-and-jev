@@ -4,8 +4,8 @@
 <meta charset="utf-8">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<title>The MCP Tool Shed: Agentic migration and modernisation</title>
-<meta name="description" content="A thought piece on agentic migration and modernisation: the MCP Tool Shed, five layers from the existing stack to a BigQuery Modernisation Springboard, and a guided example of a System 1 gate deciding on a sample lineage graph.">
+<title>Accelerating stack migration and modernisation with Google Cloud</title>
+<meta name="description" content="An Accenture thought piece on accelerating stack migration and modernisation with a planned Google Cloud reference architecture, five delivery pillars and existing deterministic demonstrations.">
 <link rel="stylesheet" href="guide.css">
 <link rel="stylesheet" href="styles/landing.css">
 <script src="config.js"></script>
@@ -15,7 +15,7 @@
 <body data-page-title="">
 <a class="skip" href="#main">Skip to content</a>
 <header class="site-header"><div class="in">
-  <a class="brand" href="./"><span data-brand="name">The MCP Tool Shed</span></a>
+  <a class="brand" href="./"><span data-brand="name">Migration Acceleration with Google Cloud</span></a>
   <nav class="site-nav" aria-label="Primary">
     <a href="#pillars">Approach</a>
     <a href="#use-cases">Use cases</a>
@@ -28,19 +28,39 @@
 <section id="top" class="hero" aria-labelledby="hero-title">
   <div class="wrap">
     <div>
-      <span class="eyebrow">Agentic migration and modernisation</span>
-      <h1 id="hero-title">Transform your old workflows into today&rsquo;s context <em>with the right tools.</em></h1>
-      <p class="lede">Every enterprise runs on decades of systems: storage in AWS and Azure, SAP, Salesforce, Databricks, ServiceNow, Atlassian and years of Microsoft 365 files. Agents can now migrate that estate, but only with the right tools, the right context and clear limits. The MCP Tool Shed is how we give them all three, and how we show what it cost.</p>
+      <span class="eyebrow">Stack migration and modernisation</span>
+      <h1 id="hero-title">Accelerating stack migration and modernisation <em>with Google Cloud</em></h1>
+      <p class="lede">Move from a fragmented estate to governed delivery with clear evidence at every step. Google Cloud supplies the planned reference platform across connectivity, retrieval, operational data, reasoning, lineage and reporting. The live demonstration remains a deterministic Rust and browser experience.</p>
       <div class="actions">
         <a class="btn" href="#pillars">See the approach</a>
         <a class="btn btn--ghost" href="#example">Watch one decision</a>
       </div>
     </div>
     <figure class="hero-art">
-      <img src="assets/hero-shed.svg" width="480" height="540" alt="An MCP Tool Shed holding ten labelled MCP servers. For the task of migrating SAP KNA1 to BigQuery, only the SAP and BigQuery servers are lit and lent to the migration agent.">
+      <img src="assets/hero-migration.svg" width="480" height="540" alt="Source systems such as PySpark, Hadoop, SAP and Databricks flow through the MCP Tool Shed and a System 1 gate run by Jev into a planned Google Cloud reference architecture: Cloud Storage, AlloyDB AI, ADK with Gemini, Spanner Graph, BigQuery and Looker.">
     </figure>
   </div>
 </section>
+
+<div class="status-shell">
+  <div class="wrap">
+    <aside id="implementation-status" class="status-ribbon" aria-label="Implementation status">
+      <div class="status-state status-state--live" data-state="live" data-product="cloud-run">
+        <img data-product-mark="cloud-run" src="assets/gcp-icons/cloud-run.svg" width="40" height="40" alt="">
+        <div>
+          <strong>Live today</strong>
+          <span>Rust and static publication on Cloud Run, deterministic rules and the existing demonstrations.</span>
+        </div>
+      </div>
+      <div class="status-state status-state--reference" data-state="reference">
+        <div>
+          <strong>Google Cloud reference architecture</strong>
+          <span>The Google Cloud reference architecture is planned and not live in this demo.</span>
+        </div>
+      </div>
+    </aside>
+  </div>
+</div>
 
 <section id="problem" class="band band--paper" aria-labelledby="problem-title">
   <div class="wrap">
@@ -55,10 +75,106 @@
       </div>
       <div>
         <h3>Why now</h3>
-        <p>Bigger context windows do not fix this (<a href="https://ai.google.dev/gemini-api/docs/long-context">Google, long context</a>). Models still miss what sits in the middle of a long prompt (<a href="https://aclanthology.org/2024.tacl-1.9/">Lost in the Middle</a>), and every tool definition takes space before the agent has done any work (<a href="https://www.anthropic.com/engineering/code-execution-with-mcp">Anthropic, code execution with MCP</a>; <a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">Anthropic, context engineering</a>).</p>
-        <p>MCP has become the standard way to connect agents to systems (<a href="https://modelcontextprotocol.io/specification/2026-07-28/server">MCP specification</a>). Stripe shows where this goes: its coding agents merge over a thousand pull requests a week (<a href="https://stripe.dev/blog/minions-stripes-one-shot-end-to-end-coding-agents">Stripe</a>), drawing on one central MCP server reported to hold over 400 tools (<a href="https://visdom-maturity-matrix.virtuslab.com/guides/infrastructure/toolshed-model-400-tools-behind-one-mcp-stripe">VirtusLab, secondary report</a>). Enterprise migration is next.</p>
+        <p>Bigger context windows do not fix this.<a class="source-marker" href="#why-source-1" aria-label="Source 1">1</a> Models still miss what sits in the middle of a long prompt,<a class="source-marker" href="#why-source-2" aria-label="Source 2">2</a> and every tool definition takes space before the agent has done any work.<a class="source-marker" href="#why-source-3" aria-label="Source 3">3</a> Effective context therefore has to be selected, not simply accumulated.<a class="source-marker" href="#why-source-4" aria-label="Source 4">4</a></p>
+        <p>MCP provides a standard protocol for connecting agents to tools and resources.<a class="source-marker" href="#why-source-5" aria-label="Source 5">5</a> Stripe shows where this can go: its coding agents merge over a thousand pull requests a week,<a class="source-marker" href="#why-source-6" aria-label="Source 6">6</a> drawing on one central MCP server reported to hold over 400 tools.<a class="source-marker" href="#why-source-7" aria-label="Source 7">7</a> Enterprise migration is the next application of that pattern.</p>
       </div>
     </div>
+    <ol id="why-sources" class="source-notes" aria-label="Why now sources">
+      <li id="why-source-1"><a href="https://ai.google.dev/gemini-api/docs/long-context">Google, Gemini long context</a>.</li>
+      <li id="why-source-2"><a href="https://aclanthology.org/2024.tacl-1.9/">Lost in the Middle</a>.</li>
+      <li id="why-source-3"><a href="https://www.anthropic.com/engineering/code-execution-with-mcp">Anthropic, code execution with MCP</a>.</li>
+      <li id="why-source-4"><a href="https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents">Anthropic, effective context engineering</a>.</li>
+      <li id="why-source-5"><a href="https://modelcontextprotocol.io/specification/2026-07-28/server">Model Context Protocol server specification</a>.</li>
+      <li id="why-source-6"><a href="https://stripe.dev/blog/minions-stripes-one-shot-end-to-end-coding-agents">Stripe, Minions</a>.</li>
+      <li id="why-source-7"><a href="https://visdom-maturity-matrix.virtuslab.com/guides/infrastructure/toolshed-model-400-tools-behind-one-mcp-stripe">VirtusLab report on Stripe's toolshed</a> <span>secondary source</span>.</li>
+    </ol>
+  </div>
+</section>
+
+<section id="google-cloud-architecture" class="band architecture-band" aria-labelledby="architecture-title">
+  <div class="wrap">
+    <div class="section-head">
+      <span class="eyebrow">Planned reference architecture</span>
+      <h2 id="architecture-title">A governed path from source estate to measured outcomes.</h2>
+      <p>This planned Google Cloud reference architecture is not live in this demo. It keeps deterministic parsing, counting and schema validation in code and SQL, while model layers interpret intent, route work and gate bounded decisions.</p>
+    </div>
+    <ol class="architecture-rail" aria-label="Five stages from the source estate through the planned Google Cloud reference architecture">
+      <li data-architecture-stage="sources">
+        <span class="architecture-index">01</span>
+        <h3>Source estate</h3>
+        <p>What is being migrated. These systems keep running while work moves across, and none of them needs to be on Google Cloud.</p>
+        <ul class="source-estate">
+          <li>PySpark and Spark jobs</li>
+          <li>Hadoop and Hive</li>
+          <li>SAP</li>
+          <li>Databricks</li>
+          <li>Salesforce</li>
+          <li>AWS S3 and Azure Blob</li>
+          <li>Microsoft 365 files</li>
+        </ul>
+        <span class="state-label">Existing estate</span>
+      </li>
+      <li data-architecture-stage="connect-retrieve">
+        <span class="architecture-index">02</span>
+        <h3>Connect and land</h3>
+        <p>Governed MCP servers reach into the source estate and may run on Compute Engine. Raw documents and source objects land in Cloud Storage. Google Cloud RAG Engine provides managed document parsing and retrieval where suitable.</p>
+        <a class="product" data-product="compute-engine" href="https://cloud.google.com/compute/docs/overview">
+          <img data-product-mark="compute-engine" src="assets/gcp-icons/compute-engine.svg" width="32" height="32" alt="">
+          <span>Compute Engine</span>
+        </a>
+        <a class="product" data-product="cloud-storage" href="https://cloud.google.com/storage/docs/introduction">
+          <img data-product-mark="cloud-storage" src="assets/gcp-icons/cloud-storage.svg" width="32" height="32" alt="">
+          <span>Cloud Storage</span>
+        </a>
+        <a class="product product--text" data-product="rag-engine" href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/rag-engine/layout-parser-integration">Google Cloud RAG Engine</a>
+        <span class="state-label">Planned reference</span>
+      </li>
+      <li data-architecture-stage="state-gate">
+        <span class="architecture-index">03</span>
+        <h3>Operational state</h3>
+        <p>AlloyDB AI holds operational PostgreSQL state and can call TypeSafe's hosted Jev API through AI functions and Model Endpoint Management. Jev is not embedded in AlloyDB.</p>
+        <a class="product" data-product="alloydb-ai" href="https://codelabs.developers.google.com/alloydb-ai-jev?hl=en#0">
+          <img data-product-mark="alloydb" src="assets/gcp-icons/alloydb.svg" width="32" height="32" alt="">
+          <span>AlloyDB AI</span>
+        </a>
+        <a class="product product--text" data-product="hosted-jev-api" href="https://codelabs.developers.google.com/alloydb-ai-jev?hl=en#0">TypeSafe's hosted Jev API</a>
+        <p class="architecture-note"><a href="https://codelabs.developers.google.com/codelabs/discriminative-models#0">DiffusionGemma</a> can sit behind the same discriminative-model API on Compute Engine or Cloud Run.</p>
+        <span class="state-label">Planned reference</span>
+      </li>
+      <li data-architecture-stage="orchestrate">
+        <span class="architecture-index">04</span>
+        <h3>System 2 orchestration</h3>
+        <p>Agent Development Kit (ADK) with Gemini orchestrates agents and tool use after routine decisions have passed the System 1 gate.</p>
+        <a class="product" data-product="adk" href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/adk">
+          <img data-product-mark="adk" src="assets/gcp-icons/adk.png" width="32" height="32" alt="">
+          <span>Agent Development Kit (ADK)</span>
+        </a>
+        <a class="product" data-product="gemini" href="https://docs.cloud.google.com/architecture/single-agent-ai-system-adk-cloud-run">
+          <img data-product-mark="gemini" src="assets/gcp-icons/gemini.png" width="32" height="32" alt="">
+          <span>Gemini</span>
+        </a>
+        <span class="state-label">Planned reference</span>
+      </li>
+      <li data-architecture-stage="observe">
+        <span class="architecture-index">05</span>
+        <h3>Lineage, analytics and reporting</h3>
+        <p>Spanner Graph holds lineage and semantic context. BigQuery holds analytical data, eval records and telemetry. Looker reports outcomes, quality and cost.</p>
+        <a class="product" data-product="spanner-graph" href="https://cloud.google.com/spanner/docs/graph/overview">
+          <img data-product-mark="spanner" src="assets/engine-logos/google-cloud-spanner.svg" width="32" height="32" alt="">
+          <span>Spanner Graph</span>
+        </a>
+        <a class="product" data-product="bigquery" href="https://cloud.google.com/bigquery/docs">
+          <img data-product-mark="bigquery" src="assets/gcp-icons/bigquery.svg" width="32" height="32" alt="">
+          <span>BigQuery</span>
+        </a>
+        <a class="product" data-product="looker" href="https://cloud.google.com/looker/docs">
+          <img data-product-mark="looker" src="assets/gcp-icons/looker.svg" width="32" height="32" alt="">
+          <span>Looker</span>
+        </a>
+        <span class="state-label">Planned reference</span>
+      </li>
+    </ol>
+    <p class="architecture-caption">MCP exposes tools and resources. Deterministic code or SQL parses exact formats, counts rows and validates schemas. The current demo does not run MCP servers.</p>
   </div>
 </section>
 
@@ -67,42 +183,44 @@
     <div class="section-head">
       <span class="eyebrow">The approach</span>
       <h2 id="pillars-title">Five layers. One way of working.</h2>
-      <p>It starts with the stack you already run. The MCP Tool Shed connects to it. A System 1 model gates every action. Agents on Gemini Enterprise Agent Platform do the work, with Spanner Graph as their context fabric. The Modernisation Springboard in BigQuery is where the estate lands, and where every step is measured.</p>
+      <p>It starts with the stack you already run. The MCP Tool Shed defines governed connectivity. System 1 and Jev filter routine noise and gate bounded actions, so ADK with Gemini can spend System 2 reasoning on higher-level migration decisions. Spanner Graph supplies context, while BigQuery and Looker measure the outcome. These product roles form the planned reference architecture, not the live demo.</p>
       <p class="annotation">Select a layer to open it.</p>
     </div>
     <ol class="stack" aria-label="The five layers, starting from the existing stack">
       <li data-pillar="estate">
         <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-estate"><b>00&nbsp;·&nbsp;Today</b><strong>Existing Stack</strong><span>Decades of systems, all still running.</span></button>
         <div class="stack-detail" id="pillar-estate" hidden>
-          <p>Storage in AWS and Azure, SAP, Salesforce, Databricks, ServiceNow, Atlassian and years of Word, Excel and PowerPoint files in Microsoft 365. Nothing is ripped out on day one. Every layer above reaches it where it is.</p>
+          <p>Storage in AWS and Azure, SAP, Salesforce, Databricks, ServiceNow, Atlassian and years of Word, Excel and PowerPoint files in Microsoft 365. Nothing is ripped out on day one. In the planned reference architecture, <a href="https://cloud.google.com/storage/docs/introduction">Cloud Storage</a> provides a landing zone for raw documents and source objects.</p>
         </div>
       </li>
       <li data-pillar="connect">
         <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-connect"><b>01&nbsp;·&nbsp;Connectivity</b><strong>MCP Tool Shed</strong><span>One governed door to every system.</span></button>
         <div class="stack-detail" id="pillar-connect" hidden>
-          <p>Every system sits behind an MCP server with scoped, short-lived credentials and an audit trail. No passwords in scripts, no bespoke integration per project. Each agent gets only the servers its task needs, which also keeps its context lean.</p>
+          <p>In the planned reference architecture, systems sit behind <a href="https://modelcontextprotocol.io/specification/2026-07-28/server">governed MCP servers</a> with scoped, short-lived credentials and an audit trail. <a href="https://cloud.google.com/compute/docs/overview">Compute Engine</a> is one possible host where persistent processes, specialised runtimes or network placement require it. MCP is the protocol and tool boundary, not a parser. The current demo does not run MCP servers.</p>
           <p><a class="go-deeper" href="technical-guide/#connectivity">Go deeper: MCP Tool Shed</a></p>
         </div>
       </li>
       <li data-pillar="reflex">
         <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-reflex"><b>02&nbsp;·&nbsp;Reflexes</b><strong>System 1 (Jev)</strong><span>A decision in milliseconds, before every action.</span></button>
         <div class="stack-detail" id="pillar-reflex" hidden>
-          <p>Jev, TypeSafe's System 1 decision model, returns a typed decision with a calibrated confidence in 70 to 500 ms (<a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">TypeSafe, vendor-reported</a>). It routes requests, classifies data and gates every tool call without slowing the work. It does not stop a model hallucinating; it stops an unsure output becoming an action.</p>
+          <p>Jev, TypeSafe's System 1 decision model, returns a typed decision with a calibrated confidence in 70 to 500 ms (<a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">TypeSafe, vendor-reported</a>). It routes requests, classifies data and gates bounded actions. It filters routine noise so Gemini can reason about higher-level migration decisions. It does not stop a model hallucinating; it stops an unsure output becoming an action.</p>
+          <p>In the planned reference architecture, <a href="https://codelabs.developers.google.com/alloydb-ai-jev?hl=en#0">AlloyDB AI can call TypeSafe's hosted Jev API through AI functions and Model Endpoint Management</a>. Jev remains a hosted TypeSafe service and is not embedded in AlloyDB. <a href="https://codelabs.developers.google.com/codelabs/discriminative-models#0">DiffusionGemma can implement the same discriminative-model API separately on Compute Engine or Cloud Run</a>.</p>
           <p><a class="go-deeper" href="technical-guide/#reflexes">Go deeper: System 1</a></p>
         </div>
       </li>
       <li data-pillar="logic">
-        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-logic"><b>03&nbsp;·&nbsp;Logic and context</b><strong>Gemini Enterprise Agent Platform</strong><span>Agents that follow the playbook and know what a change touches.</span></button>
+        <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-logic"><b>03&nbsp;·&nbsp;Logic and context</b><strong>ADK with Gemini</strong><span>System 2 reasoning with the context a change needs.</span></button>
         <div class="stack-detail" id="pillar-logic" hidden>
-          <p>Migration agents run on <a href="https://docs.cloud.google.com/agent-builder/overview">Gemini Enterprise Agent Platform</a>. Skills give them a tested playbook for each migration pattern. Hooks run around each tool call to validate schemas, block unsafe actions and ask for approval where it matters. The hundredth migration follows the same steps as the first.</p>
-          <p><strong>Context fabric: <a href="https://cloud.google.com/spanner/docs/graph/overview">Spanner Graph</a>.</strong> It records what feeds what, and what each business term means. Agents check upstream and downstream before they change anything, so a fix in one place does not break a report in another.</p>
+          <p><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/adk">Agent Development Kit (ADK) with Gemini</a> is the planned System 2 orchestration layer. Skills provide tested playbooks and ADK coordinates agents and tool use. Deterministic hooks validate schemas, block unsafe actions and request approval. The agents can be built and deployed through Gemini Enterprise Agent Platform. None of these services decides the current demonstrations.</p>
+          <p><strong>Managed retrieval: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/rag-engine/layout-parser-integration">Google Cloud RAG Engine</a>.</strong> It is the planned retrieval layer for document parsing and retrieval where suitable. It is not connected to this demo.</p>
+          <p><strong>Context fabric: <a href="https://cloud.google.com/spanner/docs/graph/overview">Spanner Graph</a>.</strong> It records what feeds what and what each business term means. Agents check upstream and downstream before they change anything, so a fix in one place does not break a report in another.</p>
           <p><a class="go-deeper" href="technical-guide/#logic">Go deeper: skills and hooks</a> · <a class="go-deeper" href="technical-guide/#relational-context">Go deeper: context fabric</a></p>
         </div>
       </li>
       <li data-pillar="visibility">
         <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-visibility"><b>04&nbsp;·&nbsp;Visibility and cost</b><strong>Modernisation Springboard</strong><span>Where the estate lands, and the proof of how it got there.</span></button>
         <div class="stack-detail" id="pillar-visibility" hidden>
-          <p><a href="https://cloud.google.com/bigquery/docs">BigQuery</a> is the destination lakehouse for migrated data, and the store for telemetry and audit logs. Every agent step writes an eval record: decision, confidence, tools, tokens, latency, outcome. <a href="https://cloud.google.com/looker/docs">Looker</a> turns those records into reporting your teams already use, including cost per migrated object. You see the spend today and the run cost tomorrow.</p>
+          <p>In the planned reference architecture, <a href="https://cloud.google.com/bigquery/docs">BigQuery</a> stores normalised and analytical data, eval records and telemetry. <a href="https://cloud.google.com/looker/docs">Looker</a> reports outcomes, quality and cost, including cost per migrated object. The current demonstrations do not write these records to Google Cloud.</p>
           <p><a class="go-deeper" href="technical-guide/#visibility-and-cost">Go deeper: Modernisation Springboard</a></p>
         </div>
       </li>
@@ -255,12 +373,12 @@
       <li>
         <h3>Prove one pattern</h3>
         <p class="q">Can agents do this safely, end to end?</p>
-        <p>Pick one migration pattern, such as SAP tables to BigQuery. Encode it as a skill with hooks, put a System 1 gate in front of every step and run it on Gemini Enterprise Agent Platform.</p>
+        <p>Pick one migration pattern, such as SAP tables to BigQuery. Encode it as a skill with deterministic hooks, put a System 1 gate in front of every step and test it against the planned ADK with Gemini orchestration layer.</p>
       </li>
       <li>
         <h3>Scale with evidence</h3>
         <p class="q">What worked, and what did it cost?</p>
-        <p>The eval records in BigQuery show what proceeded, what was escalated and the cost per object. Add patterns and systems from there.</p>
+        <p>In the planned reference architecture, <a href="https://cloud.google.com/bigquery/docs">eval records in BigQuery</a> would show what proceeded, what was escalated and the cost per object. Add patterns and systems from there.</p>
       </li>
     </ol>
   </div>

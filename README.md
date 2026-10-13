@@ -1,22 +1,28 @@
-# The MCP Tool Shed
+# Accelerating stack migration and modernisation with Google Cloud
 
-### Agentic migration and modernisation
+### Stack migration and modernisation
 
 [**Open the live site**](https://graphs-and-jev-956922431929.australia-southeast1.run.app/)
 
-An Accenture thought piece on agentic migration and modernisation. It shows how we think about giving migration agents the right tools for the job: a governed, curated set of MCP servers (the MCP Tool Shed), with fast decision models, playbooks, a lineage graph and measurement around it. It is not a product, a service offer or a pricing page.
+An Accenture thought piece on accelerating stack migration and modernisation with Google Cloud. It presents five delivery pillars: the existing stack, a governed MCP Tool Shed, System 1 and Jev, ADK with Gemini and connected context, then measured outcomes. It is not a product, a service offer or a pricing page.
 
-## The architecture
+## Current service and planned architecture
 
-0. **Existing Stack**: AWS and Azure storage, SAP, Salesforce, Databricks, ServiceNow, Atlassian and Microsoft 365 files, left where they are.
-1. **MCP Tool Shed** (connectivity): standard, governed MCP servers replace brittle one-off scripts.
-2. **System 1 (Jev)** (reflexes): a fast decision model routes, classifies and gates every tool call.
-3. **Gemini Enterprise Agent Platform** (logic and context): agents follow skills and hooks, with Spanner Graph as the context fabric for lineage and meaning.
-4. **Modernisation Springboard** (visibility and cost): BigQuery as the destination lakehouse and the store for telemetry, audit logs and eval records; Looker reports the result and the cost.
+The live service is one Rust process on Cloud Run. It serves the static publication and same-origin API. The demonstrations use deterministic Rust rules or browser fixtures. They do not run MCP servers or call AlloyDB AI, RAG Engine, ADK, Gemini or DiffusionGemma.
+
+The planned Google Cloud reference architecture assigns these roles:
+
+0. **Existing Stack**: source systems remain in place, with [Cloud Storage](https://cloud.google.com/storage/docs/introduction) as the planned landing zone for raw documents and source objects.
+1. **MCP Tool Shed** (connectivity): [governed MCP servers expose scoped tools and resources](https://modelcontextprotocol.io/specification/2026-07-28/server). [Compute Engine](https://cloud.google.com/compute/docs/overview) is one possible planned host.
+2. **System 1 (Jev)** (reflexes): a discriminative model routes, classifies and gates bounded decisions. [AlloyDB AI can call TypeSafe's hosted Jev API](https://codelabs.developers.google.com/alloydb-ai-jev?hl=en#0); Jev is not embedded in AlloyDB.
+3. **ADK with Gemini** (logic and context): [System 2 orchestration and tool use](https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/adk), with [RAG Engine](https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/rag-engine/layout-parser-integration) for managed retrieval and [Spanner Graph](https://cloud.google.com/spanner/docs/graph/overview) for lineage and semantic context.
+4. **Modernisation Springboard** (visibility and cost): [BigQuery](https://cloud.google.com/bigquery/docs) stores analytical data, eval records and telemetry; [Looker](https://cloud.google.com/looker/docs) reports outcomes, quality and cost.
+
+The product roles and supporting primary sources are recorded in [the implementation handover](docs/plans/2026-10-13-gcp-migration-acceleration-handover.md). The architecture is planned and is not connected to the live demonstrations.
 
 ## Pages
 
-- [Landing page](https://graphs-and-jev-956922431929.australia-southeast1.run.app/): the problem, the MCP Tool Shed architecture, a guided example on a sample estate, use cases and governance.
+- [Landing page](https://graphs-and-jev-956922431929.australia-southeast1.run.app/): the migration problem, planned Google Cloud reference architecture, five pillars, a guided example on a sample estate, use cases and governance.
 - [Technical guide](https://graphs-and-jev-956922431929.australia-southeast1.run.app/technical-guide/): each layer in depth, with browser labs, graph-engine grades and costs, and sources.
 - [Environmental Agency catalogue discovery](https://graphs-and-jev-956922431929.australia-southeast1.run.app/environmental-agency/): discovering a fictional agency's data estate before migrating it.
 - [Lineage-guarded migration](https://graphs-and-jev-956922431929.australia-southeast1.run.app/lineage-migration/): seeing the blast radius of a change before it runs.

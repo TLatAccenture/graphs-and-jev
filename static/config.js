@@ -2,8 +2,8 @@
 window.SITE_CONFIG = {
   brand: {
     org: "Accenture",
-    name: "The MCP Tool Shed",
-    tagline: "Agentic migration and modernisation",
+    name: "Migration Acceleration with Google Cloud",
+    tagline: "Stack migration and modernisation",
     kind: "Thought piece",
     disclaimer: "An Accenture thought piece on agentic migration and modernisation. It is not a product or service offer from Accenture or Google Cloud. Product names and marks belong to their owners."
   },
