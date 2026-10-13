@@ -1,20 +1,34 @@
-# The MCP Tool Shed: architecture summary
+# Migration Acceleration with Google Cloud: architecture summary
 
-A one-page summary of the architecture in [plans/2026-10-12-mcp-shed-cursor-handover.md](plans/2026-10-12-mcp-shed-cursor-handover.md) (Sections 1.2, 4 and 9). If anything here differs from the handover, the handover wins.
+A one-page summary of the current runtime and the planned architecture in [plans/2026-10-13-gcp-migration-acceleration-handover.md](plans/2026-10-13-gcp-migration-acceleration-handover.md). For the publication name, landing story, Google Cloud product roles and icons, that handover wins. The earlier [MCP shed handover](plans/2026-10-12-mcp-shed-cursor-handover.md) still governs the runtime, API and demonstration contracts.
 
 ## Purpose
 
-An Accenture thought piece on agentic migration and modernisation, built around the MCP Tool Shed: a governed, curated set of MCP servers, with System 1 decision models, skills and hooks, a lineage graph, and measurement around it. It is not an official Accenture or Google Cloud product.
+An Accenture thought piece on accelerating stack migration and modernisation with Google Cloud. It keeps the MCP Tool Shed as the governed connectivity pillar, with System 1 decision models, ADK with Gemini, retrieval, lineage and measurement around it. It is not an official Accenture or Google Cloud product.
 
 ## Runtime
 
 One Rust (Axum) process on Cloud Run serves the static pages, `/config.js` and the API from the same origin. It runs from a non-root scratch image with a static musl binary, makes no outbound calls and needs no cloud SDK. The same files also run on any static host in fixtures mode.
 
+The live demonstrations use deterministic Rust rules or browser fixtures. They do not run MCP servers and do not call AlloyDB AI, Google Cloud RAG Engine, ADK, Gemini or DiffusionGemma.
+
+## Planned Google Cloud reference architecture
+
+This reference architecture is planned and not live in the demo:
+
+1. The source estate is what is being migrated, and it is not on Google Cloud: PySpark and Spark jobs, Hadoop and Hive, SAP, Databricks, Salesforce, AWS S3, Azure Blob and Microsoft 365 files. It keeps running while work moves across.
+2. [Governed MCP servers expose tools and resources](https://modelcontextprotocol.io/specification/2026-07-28/server) over the source estate and may run on [Compute Engine](https://cloud.google.com/compute/docs/overview). Raw documents and source objects land in [Cloud Storage](https://cloud.google.com/storage/docs/introduction). [Google Cloud RAG Engine](https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/rag-engine/layout-parser-integration) provides managed document parsing and retrieval where suitable.
+3. AlloyDB AI holds operational PostgreSQL state and can call TypeSafe's hosted Jev API through AI functions and Model Endpoint Management, as shown in the [AlloyDB AI and Jev codelab](https://codelabs.developers.google.com/alloydb-ai-jev?hl=en#0). Jev is not embedded in AlloyDB. [DiffusionGemma may run behind the same discriminative-model API on Compute Engine or Cloud Run](https://codelabs.developers.google.com/codelabs/discriminative-models#0).
+4. [Agent Development Kit (ADK) with Gemini](https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/adk) provides planned System 2 reasoning, agent orchestration and tool use.
+5. [Spanner Graph](https://cloud.google.com/spanner/docs/graph/overview) holds lineage and semantic context, [BigQuery](https://cloud.google.com/bigquery/docs) holds analytical data, eval records and telemetry, and [Looker](https://cloud.google.com/looker/docs) reports outcomes, quality and cost.
+
+Deterministic code and SQL parse exact formats, count rows and validate schemas. Model layers interpret intent, route work and gate bounded decisions.
+
 ## Site
 
 | Path | Purpose |
 |---|---|
-| `static/index.html` | Landing: problem, the shed, five pillars, guided example, use cases, governance |
+| `static/index.html` | Landing: problem, live/reference status, planned Google Cloud flow, five pillars, guided example, use cases, governance |
 | `static/technical-guide/` | Each pillar in depth, with labs, engine grades, costs and sources |
 | `static/environmental-agency/` | Catalogue discovery for a fictional Environmental Agency; works with the Rust catalogue API |
 | `static/lineage-migration/` | Lineage-guarded migration demo; in-browser fixtures for now |

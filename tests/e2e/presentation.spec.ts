@@ -59,7 +59,7 @@ test("item 4: the five layers read left to right in slide order, one open at a t
     "Existing Stack",
     "MCP Tool Shed",
     "System 1 (Jev)",
-    "Gemini Enterprise Agent Platform",
+    "ADK with Gemini",
     "Modernisation Springboard",
   ]);
   const boxes = await layers.evaluateAll(els => els.map(e => e.getBoundingClientRect()).map(r => ({ top: r.top, left: r.left })));

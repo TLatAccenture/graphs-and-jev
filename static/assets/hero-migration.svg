@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 480 540" role="img" aria-labelledby="t d">
+  <title id="t">Migration to Google Cloud through the MCP Tool Shed and a System 1 gate</title>
+  <desc id="d">Eight source systems, including PySpark, Hadoop, SAP and Databricks, flow through the MCP Tool Shed for governed connectivity, then a System 1 gate run by Jev that proceeds or asks, into a planned Google Cloud reference architecture of Cloud Storage, AlloyDB AI, ADK with Gemini, Spanner Graph, BigQuery and Looker.</desc>
+  <style>
+    .lab{font:600 11px ui-monospace,Menlo,monospace;letter-spacing:.12em;fill:#4a4a4a}
+    .src{font:600 13px system-ui,-apple-system,sans-serif;fill:#4a4a4a}
+    .bar{font:700 15px system-ui,-apple-system,sans-serif;fill:#fff}
+    .gcp{font:700 13px system-ui,-apple-system,sans-serif;fill:#000}
+    .slot{fill:#fff;stroke:#bdbab3;stroke-width:1.5}
+    .tile{fill:#fff;stroke:#bdbab3;stroke-width:1}
+    .wire{stroke:#7500C0;stroke-width:3}
+    .gate{fill:#7500C0}
+    @media screen and (prefers-reduced-motion:no-preference){
+      .wire{stroke-dasharray:24;stroke-dashoffset:24;animation:wire .4s ease-out forwards}
+      .w2{animation-delay:.5s}
+      .w3{animation-delay:1s}
+      .gate{animation:glow 2.4s 1.4s ease-in-out infinite alternate}
+      .land{animation:show .5s 1.3s both}
+    }
+    @keyframes wire{to{stroke-dashoffset:0}}
+    @keyframes glow{to{fill:#A100FF}}
+    @keyframes show{from{opacity:0}}
+  </style>
+  <rect width="480" height="540" fill="#fff"/>
+
+  <text class="lab" x="52" y="40">SOURCE ESTATE · MIGRATING FROM</text>
+  <g>
+    <rect class="slot" x="52" y="54" width="182" height="30"/><text class="src" x="66" y="74">PySpark jobs</text>
+    <rect class="slot" x="246" y="54" width="182" height="30"/><text class="src" x="260" y="74">Hadoop and Hive</text>
+    <rect class="slot" x="52" y="92" width="182" height="30"/><text class="src" x="66" y="112">SAP</text>
+    <rect class="slot" x="246" y="92" width="182" height="30"/><text class="src" x="260" y="112">Databricks</text>
+    <rect class="slot" x="52" y="130" width="182" height="30"/><text class="src" x="66" y="150">Salesforce</text>
+    <rect class="slot" x="246" y="130" width="182" height="30"/><text class="src" x="260" y="150">AWS S3</text>
+    <rect class="slot" x="52" y="168" width="182" height="30"/><text class="src" x="66" y="188">Azure Blob</text>
+    <rect class="slot" x="246" y="168" width="182" height="30"/><text class="src" x="260" y="188">Microsoft 365</text>
+  </g>
+
+  <line class="wire" x1="240" y1="198" x2="240" y2="222"/>
+  <rect x="52" y="222" width="376" height="40" fill="#000"/>
+  <text class="bar" x="240" y="247" text-anchor="middle">MCP Tool Shed · governed connectivity</text>
+
+  <line class="wire w2" x1="240" y1="262" x2="240" y2="282"/>
+  <rect class="gate" x="52" y="282" width="376" height="40"/>
+  <text class="bar" x="240" y="307" text-anchor="middle">System 1 gate (Jev) · proceed or ask</text>
+
+  <line class="wire w3" x1="240" y1="322" x2="240" y2="346"/>
+  <g class="land">
+    <rect x="52" y="346" width="376" height="174" fill="#f6f4ef" stroke="#000" stroke-width="2"/>
+    <text class="lab" x="68" y="370">GOOGLE CLOUD · PLANNED REFERENCE</text>
+    <rect class="tile" x="68" y="382" width="170" height="36"/><rect x="68" y="382" width="5" height="36" fill="#4285F4"/><text class="gcp" x="84" y="405">Cloud Storage</text>
+    <rect class="tile" x="246" y="382" width="170" height="36"/><rect x="246" y="382" width="5" height="36" fill="#EA4335"/><text class="gcp" x="262" y="405">AlloyDB AI</text>
+    <rect class="tile" x="68" y="428" width="170" height="36"/><rect x="68" y="428" width="5" height="36" fill="#FBBC04"/><text class="gcp" x="84" y="451">ADK with Gemini</text>
+    <rect class="tile" x="246" y="428" width="170" height="36"/><rect x="246" y="428" width="5" height="36" fill="#34A853"/><text class="gcp" x="262" y="451">Spanner Graph</text>
+    <rect class="tile" x="68" y="474" width="170" height="36"/><rect x="68" y="474" width="5" height="36" fill="#4285F4"/><text class="gcp" x="84" y="497">BigQuery</text>
+    <rect class="tile" x="246" y="474" width="170" height="36"/><rect x="246" y="474" width="5" height="36" fill="#EA4335"/><text class="gcp" x="262" y="497">Looker</text>
+  </g>
+</svg>

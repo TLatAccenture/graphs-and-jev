@@ -55,8 +55,8 @@ window.SITE_CONFIG = {"brand":{...},"api":{...}};
 | Variable | Default | Maps to | Valid values |
 |---|---|---|---|
 | `BRAND_ORG` | Accenture | `brand.org` | Any text |
-| `BRAND_NAME` | The MCP Tool Shed | `brand.name` | Any text |
-| `BRAND_TAGLINE` | Agentic migration and modernisation | `brand.tagline` | Any text |
+| `BRAND_NAME` | Migration Acceleration with Google Cloud | `brand.name` | Any text |
+| `BRAND_TAGLINE` | Stack migration and modernisation | `brand.tagline` | Any text |
 | `BRAND_KIND` | Thought piece | `brand.kind` | Any text |
 | `BRAND_DISCLAIMER` | The disclaimer in handover Section 4.1 | `brand.disclaimer` | Any text |
 | `API_MODE` | `live` | `api.mode` | `live`, `fixtures` |

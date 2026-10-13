@@ -351,8 +351,8 @@ async fn config_js_renders_rust_defaults_over_the_static_file() {
         json!({
             "brand": {
                 "org": "Accenture",
-                "name": "The MCP Tool Shed",
-                "tagline": "Agentic migration and modernisation",
+                "name": "Migration Acceleration with Google Cloud",
+                "tagline": "Stack migration and modernisation",
                 "kind": "Thought piece",
                 "disclaimer": "An Accenture thought piece on agentic migration and modernisation. It is not a product or service offer from Accenture or Google Cloud. Product names and marks belong to their owners."
             },
@@ -389,7 +389,7 @@ async fn config_js_applies_overrides_and_escapes_hostile_values() {
     assert_eq!(value["brand"]["org"], "Example");
     assert_eq!(
         value["brand"]["tagline"],
-        "Agentic migration and modernisation"
+        "Stack migration and modernisation"
     );
     assert_eq!(value["api"]["mode"], "fixtures");
     assert_eq!(value["api"]["baseUrl"], "https://api.example.run.app");

@@ -42,7 +42,7 @@ const PILLARS = [
   { name: "Existing Stack", detail: "Nothing is ripped out on day one" },
   { name: "MCP Tool Shed", detail: "scoped, short-lived credentials" },
   { name: "System 1 (Jev)", detail: "it stops an unsure output becoming an action" },
-  { name: "Gemini Enterprise Agent Platform", detail: "Hooks run around each tool call" },
+  { name: "ADK with Gemini", detail: "planned System 2 orchestration layer" },
   { name: "Modernisation Springboard", detail: "cost per migrated object" },
 ];
 
@@ -83,4 +83,197 @@ test('each "Go deeper" link lands on an existing technical-guide anchor', async 
     expect(res?.status()).toBe(200);
     await expect(page.locator(`[id="${url.hash.slice(1)}"]`)).toHaveCount(1);
   }
+});
+
+test("status ribbon separates the live service from the planned reference architecture", async ({ page }) => {
+  await page.goto("./");
+  const status = page.locator("#implementation-status");
+  await expect(status).toBeVisible();
+  await expect(status.locator('[data-state="live"]')).toContainText("Live today");
+  await expect(status.locator('[data-state="reference"]')).toContainText("Google Cloud reference architecture");
+  await expect(status).toContainText("The Google Cloud reference architecture is planned and not live in this demo.");
+});
+
+test("there are exactly five accessible pillar controls in the published order", async ({ page }) => {
+  await page.goto("./#pillars");
+  const controls = page.locator("#pillars .stack-layer");
+  await expect(controls).toHaveCount(5);
+  await expect(controls.locator("strong")).toHaveText(PILLARS.map(p => p.name));
+  for (let i = 0; i < PILLARS.length; i++) {
+    await expect(controls.nth(i)).toHaveAttribute("aria-controls", /pillar-/);
+    await controls.nth(i).focus();
+    await expect(controls.nth(i)).toBeFocused();
+    expect(
+      await controls.nth(i).evaluate(el => {
+        const style = getComputedStyle(el);
+        return style.outlineStyle !== "none" && parseFloat(style.outlineWidth) > 0;
+      }),
+      `${PILLARS[i].name} has a visible focus indicator`,
+    ).toBe(true);
+  }
+});
+
+const ARCHITECTURE_STAGES = [
+  { id: "sources", text: ["Source estate", "PySpark", "SAP", "Databricks", "Existing estate"] },
+  { id: "connect-retrieve", text: ["Connect and land", "Compute Engine", "Cloud Storage", "Google Cloud RAG Engine"] },
+  { id: "state-gate", text: ["Operational state", "AlloyDB AI", "TypeSafe's hosted Jev API"] },
+  { id: "orchestrate", text: ["System 2 orchestration", "Agent Development Kit (ADK)", "Gemini"] },
+  { id: "observe", text: ["Lineage, analytics and reporting", "Spanner Graph", "BigQuery", "Looker"] },
+] as const;
+
+test("Google Cloud architecture rail follows one five-stage reading order", async ({ page }) => {
+  await page.goto("./#google-cloud-architecture");
+  const rail = page.locator("#google-cloud-architecture");
+  await expect(rail).toContainText("Planned reference architecture");
+  await expect(rail).toContainText("not live in this demo");
+  const stages = rail.locator("[data-architecture-stage]");
+  await expect(stages).toHaveCount(ARCHITECTURE_STAGES.length);
+  expect(await stages.evaluateAll(nodes => nodes.map(node => node.getAttribute("data-architecture-stage")))).toEqual(
+    ARCHITECTURE_STAGES.map(stage => stage.id),
+  );
+  for (const [index, stage] of ARCHITECTURE_STAGES.entries()) {
+    for (const text of stage.text) await expect(stages.nth(index)).toContainText(text);
+  }
+  await expect(stages.first().locator("img, [data-product]"), "source estate is not Google Cloud").toHaveCount(0);
+});
+
+test("every Google Cloud product mark has adjacent readable product text and loads locally", async ({ page }) => {
+  const problems: string[] = [];
+  page.on("requestfailed", request => problems.push(`${request.url()} ${request.failure()?.errorText}`));
+  page.on("console", message => {
+    if (message.type() === "error") problems.push(message.text());
+  });
+  await page.goto("./");
+  const marks = page.locator("img[data-product-mark]");
+  await expect(marks).toHaveCount(9);
+  for (let i = 0; i < 9; i++) {
+    const mark = marks.nth(i);
+    await expect(mark).toHaveAttribute("src", /^(?:assets\/gcp-icons\/|assets\/engine-logos\/)/);
+    expect(
+      await mark.evaluate(img => {
+        const product = img.closest("[data-product]");
+        return Boolean(product && product.textContent?.trim() && (img as HTMLImageElement).naturalWidth > 0);
+      }),
+      `mark ${i + 1} has adjacent visible text and loaded pixels`,
+    ).toBe(true);
+  }
+  expect(problems).toEqual([]);
+});
+
+test("Why now markers link to the compact source notes below the prose", async ({ page }) => {
+  await page.goto("./#problem");
+  const markers = page.locator("#problem a.source-marker");
+  await expect(markers).toHaveCount(7);
+  const hrefs = await markers.evaluateAll(links => links.map(link => link.getAttribute("href")));
+  expect(new Set(hrefs).size).toBe(7);
+  for (const href of hrefs) {
+    expect(href).toMatch(/^#why-source-\d+$/);
+    await expect(page.locator(href!)).toBeVisible();
+  }
+  await expect(page.locator("#why-sources")).toContainText("secondary source");
+});
+
+test("status, architecture rail and source notes stay inside the viewport", async ({ page }) => {
+  await page.goto("./");
+  for (const selector of ["#implementation-status", "#google-cloud-architecture", "#why-sources"]) {
+    const overflow = await page.locator(selector).evaluate(element => {
+      const box = element.getBoundingClientRect();
+      return { left: box.left, right: box.right, viewport: document.documentElement.clientWidth };
+    });
+    expect(overflow.left, `${selector} left edge`).toBeGreaterThanOrEqual(-1);
+    expect(overflow.right, `${selector} right edge`).toBeLessThanOrEqual(overflow.viewport + 1);
+  }
+  expect(
+    await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth),
+    "page horizontal overflow",
+  ).toBeLessThanOrEqual(0);
+});
+
+test("the first viewport includes a visible live and reference status cue", async ({ page }) => {
+  await page.goto("./");
+  const visiblePixels = await page.locator("#implementation-status").evaluate(element => {
+    const box = element.getBoundingClientRect();
+    return Math.max(0, Math.min(box.bottom, window.innerHeight) - Math.max(box.top, 0));
+  });
+  expect(visiblePixels).toBeGreaterThanOrEqual(24);
+});
+
+test("new reference links keep 44px targets and the mobile header targets do not overlap", async ({ page }) => {
+  await page.goto("./");
+  for (const selector of [
+    "#problem .source-marker",
+    "#google-cloud-architecture .product",
+    "#example .hops button",
+  ]) {
+    const boxes = await page.locator(selector).evaluateAll(elements =>
+      elements.map(element => {
+        const box = element.getBoundingClientRect();
+        return { width: box.width, height: box.height };
+      }),
+    );
+    expect(boxes.length, `${selector} exists`).toBeGreaterThan(0);
+    for (const box of boxes) {
+      expect(box.width, `${selector} target width`).toBeGreaterThanOrEqual(44);
+      expect(box.height, `${selector} target height`).toBeGreaterThanOrEqual(44);
+    }
+  }
+
+  const targets = await page.locator(".site-header").evaluate(element => {
+    const brand = element.querySelector(".brand")!.getBoundingClientRect();
+    const cta = element.querySelector(".site-nav .cta")!.getBoundingClientRect();
+    return { brandRight: brand.right, ctaLeft: cta.left };
+  });
+  expect(targets.ctaLeft - targets.brandRight, "brand and CTA hit-area gap").toBeGreaterThanOrEqual(1);
+});
+
+test("print keeps status labels, architecture roles and Why now source notes visible", async ({ page }) => {
+  await page.emulateMedia({ media: "print" });
+  await page.goto("./");
+  for (const selector of [
+    "#implementation-status [data-state='live']",
+    "#implementation-status [data-state='reference']",
+    "#google-cloud-architecture [data-architecture-stage='orchestrate']",
+    "#why-sources",
+  ]) {
+    await expect(page.locator(selector)).toBeVisible();
+  }
+
+  const guided = await page.locator("#example").evaluate(element => {
+    const result = element.querySelector(".result")!.getBoundingClientRect();
+    const graph = element.querySelector(".guided-graph")!.getBoundingClientRect();
+    return { resultTop: result.top, resultBottom: result.bottom, graphTop: graph.top };
+  });
+  expect(guided.graphTop, "print graph begins alongside the decision result").toBeLessThan(guided.resultBottom);
+});
+
+test("print uses fewer than the historical twelve A4 pages", async ({ page }) => {
+  await page.goto("./");
+  const pdf = await page.pdf({ format: "A4", printBackground: false });
+  const pageCount = pdf.toString("latin1").match(/\/Type\s*\/Page\b/g)?.length ?? 0;
+  expect(pageCount).toBeGreaterThan(0);
+  expect(pageCount).toBeLessThan(12);
+});
+
+test("reduced motion leaves the status, architecture and source notes stable and readable", async ({ page }) => {
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  await page.goto("./");
+  const report = await page.evaluate(() => {
+    const root = document.querySelector("#implementation-status, #google-cloud-architecture, #why-sources");
+    const elements = [
+      ...document.querySelectorAll("#implementation-status, #implementation-status *, #google-cloud-architecture, #google-cloud-architecture *, #why-sources, #why-sources *"),
+    ];
+    return {
+      root: Boolean(root),
+      hidden: elements.filter(element => {
+        const style = getComputedStyle(element);
+        return style.display === "none" || style.visibility === "hidden" || style.opacity === "0";
+      }).length,
+      animations: document
+        .getAnimations()
+        .filter(animation => elements.includes((animation.effect as KeyframeEffect | null)?.target as Element)).length,
+    };
+  });
+  expect(report.root).toBe(true);
+  expect(report.hidden).toBe(0);
+  expect(report.animations).toBe(0);
 });

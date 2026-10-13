@@ -18,6 +18,19 @@ const DEMOS: [&str; 3] = [
     "lineage-migration/index.html",
     "little-bunnies/index.html",
 ];
+const PUBLICATION_TITLE: &str = "Accelerating stack migration and modernisation with Google Cloud";
+const BRAND_NAME: &str = "Migration Acceleration with Google Cloud";
+const BRAND_TAGLINE: &str = "Stack migration and modernisation";
+const GCP_ICONS: [(&str, &str); 8] = [
+    ("compute-engine", "compute-engine.svg"),
+    ("alloydb", "alloydb.svg"),
+    ("cloud-run", "cloud-run.svg"),
+    ("cloud-storage", "cloud-storage.svg"),
+    ("bigquery", "bigquery.svg"),
+    ("looker", "looker.svg"),
+    ("adk", "adk.png"),
+    ("gemini", "gemini.png"),
+];
 
 fn root() -> PathBuf {
     PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("static")
@@ -222,6 +235,140 @@ fn landing_page_links_to_every_page_and_owns_the_shared_anchors() {
 }
 
 #[test]
+fn publication_brand_defaults_match_the_google_cloud_acceleration_story() {
+    let config = page("config.js");
+    assert!(
+        config.contains(&format!("name: \"{BRAND_NAME}\"")),
+        "static config brand name"
+    );
+    assert!(
+        config.contains(&format!("tagline: \"{BRAND_TAGLINE}\"")),
+        "static config brand tagline"
+    );
+    assert!(
+        page("index.html").contains(&format!("<title>{PUBLICATION_TITLE}</title>")),
+        "landing document title"
+    );
+    let hero = page("index.html");
+    assert!(
+        hero.contains("<h1 id=\"hero-title\">Accelerating stack migration and modernisation <em>with Google Cloud</em></h1>"),
+        "landing heading in sentence case"
+    );
+    assert!(
+        hero.contains("src=\"assets/hero-migration.svg\"") && !hero.contains("hero-shed.svg"),
+        "hero shows the migration flow, not the Tool Shed"
+    );
+    let art = page("assets/hero-migration.svg");
+    for text in [
+        "SOURCE ESTATE",
+        "PySpark",
+        "MCP Tool Shed",
+        "System 1",
+        "PLANNED REFERENCE",
+        "BigQuery",
+    ] {
+        assert!(art.contains(text), "hero art: {text}");
+    }
+    for rel in PAGES {
+        assert!(
+            page(rel).contains(BRAND_NAME),
+            "{rel}: no-JavaScript brand fallback"
+        );
+    }
+}
+
+#[test]
+fn landing_distinguishes_live_today_from_the_planned_reference_architecture() {
+    let html = page("index.html");
+    assert!(
+        html.contains("id=\"implementation-status\""),
+        "implementation status region"
+    );
+    for label in ["Live today", "Google Cloud reference architecture"] {
+        assert!(html.contains(label), "status label: {label}");
+    }
+    assert!(
+        html.contains(
+            "The Google Cloud reference architecture is planned and not live in this demo."
+        ),
+        "exact live/reference disclaimer"
+    );
+}
+
+#[test]
+fn landing_keeps_exactly_five_pillars_and_names_the_planned_product_roles() {
+    let html = page("index.html");
+    assert_eq!(
+        tags(&html, "button")
+            .into_iter()
+            .filter(|tag| tag.contains("class=\"stack-layer\""))
+            .count(),
+        5,
+        "accessible pillar controls"
+    );
+    for product in [
+        "cloud-run",
+        "compute-engine",
+        "cloud-storage",
+        "alloydb-ai",
+        "hosted-jev-api",
+        "rag-engine",
+        "adk",
+        "gemini",
+        "bigquery",
+        "spanner-graph",
+        "looker",
+    ] {
+        assert!(
+            html.contains(&format!("data-product=\"{product}\"")),
+            "planned role: {product}"
+        );
+    }
+    for text in [
+        "Agent Development Kit (ADK)",
+        "Gemini",
+        "Google Cloud RAG Engine",
+        "AlloyDB AI",
+        "TypeSafe's hosted Jev API",
+        "Cloud Run",
+        "Compute Engine",
+        "Cloud Storage",
+        "BigQuery",
+        "Spanner Graph",
+        "Looker",
+    ] {
+        assert!(html.contains(text), "product role text: {text}");
+    }
+}
+
+#[test]
+fn landing_and_guide_link_the_required_primary_sources() {
+    let html = page("index.html") + &page("technical-guide/index.html");
+    for url in [
+        "https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/adk",
+        "https://google.github.io/adk-docs/mcp/",
+        "https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/rag-engine/layout-parser-integration",
+        "https://docs.cloud.google.com/architecture/single-agent-ai-system-adk-cloud-run",
+        "https://codelabs.developers.google.com/alloydb-ai-jev?hl=en#0",
+        "https://codelabs.developers.google.com/codelabs/discriminative-models#0",
+        "https://cloud.google.com/icons",
+        "https://ai.google.dev/gemini-api/docs/long-context",
+        "https://aclanthology.org/2024.tacl-1.9/",
+        "https://www.anthropic.com/engineering/code-execution-with-mcp",
+        "https://www.anthropic.com/engineering/effective-context-engineering-for-ai-agents",
+        "https://modelcontextprotocol.io/specification/2026-07-28/server",
+        "https://stripe.dev/blog/minions-stripes-one-shot-end-to-end-coding-agents",
+        "https://visdom-maturity-matrix.virtuslab.com/guides/infrastructure/toolshed-model-400-tools-behind-one-mcp-stripe",
+    ] {
+        assert!(html.contains(&format!("href=\"{url}\"")), "source: {url}");
+    }
+    assert!(
+        html.contains("secondary source"),
+        "VirtusLab is visibly labelled as a secondary source"
+    );
+}
+
+#[test]
 fn technical_guide_has_pillar_anchors() {
     let html = page("technical-guide/index.html");
     for id in [
@@ -344,6 +491,31 @@ fn browser_assets_contain_no_runtime_secrets_analytics_or_raw_personal_data() {
             "google-analytics",
             "gtag(",
             "John Doe",
+            "AIza",
+            "ya29.",
+            "GOCSPX-",
+            "-----BEGIN PRIVATE KEY-----",
+            "GOOGLE_CLOUD_PROJECT=",
+            "projectId:",
+            "project_id:",
+            "measurementId:",
+        ] {
+            assert!(!text.contains(forbidden), "{}: {forbidden}", path.display());
+        }
+    }
+}
+
+#[test]
+fn browser_assets_reject_unqualified_live_google_cloud_claims() {
+    for path in browser_assets() {
+        let text = fs::read_to_string(&path).unwrap();
+        for forbidden in [
+            "MCP runs on GCE.",
+            "Jev runs on AlloyDB.",
+            "RAG is live.",
+            "ADK powers this demo.",
+            "Gemini decides the current demonstrations.",
+            "DiffusionGemma is deployed here.",
         ] {
             assert!(!text.contains(forbidden), "{}: {forbidden}", path.display());
         }
@@ -527,24 +699,371 @@ fn engine_marks_are_local_and_documented() {
 
 #[test]
 fn engine_marks_are_inert() {
-    let dir = root().join("assets/engine-logos");
-    for entry in fs::read_dir(&dir).unwrap().flatten() {
-        let path = entry.path();
-        if path.extension().and_then(|e| e.to_str()) != Some("svg") {
-            continue;
-        }
-        let svg = fs::read_to_string(&path).unwrap().to_lowercase();
-        for bad in [
-            "<script",
-            "onload=",
-            "onclick=",
-            "href=\"http",
-            "href='http",
-            "url(http",
-        ] {
-            assert!(!svg.contains(bad), "{}: {bad}", path.display());
+    for dir in ["assets/engine-logos", "assets/gcp-icons"] {
+        let dir = root().join(dir);
+        for entry in fs::read_dir(&dir).unwrap().flatten() {
+            let path = entry.path();
+            if path.extension().and_then(|e| e.to_str()) != Some("svg") {
+                continue;
+            }
+            let svg = fs::read_to_string(&path).unwrap();
+            assert!(
+                svg_inert_violations(&svg).is_empty(),
+                "{}: {:?}",
+                path.display(),
+                svg_inert_violations(&svg)
+            );
         }
     }
+}
+
+fn svg_inert_violations(svg: &str) -> Vec<&'static str> {
+    let lower = svg.to_ascii_lowercase();
+    let mut violations = Vec::new();
+
+    if lower.contains("<!doctype") {
+        push_violation(&mut violations, "document type declaration");
+    }
+    if lower.contains("<!entity") {
+        push_violation(&mut violations, "entity declaration");
+    }
+    if lower.contains("<?xml-stylesheet") {
+        push_violation(&mut violations, "external stylesheet");
+    }
+    scan_css_references(&lower, &mut violations);
+
+    let bytes = lower.as_bytes();
+    let mut cursor = 0;
+    while cursor < bytes.len() {
+        let Some(relative_start) = lower[cursor..].find('<') else {
+            break;
+        };
+        let start = cursor + relative_start;
+        if lower[start..].starts_with("<!--") {
+            cursor = lower[start + 4..]
+                .find("-->")
+                .map_or(bytes.len(), |end| start + 4 + end + 3);
+            continue;
+        }
+        let end = xml_tag_end(bytes, start + 1);
+        let mut name_start = start + 1;
+        while name_start < end && bytes[name_start].is_ascii_whitespace() {
+            name_start += 1;
+        }
+        if name_start >= end
+            || matches!(bytes[name_start], b'/' | b'!' | b'?')
+            || bytes[name_start] == b'>'
+        {
+            cursor = end.saturating_add(1);
+            continue;
+        }
+        let mut name_end = name_start;
+        while name_end < end
+            && !bytes[name_end].is_ascii_whitespace()
+            && !matches!(bytes[name_end], b'/' | b'>')
+        {
+            name_end += 1;
+        }
+        let local_name = lower[name_start..name_end]
+            .rsplit(':')
+            .next()
+            .unwrap_or_default();
+        let qualified_name = &lower[name_start..name_end];
+        if matches!(
+            local_name,
+            "script"
+                | "foreignobject"
+                | "iframe"
+                | "object"
+                | "embed"
+                | "animate"
+                | "animatemotion"
+                | "animatetransform"
+                | "animatecolor"
+                | "set"
+        ) {
+            push_violation(&mut violations, "active element");
+        }
+        if qualified_name.contains(':') || !allowed_svg_element(local_name) {
+            push_violation(&mut violations, "unsupported SVG element");
+        }
+        scan_xml_attributes(&lower[name_end..end], &mut violations);
+        if local_name == "style" {
+            let content_start = end.saturating_add(1);
+            if let Some(relative_close) = lower[content_start..].find("</style") {
+                let content = &lower[content_start..content_start + relative_close];
+                if content.contains('<') {
+                    push_violation(&mut violations, "markup inside style element");
+                } else {
+                    scan_css_references(content, &mut violations);
+                }
+            } else {
+                push_violation(&mut violations, "unclosed style element");
+            }
+        }
+        cursor = end.saturating_add(1);
+    }
+
+    violations
+}
+
+fn allowed_svg_element(name: &str) -> bool {
+    matches!(
+        name,
+        "circle"
+            | "clippath"
+            | "defs"
+            | "g"
+            | "lineargradient"
+            | "path"
+            | "polygon"
+            | "radialgradient"
+            | "rect"
+            | "stop"
+            | "style"
+            | "svg"
+            | "title"
+    )
+}
+
+fn push_violation(violations: &mut Vec<&'static str>, label: &'static str) {
+    if !violations.contains(&label) {
+        violations.push(label);
+    }
+}
+
+fn xml_tag_end(bytes: &[u8], start: usize) -> usize {
+    let mut quote = None;
+    for (index, byte) in bytes.iter().enumerate().skip(start) {
+        match (quote, *byte) {
+            (Some(active), current) if current == active => quote = None,
+            (None, b'\'' | b'"') => quote = Some(*byte),
+            (None, b'>') => return index,
+            _ => {}
+        }
+    }
+    bytes.len()
+}
+
+fn scan_xml_attributes(attributes: &str, violations: &mut Vec<&'static str>) {
+    let bytes = attributes.as_bytes();
+    let mut cursor = 0;
+    while cursor < bytes.len() {
+        while cursor < bytes.len() && (bytes[cursor].is_ascii_whitespace() || bytes[cursor] == b'/')
+        {
+            cursor += 1;
+        }
+        let name_start = cursor;
+        while cursor < bytes.len()
+            && !bytes[cursor].is_ascii_whitespace()
+            && !matches!(bytes[cursor], b'=' | b'/' | b'>')
+        {
+            cursor += 1;
+        }
+        if name_start == cursor {
+            cursor += usize::from(cursor < bytes.len());
+            continue;
+        }
+        let name = &attributes[name_start..cursor];
+        if !allowed_svg_attribute(name) {
+            push_violation(violations, "unsupported SVG attribute");
+        }
+        while cursor < bytes.len() && bytes[cursor].is_ascii_whitespace() {
+            cursor += 1;
+        }
+        if cursor >= bytes.len() || bytes[cursor] != b'=' {
+            continue;
+        }
+        cursor += 1;
+        while cursor < bytes.len() && bytes[cursor].is_ascii_whitespace() {
+            cursor += 1;
+        }
+        let value = if cursor < bytes.len() && matches!(bytes[cursor], b'\'' | b'"') {
+            let quote = bytes[cursor];
+            cursor += 1;
+            let value_start = cursor;
+            while cursor < bytes.len() && bytes[cursor] != quote {
+                cursor += 1;
+            }
+            let value = &attributes[value_start..cursor];
+            cursor += usize::from(cursor < bytes.len());
+            value
+        } else {
+            let value_start = cursor;
+            while cursor < bytes.len()
+                && !bytes[cursor].is_ascii_whitespace()
+                && !matches!(bytes[cursor], b'/' | b'>')
+            {
+                cursor += 1;
+            }
+            &attributes[value_start..cursor]
+        };
+
+        let local_name = name.rsplit(':').next().unwrap_or_default();
+        if local_name.starts_with("on") && local_name.len() > 2 {
+            push_violation(violations, "event-handler attribute");
+        }
+        if matches!(local_name, "href" | "src") && !value.trim_start().starts_with('#') {
+            push_violation(violations, "external resource reference");
+        }
+        if matches!(local_name, "clip-path" | "fill" | "style") {
+            scan_css_references(value, violations);
+        }
+    }
+}
+
+fn allowed_svg_attribute(name: &str) -> bool {
+    matches!(
+        name,
+        "class"
+            | "clip-path"
+            | "clip-rule"
+            | "cx"
+            | "cy"
+            | "d"
+            | "enable-background"
+            | "fill"
+            | "fill-opacity"
+            | "fill-rule"
+            | "gradienttransform"
+            | "gradientunits"
+            | "height"
+            | "id"
+            | "offset"
+            | "points"
+            | "r"
+            | "stop-color"
+            | "stop-opacity"
+            | "style"
+            | "type"
+            | "version"
+            | "viewbox"
+            | "width"
+            | "x"
+            | "x1"
+            | "x2"
+            | "xml:space"
+            | "xmlns"
+            | "xmlns:xlink"
+            | "y"
+            | "y1"
+            | "y2"
+    )
+}
+
+fn scan_css_references(css: &str, violations: &mut Vec<&'static str>) {
+    if css.contains('\\') {
+        push_violation(violations, "CSS escape");
+    }
+    if css.contains("&#") {
+        push_violation(violations, "numeric character reference");
+    }
+    if css.contains("/*") {
+        push_violation(violations, "CSS comment");
+    }
+    let compact: String = css
+        .chars()
+        .filter(|character| !character.is_ascii_whitespace())
+        .collect();
+    if compact.contains("@import") {
+        push_violation(violations, "CSS import");
+    }
+    if compact.contains("image-set(") {
+        push_violation(violations, "external CSS URL");
+    }
+
+    let bytes = css.as_bytes();
+    let mut cursor = 0;
+    while cursor + 3 <= bytes.len() {
+        if &bytes[cursor..cursor + 3] != b"url" {
+            cursor += 1;
+            continue;
+        }
+        let mut value_start = cursor + 3;
+        while value_start < bytes.len() && bytes[value_start].is_ascii_whitespace() {
+            value_start += 1;
+        }
+        if value_start >= bytes.len() || bytes[value_start] != b'(' {
+            cursor += 3;
+            continue;
+        }
+        value_start += 1;
+        while value_start < bytes.len() && bytes[value_start].is_ascii_whitespace() {
+            value_start += 1;
+        }
+        let quote = bytes
+            .get(value_start)
+            .copied()
+            .filter(|byte| matches!(byte, b'\'' | b'"'));
+        value_start += usize::from(quote.is_some());
+        while value_start < bytes.len() && bytes[value_start].is_ascii_whitespace() {
+            value_start += 1;
+        }
+        if bytes.get(value_start) != Some(&b'#') {
+            push_violation(violations, "external CSS URL");
+        }
+        cursor = value_start.saturating_add(1);
+    }
+}
+
+#[test]
+fn svg_inert_gate_rejects_active_content_classes() {
+    let active_fixtures = [
+        "<svg><script>alert(1)</script></svg>",
+        "<svg onpointerenter = \"alert(1)\"></svg>",
+        "<svg><foreignObject><iframe /></foreignObject></svg>",
+        "<svg><style>@import url(https://example.test/x.css)</style></svg>",
+        "<svg><a href=\"javascript:alert(1)\">x</a></svg>",
+        "<svg><image href='https://example.test/x.png' /></svg>",
+        "<svg xmlns:s=\"urn:test\"><s:script>alert(1)</s:script></svg>",
+        "<svg><image href = \"https://example.test/x.png\" /></svg>",
+        "<svg><image href=\"//example.test/x.png\" /></svg>",
+        "<!DOCTYPE svg SYSTEM \"https://example.test/svg.dtd\"><svg />",
+        "<svg><style>.x { fill: url( https://example.test/x.svg ) }</style></svg>",
+        r#"<svg><style>@\69mport "https://example.test/x.css"</style></svg>"#,
+        r#"<svg><style>@&#x69;mport "https://example.test/x.css"</style></svg>"#,
+        r#"<svg><style>.x { fill: u\72l(https://example.test/x.svg) }</style></svg>"#,
+        r#"<svg><rect style="fill:u\72l(https://example.test/x.svg)" /></svg>"#,
+        r#"<svg><style>@im<![CDATA[port "https://example.test/x.css";]]></style></svg>"#,
+        r#"<svg><style>@im<!--split-->port "https://example.test/x.css";</style></svg>"#,
+        r#"<svg><style>svg{background-image:image-set("https://example.test/x.svg" 1x)}</style></svg>"#,
+        r##"<svg><a href="#x" ping="https://example.test/ping">x</a></svg>"##,
+    ];
+    let bypasses: Vec<&str> = active_fixtures
+        .into_iter()
+        .filter(|active| svg_inert_violations(active).is_empty())
+        .collect();
+    assert!(
+        bypasses.is_empty(),
+        "active SVG fixtures passed:\n{}",
+        bypasses.join("\n")
+    );
+}
+
+#[test]
+fn google_cloud_marks_are_local_present_and_documented() {
+    let html = page("index.html");
+    let provenance = fs::read_to_string(root().parent().unwrap().join("docs/asset-provenance.md"))
+        .expect("docs/asset-provenance.md");
+    for (product, file) in GCP_ICONS {
+        let path = format!("assets/gcp-icons/{file}");
+        assert!(
+            html.contains(&format!("data-product-mark=\"{product}\" src=\"{path}\"")),
+            "landing mark: {product}"
+        );
+        assert!(root().join(&path).is_file(), "local icon: {path}");
+        assert!(provenance.contains(&path), "provenance: {path}");
+    }
+    let spanner = "assets/engine-logos/google-cloud-spanner.svg";
+    assert!(
+        html.contains(spanner),
+        "Spanner Graph reuses its existing mark"
+    );
+    assert!(provenance.contains(spanner), "Spanner Graph provenance");
+    assert!(
+        !html.contains("data-product-mark=\"rag-engine\""),
+        "rag-engine must remain text only"
+    );
 }
 
 #[test]

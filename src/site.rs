@@ -64,8 +64,8 @@ impl Site {
         let config = json!({
             "brand": {
                 "org": var("BRAND_ORG", "Accenture"),
-                "name": var("BRAND_NAME", "The MCP Tool Shed"),
-                "tagline": var("BRAND_TAGLINE", "Agentic migration and modernisation"),
+                "name": var("BRAND_NAME", "Migration Acceleration with Google Cloud"),
+                "tagline": var("BRAND_TAGLINE", "Stack migration and modernisation"),
                 "kind": var("BRAND_KIND", "Thought piece"),
                 "disclaimer": var("BRAND_DISCLAIMER", DISCLAIMER),
             },
