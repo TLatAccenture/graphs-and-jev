@@ -1,11 +1,11 @@
 # AdminLTE worked example: one real migration through the Gemini-orchestrated story
 
 **Date:** 16 October 2026
-**Status:** Revision 2, after owner review on 16 October 2026. Draft. Not approved for implementation.
-**Depends on:** the Gemini-Orchestrated Migration Story Plan, `docs/plans/2026-10-16-gemini-orchestrated-migration-story-plan.md`. That plan is not yet in the repository, so this revision has not been checked against it. See Section 2.
+**Status:** Revision 3, reconciled with the Gemini-Orchestrated Migration Story Plan on 16 October 2026. Ready for independent plan review. Not approved for implementation.
+**Depends on:** the Gemini-Orchestrated Migration Story Plan, `docs/plans/2026-10-16-gemini-orchestrated-migration-story-plan.md`. The Gemini story implementation lands first.
 **Builds on:** `AGENTS.md`, `docs/plans/2026-10-13-gcp-migration-acceleration-handover.md` (the Google Cloud handover), `docs/plans/2026-10-12-mcp-shed-cursor-handover.md` (the earlier handover) and `docs/plans/2026-10-13-presentation-readiness.md`. Every rule in those documents still applies.
 **Baseline:** `main` at `6a801c5` (merge of PR #6).
-**Branch:** `gemini-admin-portal-migration`, cut from `main`. Revision 1 was commit `7137355` on `gcp-acceleration-story`; it is carried here as the first commit of this branch.
+**Implementation branch:** use a fresh branch named for the change, cut from current `main`, after the Gemini story implementation has merged. Revision 1 was commit `7137355` on the historical `gcp-acceleration-story` branch. Do not reuse that branch.
 
 ## 0. Changes from revision 1
 
@@ -15,8 +15,8 @@
 | The Rust `portal` domain, `API_MODE_PORTAL` and the 501 response add server surface with no function. | All server, API, configuration and deployment work is removed (Section 8). The example is static HTML with ordinary page JavaScript, like Little Bunnies. No `siteApi.pipeline()` call. |
 | Proceed 37, Ask 2, Escalate 22 presented a documentation lookup as a validated decision. | Evidence labels (Mapped, Choice required, Not covered) are separated from Jev outcomes (Section 6). The register is a draft for independent row-by-row review and is not published until reviewed. |
 | Gemini appeared mainly in Deploy. | A persistent **Gemini Migration Agent, built with ADK**, has a defined role in all four phases. Jev gates every phase, and people approve uncertain decisions (Section 4). |
-| Google sources were marked unchecked. | The owner checked them on 16 October 2026. Two newly found pages still need opening (Section 9). |
-| The branch reused a merged branch. | New branch. `AGENTS.md` rule 12 change requested from the lead (Section 8). |
+| Google sources were marked unchecked. | The owner checked them on 16 October 2026, including G4 and G11 first-hand (Section 9). |
+| The branch reused a merged branch. | Use a fresh implementation branch cut from current `main`. No `AGENTS.md` change is needed for a routine feature branch (Section 8). |
 
 ## 1. Purpose and position
 
@@ -37,15 +37,17 @@ Decisions made. Do not reopen them:
 5. **Evidence first, decisions second.** A guide lookup produces an evidence label. Only the Jev gate produces an outcome.
 6. **A neutral fictional organisation.** The example uses "a fictional organisation" rather than the Environmental Agency, because the landing page's sample estate is not the Environmental Agency and new lore adds nothing.
 
-## 2. Dependency on the Gemini-orchestrated story plan
+## 2. Integration with the Gemini-orchestrated story plan
 
-That plan defines the landing story, names, section ids, colours and boundary wording. Where anything here differs from it, that plan wins. This revision assumes it provides:
+The Gemini plan defines the landing story, names, section structure and live-versus-planned boundary. Where anything here differs from it, that plan wins. Confirmed integration points are:
 
-- a landing section in which the **Gemini Migration Agent, built with ADK** orchestrates the whole migration across Assess, Plan, Deploy and Optimise;
-- MCP tools, the Jev gate, human approval and lineage evidence as controls repeated in every phase; and
-- the live-versus-planned wording for that story.
+- a planned **Gemini Migration Agent, built with ADK**, orchestrates migration work across Google's Assess, Plan, Deploy and Optimize phases;
+- Jev/System 1 is a repeated bounded gate in every phase, with low-confidence or ambiguous outcomes routed to a person;
+- an explicit human approval checkpoint sits between Plan and Deploy, with no path around it;
+- governed MCP tools inspect authorised sources and expose resources, while lineage and dependency evidence provide migration context; and
+- the refactored `#google-cloud-architecture` section contains the four-phase control plane, four representative migration lanes, five pillars and the exact live/reference boundary.
 
-Before Stage A starts, the implementer checks these assumptions against the merged plan and updates this plan where they fail. If the Gemini story already has a phase lane, the worked example reuses it as a second track rather than adding another lane.
+Stage A occupies or extends the Gemini plan's guided worked-example area beneath that story. It reuses the existing four-phase components and representative-lane vocabulary rather than adding a duplicate control plane, another architecture rail or a fourth use case.
 
 ## 3. Factual boundary
 
@@ -79,9 +81,9 @@ The Gemini Migration Agent persists across all four phases. The controls in the 
 | Phase | Google's guidance | Gemini Migration Agent, built with ADK | Deterministic tools and MCP | Jev gate | Person | Evidence produced |
 |---|---|---|---|---|---|---|
 | **Assess** | Inventory workloads and dependencies; Migration Center discovers infrastructure (G2, G3, G8) | Summarises the inventory and dependency evidence; names the gaps | MCP tools read the repository; code lists packages, templates, plugin calls, browser requirements and dependency edges, and counts them | Is the evidence complete enough to plan? | Confirms scope and browser support | Inventory, gap list, lineage edges |
-| **Plan** | Build the foundation; group work into waves and move groups (G4, G9) | Proposes the target architecture, waves, acceptance criteria and rollback for each wave | Code looks up each component in AdminLTE's guide and assigns an evidence label; dependency edges constrain wave order | Decides each component: Proceed, Ask, Escalate, Refuse or No data | Approves the wave plan; answers Ask and Escalate items | Wave plan, decisions, approvals |
-| **Deploy** | Run waves in sprints; test; roll back on failure; automate containerised deployment (G5, G10, G11) | Coordinates the jobs, proposes each widget swap for review, collects evidence | Codemods for class and attribute renames, package changes, tests, container build, zero-traffic Cloud Run candidate, promote or roll back; hooks block failing changes | May this candidate be promoted? | Approves each promotion | Diffs, test results, candidate revisions, eval records |
-| **Optimise** | Iterate on cost, operations and automation; keep assessing (G6, G10) | Interprets validation, accessibility, bundle, performance and cost evidence; proposes the next improvement | Measures against the Assess baseline; BigQuery holds eval records and telemetry; Looker reports | Does the proposal enter the next loop? | Prioritises the next loop | Before-and-after comparison |
+| **Plan** | Build the foundation across identity, organisation and project structure, networking, billing, security, monitoring and governance; group work into waves and move groups (G4, G9, G10) | Proposes the target architecture, waves, acceptance criteria and rollback for each wave | Code looks up each component in AdminLTE's guide and assigns an evidence label; dependency edges constrain wave order | Decides each component: Proceed, Ask, Escalate, Refuse or No data | Approves the wave plan; answers Ask and Escalate items | Wave plan, decisions, approvals |
+| **Deploy** | Run waves and move groups in sprints; test and validate; roll back on failure; use manual, configuration-management, container-orchestrated or automated deployment processes, with manual approvals where required (G5, G10, G11) | Coordinates the jobs, proposes each widget swap for review, collects evidence | Codemods for class and attribute renames, package changes, tests, container build, zero-traffic Cloud Run candidate, promote or roll back; hooks block failing changes | May this candidate be promoted? | Approves each promotion | Diffs, test results, candidate revisions, eval records |
+| **Optimize** | Continue Assess, Plan, Deploy and Optimize execution; iterate on cost, operations and automation (G6, G10) | Interprets validation, accessibility, bundle, performance and cost evidence; proposes the next improvement | Measures against the Assess baseline; BigQuery holds eval records and telemetry; Looker reports | Does the proposal enter the next loop? | Prioritises the next loop | Before-and-after comparison |
 | **Every phase** | | | MCP tools reach systems; lineage evidence shows what depends on what | Jev gates | People approve uncertain decisions | Eval record per step |
 
 Codemods are grounded in the source: AdminLTE's guide says a regex find-and-replace handles most of the Bootstrap renames and names a migration tool that automates the bulk (A4).
@@ -90,7 +92,7 @@ Codemods are grounded in the source: AdminLTE's guide says a regex find-and-repl
 
 ### 5.1 Placement and copy
 
-- Placement: directly after the Gemini-orchestrated story section, as its worked example. Section id `#worked-example`, unless the Gemini plan names one.
+- Placement: in or directly after the Gemini plan's existing guided worked-example area, beneath the refactored `#google-cloud-architecture` story. Extend the existing worked-example structure and preserve its section id where practical.
 - Eyebrow: "Worked example · AdminLTE 3 to 4". Heading (draft): "One real migration, start to finish."
 - Intro (draft): "A fictional organisation runs an internal admin portal built on AdminLTE 3.2.0, an open-source dashboard template from ColorlibHQ. Its maintainers have since published AdminLTE 4 and a migration guide. Here the Gemini Migration Agent carries the portal through all four phases, Jev gates each decision, and people decide what the evidence cannot."
 - State label: "Planned reference. This example runs on in-browser data. No agent, model or Google Cloud service is called."
@@ -101,7 +103,7 @@ Reuse the Gemini story's components and the existing design system. In reading o
 
 1. **Source and target.** Source: AdminLTE 3.2.0 portal, Bootstrap 4.6 and jQuery 3.6, 61 direct runtime dependencies (A2). Target: AdminLTE 4.10.1, Bootstrap 5.3 and no jQuery; it declares no runtime dependencies and one peer dependency, Bootstrap (A3, A4).
 2. **Persistent orchestrator band**, spanning all four phases: "Gemini Migration Agent, built with ADK. Plans, coordinates and explains."
-3. **Four phase blocks**, Assess, Plan, Deploy and Optimise, left to right at 1100 px and wider and stacked in reading order below that. Each block shows the Section 4 row in short lines: Gemini, tools, Jev gate, person.
+3. **Four phase blocks**, Assess, Plan, Deploy and Optimize, using the Gemini story's semantic phase order and responsive structure. Each block shows the Section 4 row in short lines: Gemini, tools, Jev gate, person.
 4. **Repeated controls strip**: MCP tools, Jev gate, human approval, lineage evidence.
 5. **Worked decisions** (5.3): six buttons and one result panel.
 
@@ -116,7 +118,7 @@ Six decisions, at least one per phase, covering all five outcomes. Codes and lab
 | Plan | Replace the Dropzone file upload. | The table lists two replacements: Dropzone 6 or FilePond (A4). | Choice required | Ask | A person chooses. Gemini records the choice and the reason. |
 | Plan | Replace ion-rangeslider on the reports filter. | The table does not name ion-rangeslider. It names noUiSlider for bootstrap-slider, a different package (A4). | Not covered | Escalate | A person decides. The gap is recorded for the next assessment. |
 | Deploy | Promote the wave 2 candidate to all traffic. | Illustrative: a hook found a Bootstrap 4 `data-toggle` attribute left in one template. The guide lists `data-toggle` to `data-bs-toggle` among the renames (A4). | None | Refuse | The candidate keeps zero traffic. Gemini reports the failing check and the codemod runs again. |
-| Optimise | Show whether pages load faster after wave 2. | No performance baseline was recorded before the migration. | None | No data | Gemini proposes recording a baseline in the next loop. No figure is shown. |
+| Optimize | Show whether pages load faster after wave 2. | No performance baseline was recorded before the migration. | None | No data | Gemini proposes recording a baseline in the next loop. No figure is shown. |
 
 The only counts in Stage A are 61, 0 and 1, each linked to A2 or A3. Version numbers link to the same sources.
 
@@ -194,10 +196,7 @@ One workstream, **WS9 AdminLTE worked example**, owns these files for this chang
 
 Unchanged by this plan: `src/**`, `deploy/**`, `static/config.js`, `static/js/api.js`, `static/fixtures/**`, `tests/api_boundary.rs`, `tests/test-deploy.sh`, `docs/api-contract.md`. No new Google Cloud icon and no AdminLTE or ColorlibHQ asset.
 
-**Requests for the lead (`AGENTS.md`):**
-
-1. Rule 12: replace the pinned branch with "Work on a fresh branch named for the change, cut from current `main`. Never reuse a branch whose pull request has merged."
-2. Rule 8: also accept sources from Section 9 of this plan.
+**Branch and repository guidance:** use a fresh implementation branch named for the change and cut from current `main` after the Gemini story implementation lands. Do not change `AGENTS.md` to pin a routine feature branch. The old `gcp-acceleration-story` branch is harmless historical state; do not force-push it.
 
 ## 9. Sources
 
@@ -211,23 +210,23 @@ AdminLTE sources, checked first-hand by the plan author on 16 October 2026 at ta
 | A4 | AdminLTE 4 migration guide: Bootstrap 5.3, no jQuery, class and attribute renames, plugin replacement table, Internet Explorer 11 guidance, suggested migration order | https://adminlte.io/themes/v4/docs/migration.html (source at https://github.com/ColorlibHQ/AdminLTE/blob/v4.10.1/src/html/components/docs/migration.mdx) |
 | A5 | AdminLTE changelog | https://github.com/ColorlibHQ/AdminLTE/blob/v4.10.1/CHANGELOG.md |
 
-Google Cloud sources. This cloud session cannot reach `docs.cloud.google.com`, so the plan author has not opened them. The owner opened them on 16 October 2026 and confirmed the four phases (Assess, Plan, Deploy, Optimize) and that G10 covers waves, move groups, sprints, testing, rollback and continued assessment. Recheck each sentence's wording against its source before publishing, as the Google Cloud handover requires.
+Google Cloud sources. The owner checked G1 to G11 first-hand on 16 October 2026. G4 supports foundation planning across identity, organisation and project structure, networking, billing, security, monitoring and governance. G10 supports waves, move groups, sprints, validation, rollback and ongoing Assess, Plan, Deploy and Optimize execution. G11 supports manual, configuration-management, container-orchestrated and automated deployment processes, testing and validation, and possible manual approvals. Recheck each published sentence against its source, as the Google Cloud handover requires.
 
 | Id | Subject | Source | Checked |
 |---|---|---|---|
 | G1 | Migration documentation hub | https://docs.cloud.google.com/docs/migration | Owner, 16 Oct |
 | G2 | Migrate to Google Cloud: Get started (the four phases) | https://docs.cloud.google.com/architecture/migration-to-gcp-getting-started | Owner, 16 Oct |
 | G3 | Assess and discover your workloads | https://docs.cloud.google.com/architecture/migration-to-gcp-assessing-and-discovering-your-workloads | Owner, 16 Oct |
-| G4 | Plan and build your foundation | https://docs.cloud.google.com/architecture/migration-to-google-cloud-building-your-foundation | **Found by search only; open before use** |
+| G4 | Plan and build your foundation | https://docs.cloud.google.com/architecture/migration-to-google-cloud-building-your-foundation | Owner, 16 Oct, first-hand |
 | G5 | Migrate from manual deployments to automated, containerised deployments | https://docs.cloud.google.com/architecture/migration-to-google-cloud-automated-containerized-deployments | Owner, 16 Oct |
 | G6 | Optimise your environment | https://docs.cloud.google.com/architecture/migration-to-google-cloud-optimizing-your-environment | Owner, 16 Oct |
 | G7 | Migration Center overview | https://docs.cloud.google.com/migration-center/docs/migration-center-overview | Owner, 16 Oct |
 | G8 | Migration Center: discovery and assessment | https://docs.cloud.google.com/migration-center/docs/discovery-and-assessment-overview | Owner, 16 Oct |
 | G9 | Migration Center: migration planning | https://docs.cloud.google.com/migration-center/docs/migration-planning-overview | Owner, 16 Oct |
-| G10 | Migration Center: execute your migration | https://docs.cloud.google.com/migration-center/docs/migration-execution | Owner, 16 Oct |
-| G11 | Deploy your workloads | https://docs.cloud.google.com/architecture/migration-to-gcp-deploying-your-workloads | **Found by search only; open before use** |
+| G10 | Migration execution: waves, move groups, sprints, validation, rollback and continued lifecycle execution | https://docs.cloud.google.com/migration-center/docs/migration-execution | Owner, 16 Oct, first-hand |
+| G11 | Deploy workloads through manual, configuration-management, container-orchestrated or automated processes, with testing, validation and possible manual approvals | https://docs.cloud.google.com/architecture/migration-to-gcp-deploying-your-workloads | Owner, 16 Oct, first-hand |
 
-Page copy uses British spelling ("Optimise") and names Google's pages by subject in link text rather than quoting their titles. Keep using the Google Cloud handover's Section 5 sources for ADK, Gemini, Jev, Cloud Run, BigQuery, Looker and Spanner Graph.
+Page copy uses British English except for Google's official phase label **Optimize**. Name Google's pages by subject in link text rather than quoting their titles. Keep using the Google Cloud handover's Section 5 sources for ADK, Gemini, Jev, Cloud Run, BigQuery, Looker and Spanner Graph.
 
 ## 10. Tests
 
@@ -237,7 +236,7 @@ Failing tests first, recorded, then implementation, as in the Google Cloud hando
 
 `tests/static_frontend.rs`:
 
-- `#worked-example` exists with four `[data-phase]` blocks, `assess`, `plan`, `deploy` and `optimise`, in that order;
+- the existing worked-example area contains four `[data-phase]` blocks, `assess`, `plan`, `deploy` and `optimize`, in that order, without duplicating the `#google-cloud-architecture` control plane;
 - each phase block names the Gemini Migration Agent (`[data-role="orchestrator"]`) and the Jev gate (`[data-role="gate"]`);
 - the section links A2, A3, A4, G2, G9 and G10, and carries the state label and the required sentences in Section 3.1;
 - the figure 61 sits beside the A2 link;
@@ -270,11 +269,11 @@ The detail page joins the page lists in `tests/static_frontend.rs` and `tests/e2
 - No AdminLTE or ColorlibHQ file, logo or screenshot is in `static/`. No request leaves the site.
 - `AGENTS.md` rules hold: British English, no em dashes, relative paths, `fetch` only in `static/js/api.js`, accessibility patterns kept, results revealed without moving focus.
 
-## 12. Open points
+## 12. Open point and history
 
-1. **The Gemini plan is not in the repository.** Push it, or commit it on this branch, so Section 2 can be checked against it before approval.
-2. **Register reviewer.** Name who performs the Section 6.4 review. It blocks Stage B only.
-3. **The old branch.** `origin/gcp-acceleration-story` now carries revision 1 (`7137355`) on top of PR #6's merge. Restoring it to `295bed5` needs a force push; the owner decides.
+1. **Register reviewer.** Name who performs the Section 6.4 row-by-row review. This is the only implementation-content blocker, and it blocks optional Stage B only.
+
+History: `origin/gcp-acceleration-story` carries revision 1 (`7137355`) on top of PR #6's merge. This is harmless historical state. Do not force-push it.
 
 ## Appendix A. Draft evidence register: unreviewed, not for publication
 
