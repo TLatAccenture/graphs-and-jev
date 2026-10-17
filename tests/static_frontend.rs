@@ -251,24 +251,29 @@ fn publication_brand_defaults_match_the_google_cloud_acceleration_story() {
     );
     let hero = page("index.html");
     assert!(
-        hero.contains("<h1 id=\"hero-title\">Accelerating stack migration and modernisation <em>with Google Cloud</em></h1>"),
-        "landing heading in sentence case"
+        hero.contains("<h1 id=\"hero-title\">Accelerate stack migration and modernisation <em>with a Gemini Migration Agent</em></h1>"),
+        "landing heading leads with the outcome and names the Gemini Migration Agent"
     );
-    assert!(
-        hero.contains("src=\"assets/hero-migration.svg\"") && !hero.contains("hero-shed.svg"),
-        "hero shows the migration flow, not the Tool Shed"
-    );
-    let art = page("assets/hero-migration.svg");
+    let plane = between(&hero, "<figure class=\"hero-plane\"", "</figure>");
     for text in [
-        "SOURCE ESTATE",
-        "PySpark",
-        "MCP Tool Shed",
-        "System 1",
-        "PLANNED REFERENCE",
-        "BigQuery",
+        "Planned reference",
+        "Gemini Migration Agent",
+        "Built with ADK",
+        "Assess",
+        "Plan",
+        "Person approves",
+        "Deploy",
+        "Optimise",
+        "Jev gate",
+        "From",
+        "To",
     ] {
-        assert!(art.contains(text), "hero art: {text}");
+        assert!(plane.contains(text), "hero control-plane summary: {text}");
     }
+    assert!(
+        !hero.contains("hero-shed.svg") && !hero.contains("hero-migration.svg"),
+        "the hero summary is HTML text, not an image"
+    );
     for rel in PAGES {
         assert!(
             page(rel).contains(BRAND_NAME),
@@ -1064,6 +1069,142 @@ fn google_cloud_marks_are_local_present_and_documented() {
         !html.contains("data-product-mark=\"rag-engine\""),
         "rag-engine must remain text only"
     );
+}
+
+/// The text between the first `start` marker and the next `end` marker after it.
+fn between<'a>(html: &'a str, start: &str, end: &str) -> &'a str {
+    let from = html
+        .find(start)
+        .unwrap_or_else(|| panic!("missing {start}"));
+    let to = html[from..]
+        .find(end)
+        .unwrap_or_else(|| panic!("missing {end} after {start}"));
+    &html[from..from + to]
+}
+
+#[test]
+fn landing_control_plane_has_one_orchestrator_four_gated_phases_and_an_approval() {
+    let html = page("index.html");
+    let section = between(&html, "id=\"google-cloud-architecture\"", "</section>");
+    assert_eq!(
+        section.matches("data-orchestrator=").count(),
+        1,
+        "one orchestrator region"
+    );
+    for text in [
+        "Gemini Migration Agent",
+        "Built with Agent Development Kit (ADK)",
+    ] {
+        assert!(section.contains(text), "orchestrator: {text}");
+    }
+    let order: Vec<usize> = ["assess", "plan", "deploy", "optimise"]
+        .iter()
+        .map(|phase| {
+            section
+                .find(&format!("data-phase=\"{phase}\""))
+                .unwrap_or_else(|| panic!("phase {phase}"))
+        })
+        .collect();
+    assert!(
+        order.windows(2).all(|w| w[0] < w[1]),
+        "official phase order"
+    );
+    assert_eq!(
+        section.matches("data-phase=").count(),
+        4,
+        "exactly four phases"
+    );
+    let checkpoint = section
+        .find("data-checkpoint=\"human-approval\"")
+        .expect("human approval checkpoint");
+    assert!(
+        order[1] < checkpoint && checkpoint < order[2],
+        "approval sits between Plan and Deploy"
+    );
+    for phase in ["assess", "plan", "deploy", "optimise"] {
+        let card = between(section, &format!("data-phase=\"{phase}\""), "</li>");
+        for field in [
+            "<dt>Inputs</dt>",
+            "<dt>Agent action</dt>",
+            "<dt>Jev gate</dt>",
+            "<dt>Output</dt>",
+            "<dt>State</dt><dd>Planned reference</dd>",
+        ] {
+            assert!(card.contains(field), "{phase}: {field}");
+        }
+    }
+    for text in [
+        "It does not move bytes.",
+        "Code and SQL count rows and validate schemas.",
+        "Validate before cutover.",
+        "Roll back if validation fails.",
+        "This planned Google Cloud reference architecture is not live in this demo.",
+        "href=\"https://docs.cloud.google.com/architecture/migration-to-gcp-getting-started\"",
+        "href=\"https://docs.cloud.google.com/docs/migration\"",
+        "href=\"https://cloud.google.com/migration-center/docs/migration-center-overview\"",
+    ] {
+        assert!(section.contains(text), "control plane: {text}");
+    }
+}
+
+#[test]
+fn landing_lanes_name_source_payload_service_destination_and_evidence() {
+    let html = page("index.html");
+    let section = between(&html, "id=\"google-cloud-architecture\"", "</section>");
+    assert!(
+        section.contains("Destination is chosen by workload. Not all data belongs in BigQuery."),
+        "workload-based destination warning"
+    );
+    let lanes = ["documents", "tabular", "relational", "applications"];
+    assert_eq!(
+        section.matches("data-lane=").count(),
+        lanes.len(),
+        "four lanes"
+    );
+    for lane in lanes {
+        let row = between(section, &format!("data-lane=\"{lane}\""), "</li>");
+        assert!(
+            row.contains("Representative reference path"),
+            "{lane}: label"
+        );
+        for field in [
+            "<dt>Source</dt>",
+            "<dt>What moves</dt>",
+            "<dt>Movement or service</dt>",
+            "<dt>Destination</dt>",
+            "<dt>Validation or evidence</dt>",
+        ] {
+            assert!(row.contains(field), "{lane}: {field}");
+        }
+    }
+    for url in [
+        "https://cloud.google.com/storage-transfer/docs/overview",
+        "https://cloud.google.com/database-migration/docs",
+        "https://cloud.google.com/datastream/docs/overview",
+        "https://cloud.google.com/migrate/virtual-machines/docs/5.0/discover/overview",
+        "https://cloud.google.com/migrate/containers/docs",
+    ] {
+        assert!(
+            section.contains(&format!("href=\"{url}\"")),
+            "lane source: {url}"
+        );
+    }
+    assert!(
+        section.contains("Jev is not stored or hosted in AlloyDB."),
+        "AlloyDB calls the hosted Jev API; Jev is not inside it"
+    );
+    for forbidden in [
+        "All data goes to BigQuery",
+        "all data goes to BigQuery",
+        "universal SAP",
+        "MCP copies",
+        "Gemini moves",
+    ] {
+        assert!(
+            !html.contains(forbidden),
+            "landing must not claim: {forbidden}"
+        );
+    }
 }
 
 #[test]

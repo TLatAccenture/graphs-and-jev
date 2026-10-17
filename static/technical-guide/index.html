@@ -78,13 +78,23 @@
         </ul>
       </section>
     </div>
-    <ol class="reference-flow" aria-label="Planned Google Cloud reference flow">
-      <li><strong>Source estate</strong><span>Cloud Storage holds raw documents and source objects.</span></li>
-      <li><strong>Connect and retrieve</strong><span>MCP servers may run on Compute Engine. Google Cloud RAG Engine provides managed parsing and retrieval where suitable.</span></li>
-      <li><strong>State and gate</strong><span>AlloyDB AI holds operational PostgreSQL state and calls TypeSafe's hosted Jev API through AI functions and Model Endpoint Management. Jev is not embedded in AlloyDB.</span></li>
-      <li><strong>Orchestrate</strong><span>Agent Development Kit (ADK) with Gemini provides planned System 2 reasoning, agent orchestration and tool use.</span></li>
-      <li><strong>Observe</strong><span>Spanner Graph holds lineage and semantic context, BigQuery holds analytical data and telemetry, and Looker reports outcomes, quality and cost.</span></li>
+    <h3 class="reference-sub" id="agent-orchestration">Agent orchestration</h3>
+    <p class="reference-intro">One planned Gemini Migration Agent, built with Agent Development Kit (ADK), carries each workload through Google's four <a href="https://docs.cloud.google.com/architecture/migration-to-gcp-getting-started">migration phases</a>. Jev gates bounded decisions in every phase, a person approves the plan before Deploy, and deterministic services do the moving and the counting. None of this is live in this demo.</p>
+    <ol class="reference-flow" aria-label="Planned agent orchestration across the four migration phases">
+      <li><strong>Assess</strong><span>The agent summarises inventory and dependency evidence from governed MCP tools, which may run on Compute Engine, and from <a href="https://cloud.google.com/migration-center/docs/migration-center-overview">Migration Center</a> discovery. Spanner Graph holds the dependency map. Jev routes each finding.</span></li>
+      <li><strong>Plan</strong><span>The agent proposes the destination, sequence, cutover, rollback and acceptance tests. Jev stops low-confidence choices becoming actions. A person approves the plan.</span></li>
+      <li><strong>Deploy</strong><span>Deterministic migration services move data and workloads to Cloud Storage, BigQuery, AlloyDB AI, Compute Engine or Cloud Run, as the plan chose. Code and SQL validate before cutover. The agent coordinates; it does not move bytes.</span></li>
+      <li><strong>Optimise</strong><span>BigQuery holds eval records and telemetry, and Looker reports quality, cost and performance. The agent proposes the next improvement.</span></li>
     </ol>
+    <p class="annotation reference-boundary">AlloyDB AI holds operational PostgreSQL state and calls TypeSafe's hosted Jev API through AI functions and Model Endpoint Management. Jev is not embedded in AlloyDB. Google Cloud RAG Engine provides managed parsing and retrieval where suitable.</p>
+    <h3 class="reference-sub">Reading a migration lane</h3>
+    <dl class="lane-defs">
+      <div><dt>Source</dt><dd>The system the work starts from, such as Microsoft 365, Amazon S3, an Oracle database or a virtual machine.</dd></div>
+      <div><dt>What moves</dt><dd>The artefact itself: files, tables, change streams, jobs or a whole workload.</dd></div>
+      <div><dt>Movement or service</dt><dd>The deterministic service or code that moves it. MCP exposes tools; it does not copy objects.</dd></div>
+      <div><dt>Destination</dt><dd>Where it lands, chosen by workload. Not all data belongs in BigQuery.</dd></div>
+      <div><dt>Validation or evidence</dt><dd>The checks that prove it arrived intact, such as counts, checksums and schema validation. Gemini interprets the report.</dd></div>
+    </dl>
     <p class="annotation reference-boundary"><a href="https://codelabs.developers.google.com/codelabs/discriminative-models#0">DiffusionGemma can run behind the same discriminative-model API on Compute Engine or Cloud Run</a> in the planned reference architecture. It is not deployed in this demo.</p>
     <ul class="cites reference-sources" aria-label="Google Cloud reference architecture sources">
       <li><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/adk">Build an ADK agent in Gemini Enterprise Agent Platform</a>.</li>

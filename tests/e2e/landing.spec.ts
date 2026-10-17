@@ -113,28 +113,57 @@ test("there are exactly five accessible pillar controls in the published order",
   }
 });
 
-const ARCHITECTURE_STAGES = [
-  { id: "sources", text: ["Source estate", "PySpark", "SAP", "Databricks", "Existing estate"] },
-  { id: "connect-retrieve", text: ["Connect and land", "Compute Engine", "Cloud Storage", "Google Cloud RAG Engine"] },
-  { id: "state-gate", text: ["Operational state", "AlloyDB AI", "TypeSafe's hosted Jev API"] },
-  { id: "orchestrate", text: ["System 2 orchestration", "Agent Development Kit (ADK)", "Gemini"] },
-  { id: "observe", text: ["Lineage, analytics and reporting", "Spanner Graph", "BigQuery", "Looker"] },
+const PHASES = ["assess", "plan", "deploy", "optimise"] as const;
+const LANES = [
+  { id: "documents", text: ["Unstructured documents", "Storage Transfer Service", "Cloud Storage", "Google Cloud RAG Engine"] },
+  { id: "tabular", text: ["Spreadsheets and tabular files", "Cloud Storage", "BigQuery"] },
+  { id: "relational", text: ["Operational relational data", "Database Migration Service", "Datastream", "AlloyDB AI", "TypeSafe's hosted Jev API"] },
+  { id: "applications", text: ["Applications and jobs", "Migrate to Virtual Machines", "Compute Engine", "Cloud Run"] },
 ] as const;
 
-test("Google Cloud architecture rail follows one five-stage reading order", async ({ page }) => {
+test("one Gemini Migration Agent orchestrates four gated phases, with approval between Plan and Deploy", async ({ page }) => {
   await page.goto("./#google-cloud-architecture");
-  const rail = page.locator("#google-cloud-architecture");
-  await expect(rail).toContainText("Planned reference architecture");
-  await expect(rail).toContainText("not live in this demo");
-  const stages = rail.locator("[data-architecture-stage]");
-  await expect(stages).toHaveCount(ARCHITECTURE_STAGES.length);
-  expect(await stages.evaluateAll(nodes => nodes.map(node => node.getAttribute("data-architecture-stage")))).toEqual(
-    ARCHITECTURE_STAGES.map(stage => stage.id),
+  const plane = page.locator("#google-cloud-architecture");
+  await expect(plane).toContainText("Planned reference architecture");
+  await expect(plane).toContainText("not live in this demo");
+  const orchestrator = plane.locator("[data-orchestrator]");
+  await expect(orchestrator).toHaveCount(1);
+  await expect(orchestrator).toBeVisible();
+  await expect(orchestrator).toContainText("Gemini Migration Agent");
+  await expect(orchestrator).toContainText("Built with Agent Development Kit (ADK)");
+
+  // Content order, which is also the reading order without CSS and in print.
+  const order = await plane.locator(".phases > li").evaluateAll(items =>
+    items.map(item => item.getAttribute("data-phase") ?? item.getAttribute("data-checkpoint")),
   );
-  for (const [index, stage] of ARCHITECTURE_STAGES.entries()) {
-    for (const text of stage.text) await expect(stages.nth(index)).toContainText(text);
+  expect(order).toEqual(["assess", "plan", "human-approval", "deploy", "optimise"]);
+
+  for (const phase of PHASES) {
+    const card = plane.locator(`[data-phase="${phase}"]`);
+    await expect(card).toBeVisible();
+    for (const field of ["Inputs", "Agent action", "Jev gate", "Output", "State"]) {
+      await expect(card.locator("dt", { hasText: field }).first()).toBeVisible();
+    }
+    await expect(card).toContainText("Planned reference");
   }
-  await expect(stages.first().locator("img, [data-product]"), "source estate is not Google Cloud").toHaveCount(0);
+  await expect(plane.locator("[data-checkpoint='human-approval']")).toContainText("Person approves the plan");
+  await expect(plane.locator("[data-phase='deploy']")).toContainText("It does not move bytes.");
+});
+
+test("four representative lanes show source, payload, service, destination and evidence in order", async ({ page }) => {
+  await page.goto("./#google-cloud-architecture");
+  const plane = page.locator("#google-cloud-architecture");
+  await expect(plane).toContainText("Destination is chosen by workload. Not all data belongs in BigQuery.");
+  const lanes = plane.locator("[data-lane]");
+  await expect(lanes).toHaveCount(LANES.length);
+  expect(await lanes.evaluateAll(items => items.map(item => item.getAttribute("data-lane")))).toEqual(LANES.map(l => l.id));
+  for (const [index, lane] of LANES.entries()) {
+    const row = lanes.nth(index);
+    await expect(row).toContainText("Representative reference path");
+    const fields = await row.locator(".lane-fields > div > dt").allTextContents();
+    expect(fields).toEqual(["Source", "What moves", "Movement or service", "Destination", "Validation or evidence"]);
+    for (const text of lane.text) await expect(row).toContainText(text);
+  }
 });
 
 test("every Google Cloud product mark has adjacent readable product text and loads locally", async ({ page }) => {
@@ -145,8 +174,8 @@ test("every Google Cloud product mark has adjacent readable product text and loa
   });
   await page.goto("./");
   const marks = page.locator("img[data-product-mark]");
-  await expect(marks).toHaveCount(9);
-  for (let i = 0; i < 9; i++) {
+  await expect(marks).toHaveCount(10);
+  for (let i = 0; i < 10; i++) {
     const mark = marks.nth(i);
     await expect(mark).toHaveAttribute("src", /^(?:assets\/gcp-icons\/|assets\/engine-logos\/)/);
     expect(
@@ -232,7 +261,10 @@ test("print keeps status labels, architecture roles and Why now source notes vis
   for (const selector of [
     "#implementation-status [data-state='live']",
     "#implementation-status [data-state='reference']",
-    "#google-cloud-architecture [data-architecture-stage='orchestrate']",
+    "#google-cloud-architecture [data-orchestrator]",
+    "#google-cloud-architecture [data-phase='deploy']",
+    "#google-cloud-architecture [data-checkpoint='human-approval']",
+    "#google-cloud-architecture [data-lane='applications']",
     "#why-sources",
   ]) {
     await expect(page.locator(selector)).toBeVisible();

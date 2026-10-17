@@ -1,6 +1,6 @@
 # Migration Acceleration with Google Cloud: architecture summary
 
-A one-page summary of the current runtime and the planned architecture in [plans/2026-10-13-gcp-migration-acceleration-handover.md](plans/2026-10-13-gcp-migration-acceleration-handover.md). For the publication name, landing story, Google Cloud product roles and icons, that handover wins. The earlier [MCP shed handover](plans/2026-10-12-mcp-shed-cursor-handover.md) still governs the runtime, API and demonstration contracts.
+A one-page summary of the current runtime and the planned architecture in [plans/2026-10-13-gcp-migration-acceleration-handover.md](plans/2026-10-13-gcp-migration-acceleration-handover.md), with the landing story from [plans/2026-10-16-gemini-orchestrated-migration-story-plan.md](plans/2026-10-16-gemini-orchestrated-migration-story-plan.md). For the publication name, landing story, Google Cloud product roles and icons, that handover wins. The earlier [MCP shed handover](plans/2026-10-12-mcp-shed-cursor-handover.md) still governs the runtime, API and demonstration contracts.
 
 ## Purpose
 
@@ -14,7 +14,7 @@ The live demonstrations use deterministic Rust rules or browser fixtures. They d
 
 ## Planned Google Cloud reference architecture
 
-This reference architecture is planned and not live in the demo:
+This reference architecture is planned and not live in the demo. A Gemini Migration Agent, built with ADK, orchestrates each workload through [Google's four migration phases](https://docs.cloud.google.com/architecture/migration-to-gcp-getting-started): Assess, Plan, Deploy and Optimise. Jev gates bounded decisions in every phase and a person approves the plan before Deploy. The agent coordinates and explains; it does not move bytes, count rows or bypass approvals. The product roles are:
 
 1. The source estate is what is being migrated, and it is not on Google Cloud: PySpark and Spark jobs, Hadoop and Hive, SAP, Databricks, Salesforce, AWS S3, Azure Blob and Microsoft 365 files. It keeps running while work moves across.
 2. [Governed MCP servers expose tools and resources](https://modelcontextprotocol.io/specification/2026-07-28/server) over the source estate and may run on [Compute Engine](https://cloud.google.com/compute/docs/overview). Raw documents and source objects land in [Cloud Storage](https://cloud.google.com/storage/docs/introduction). [Google Cloud RAG Engine](https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/rag-engine/layout-parser-integration) provides managed document parsing and retrieval where suitable.
@@ -28,7 +28,7 @@ Deterministic code and SQL parse exact formats, count rows and validate schemas.
 
 | Path | Purpose |
 |---|---|
-| `static/index.html` | Landing: problem, live/reference status, planned Google Cloud flow, five pillars, guided example, use cases, governance |
+| `static/index.html` | Landing: Gemini-orchestrated hero with live/reference status, problem, four-phase control plane and representative migration lanes, five capabilities, guided example with orchestrator view, use cases, four-phase start, governance |
 | `static/technical-guide/` | Each pillar in depth, with labs, engine grades, costs and sources |
 | `static/environmental-agency/` | Catalogue discovery for a fictional Environmental Agency; works with the Rust catalogue API |
 | `static/lineage-migration/` | Lineage-guarded migration demo; in-browser fixtures for now |

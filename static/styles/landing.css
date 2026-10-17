@@ -1,64 +1,222 @@
-/* Landing page only. Shared tokens and components live in guide.css. */
-.hero-art{margin:0}
-.problem-grid h3{margin-bottom:14px}
+/* Landing page only. Shared tokens and components live in guide.css.
+   Colour code, as on the five pillars: raspberry (--logic) is the Gemini Migration Agent, purple
+   (--reflex) is the Jev gate, teal (--connect) is the MCP Tool Shed, blue (--context) is lineage
+   evidence and ink is a person. A dashed outline always means "planned", and every colour mark sits
+   beside text that says the same thing. */
 
-/* Live and planned states */
-.status-shell{border-bottom:1px solid var(--rule);background:var(--white)}
-.status-ribbon{display:grid;border:1px solid var(--rule);border-top:0}
-.status-state{display:flex;align-items:center;gap:14px;min-width:0;padding:18px 20px}
+/* Rhythm: tighter than the shared bands, so each section reads as one screen where it can. */
+.band{padding:clamp(56px,7vw,96px) 0}
+.section-head{margin-bottom:clamp(28px,4vw,48px)}
+
+/* ---------- Hero ---------- */
+.hero{padding:clamp(36px,5vw,72px) 0 clamp(28px,3vw,40px)}
+.hero .hero-grid{grid-template-columns:minmax(0,1fr);gap:28px;align-items:center}
+@media (min-width:960px){
+  .hero .hero-grid{grid-template-columns:minmax(0,7fr) minmax(0,5fr);grid-template-areas:"copy plane" "status status";gap:36px 56px}
+  .hero-copy{grid-area:copy}
+  .hero-plane{grid-area:plane}
+  .status-ribbon{grid-area:status}
+}
+.hero h1{font-size:clamp(2.2rem,3.7vw,3.1rem);max-width:17ch;letter-spacing:-.035em;line-height:1.03}
+.hero .lede{font-size:clamp(1.08rem,1.35vw,1.25rem);max-width:50ch;margin:22px 0 28px}
+
+/* One-glance view of the planned control plane: who orchestrates, the phases, the gates, the
+   approval point, and where work moves from and to. All of it is text; the lines are decoration. */
+.hero-plane{margin:0;padding:20px;border:1px solid var(--rule);background:var(--white)}
+.plane-tag,.state-label,.lane-tag{display:inline-block;padding:4px 8px;border:1.5px dashed var(--purple-mid);color:var(--purple-deep);font:700 var(--tiny)/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.plane-tag{margin:0 0 14px}
+.plane-agent{display:flex;align-items:center;gap:12px;padding:12px 14px;background:var(--logic);color:var(--white);border-radius:var(--r-md)}
+.plane-agent img{width:34px;height:34px;padding:5px;background:var(--white);border-radius:50%;flex:none}
+.plane-agent p{margin:0;line-height:1.3}
+.plane-agent strong{display:block;font-size:1.12rem;letter-spacing:-.01em}
+.plane-agent span{display:block;font-size:var(--small);color:#fde8f2}
+.plane-phases{list-style:none;margin:0;padding:20px 0 0;max-width:none;display:grid;grid-template-columns:repeat(2,minmax(0,1fr)) 58px repeat(2,minmax(0,1fr));gap:6px;align-items:stretch}
+.plane-phase{position:relative;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;min-height:68px;padding:8px 4px;border:1.5px solid var(--ink);background:var(--white);text-align:center}
+.plane-phase::before{content:"";position:absolute;left:50%;bottom:100%;height:20px;border-left:2px solid var(--logic)}
+.plane-phase span{font-weight:700;font-size:.92rem;line-height:1.1}
+.plane-phase small{display:inline-flex;align-items:center;gap:5px;font:700 .62rem/1 var(--mono);letter-spacing:.05em;text-transform:uppercase;color:var(--reflex);white-space:nowrap}
+.plane-phase small::before{content:"";width:7px;height:7px;background:var(--reflex);transform:rotate(45deg)}
+.plane-approval{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;padding:4px 0;text-align:center}
+.plane-approval::before{content:"";width:18px;height:18px;border:2px solid var(--ink);border-radius:50%;box-shadow:inset 0 0 0 3px var(--white),inset 0 0 0 9px var(--ink)}
+.plane-approval span{font:700 .6rem/1.15 var(--mono);letter-spacing:.04em;text-transform:uppercase}
+.plane-route{margin:16px 0 0;display:grid;gap:0}
+.plane-route div{display:grid;grid-template-columns:42px minmax(0,1fr);gap:10px;align-items:baseline;padding:9px 0;border-top:1px solid var(--line)}
+.plane-route dt{font:700 var(--tiny)/1.2 var(--mono);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
+.plane-route dd{margin:0;font-size:var(--small);line-height:1.45}
+/* Narrow cards (phones, and the hero's right column on small laptops): two phases a row, with
+   the approval point a full row between Plan and Deploy. */
+@media (max-width:520px),(min-width:960px) and (max-width:1199px){
+  .plane-phases{grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+  .plane-phase::before{content:none}
+  .plane-approval{grid-column:1/-1;flex-direction:row;gap:10px;padding:6px 0;border-top:2px dashed var(--ink);border-bottom:2px dashed var(--ink)}
+}
+@media (max-width:520px){.hero-plane{padding:16px}}
+
+/* Live and planned states, inside the hero so both are on the first screen. */
+.status-ribbon{display:grid;border-top:1px solid var(--rule);border-bottom:1px solid var(--rule)}
+.status-state{display:flex;align-items:flex-start;gap:12px;min-width:0;padding:14px 0}
 .status-state + .status-state{border-top:1px solid var(--line)}
-.status-state img{width:40px;height:40px;object-fit:contain;flex:none}
-.status-state strong{display:block;font:700 var(--tiny)/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;margin-bottom:4px}
-.status-state span{display:block;font-size:var(--small);line-height:1.45}
-.status-state--live{border-left:6px solid var(--answer)}
+.status-state img{width:28px;height:28px;object-fit:contain;flex:none}
+.status-mark{flex:none;width:28px;height:28px;border:2px dashed var(--purple-mid);border-radius:var(--r-md)}
+.status-state p{margin:0;max-width:none;font-size:var(--small);line-height:1.45}
+.status-state strong{display:block;font:700 var(--tiny)/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;margin-bottom:3px}
 .status-state--live strong{color:var(--answer)}
-.status-state--reference{border-left:6px solid var(--purple)}
 .status-state--reference strong{color:var(--purple-deep)}
 @media (min-width:760px){
   .status-ribbon{grid-template-columns:minmax(0,1fr) minmax(0,1fr)}
-  .status-state + .status-state{border-top:0;border-left:1px solid var(--line)}
-  .status-state--reference{box-shadow:inset 6px 0 var(--purple)}
+  .status-state + .status-state{border-top:0;border-left:1px solid var(--line);padding-left:24px}
+  .status-state:first-child{padding-right:24px}
 }
 
-/* Compact evidence notes */
+/* ---------- Why now: compact numbered notes, read down then across ---------- */
+.problem-grid h3{margin-bottom:14px}
 .source-marker{position:relative;top:-.35em;display:inline-grid;place-items:center;width:44px;min-width:44px;height:44px;margin:-14px -12px;border:0;font:700 .66em/1 var(--mono);text-decoration:none;vertical-align:baseline}
 .source-marker::before{content:"";position:absolute;width:1.35em;height:1.35em;border:1px solid currentColor;border-radius:50%}
-.source-notes{display:grid;gap:7px 28px;max-width:none;margin:28px 0 0;padding:18px 18px 18px 42px;border-top:1px solid var(--rule);font-size:var(--small);line-height:1.45}
-.source-notes li{padding-left:4px}
+.source-notes{max-width:none;margin:28px 0 0;padding:16px 0 0 1.4em;border-top:1px solid var(--rule);font-size:var(--small);line-height:1.45}
+.source-notes li{padding:0 0 6px 4px;break-inside:avoid}
 .source-notes span{font:600 var(--tiny)/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase;color:var(--review)}
-@media (min-width:900px){.source-notes{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media (min-width:900px){.source-notes{columns:2;column-gap:56px}}
 
-/* Planned Google Cloud flow */
-.architecture-band{background:var(--black);color:var(--white)}
-.architecture-band .eyebrow{color:#d9a6ff}
-.architecture-band .section-head p,.architecture-caption{color:#dedede}
-.architecture-rail{display:grid;gap:18px;max-width:none;margin:0;padding:0;list-style:none;counter-reset:architecture}
-.architecture-rail>li{position:relative;min-width:0;padding:22px 20px 20px;border-top:6px solid var(--purple);background:var(--white);color:var(--ink);border-radius:var(--r-md)}
-.architecture-index{display:block;font:700 var(--tiny)/1 var(--mono);letter-spacing:.1em;color:var(--purple-deep);margin-bottom:14px}
-.architecture-rail h3{font-size:1.2rem;letter-spacing:0;line-height:1.15;margin-bottom:10px}
-.architecture-rail p{font-size:var(--small);line-height:1.45;margin:0 0 14px}
-.architecture-rail .architecture-note{padding-top:10px;border-top:1px solid var(--line);font-size:var(--tiny)}
-.product{display:flex;align-items:center;gap:9px;min-width:44px;min-height:44px;padding:6px 0;border-top:1px solid var(--line);color:var(--ink);font-size:var(--small);font-weight:700;text-decoration:none}
-.product:hover{color:var(--purple-deep)}
-.source-estate{margin:0;padding:0;list-style:none;font-size:var(--small);font-weight:700}
-.source-estate li{padding:6px 0;border-top:1px solid var(--line)}
-.product img{width:30px;height:30px;object-fit:contain;flex:none}
-.state-label{display:inline-block;margin-top:14px;padding:5px 8px;border:1px solid var(--purple-mid);color:var(--purple-deep);font:700 var(--tiny)/1.2 var(--mono);letter-spacing:.06em;text-transform:uppercase}
-.architecture-caption{margin:24px 0 0;padding-top:18px;border-top:1px solid #444;font-size:var(--small)}
-@media (min-width:1120px){
-  .architecture-rail{grid-template-columns:repeat(5,minmax(0,1fr));gap:28px}
-  .architecture-rail>li+li::before{content:"";position:absolute;left:-21px;top:42px;width:12px;height:12px;border-top:2px solid #aaa;border-right:2px solid #aaa;transform:rotate(45deg)}
+/* ---------- The control plane: one agent band over four phases ---------- */
+.control-band .section-head{max-width:980px}
+.product{display:flex;align-items:center;gap:9px;min-width:44px;min-height:44px;color:var(--ink);font-weight:700;text-decoration:none}
+.product img{flex:none;object-fit:contain}
+.product:hover span{text-decoration:underline}
+
+.orchestrator{display:grid;gap:8px 28px;align-items:center;padding:16px 22px;background:var(--logic);color:var(--white);border-radius:var(--r-md)}
+@media (min-width:700px){.orchestrator{grid-template-columns:minmax(0,1fr) auto}.orchestrator-name{grid-column:1/-1}}
+@media (min-width:1200px){.orchestrator{grid-template-columns:auto minmax(0,1fr) auto}.orchestrator-name{grid-column:auto}}
+.orchestrator-name{display:flex;flex-wrap:wrap;align-items:center;gap:0 22px}
+.orchestrator .product{color:var(--white)}
+.orchestrator .product:hover{color:var(--white)}
+.orchestrator .product img{width:38px;height:38px;padding:6px;background:var(--white);border-radius:50%}
+.orchestrator .product span{font-size:clamp(1.15rem,1.6vw,1.4rem);letter-spacing:-.015em}
+.orchestrator .product--built img{width:30px;height:30px;padding:4px}
+.orchestrator .product--built span{font-size:var(--small);font-weight:600;letter-spacing:0}
+.orchestrator p{margin:0;font-size:var(--small);line-height:1.45;color:#fde8f2}
+.orchestrator .state-label{border-color:var(--white);color:var(--white);justify-self:start}
+
+.phases{list-style:none;margin:0;padding:0;max-width:none;display:grid;gap:14px;align-items:stretch}
+.phase{position:relative;min-width:0;display:flex;flex-direction:column;padding:16px 18px 14px;background:var(--white);border:1px solid var(--line);border-top:4px solid var(--logic)}
+.phase h3{display:flex;align-items:baseline;gap:10px;font-size:1.4rem;letter-spacing:-.02em;margin:0 0 10px}
+.phase-n{font:700 var(--tiny)/1 var(--mono);letter-spacing:.1em;color:var(--logic)}
+.phase-fields{margin:0;display:grid;gap:0;max-width:none}
+.phase-fields>div{padding:8px 0;border-top:1px solid var(--line)}
+.phase-fields dt{margin:0 0 2px;font:700 .68rem/1.3 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.phase-fields dd{margin:0;font-size:.88rem;line-height:1.45}
+.phase-fields b{font-weight:700}
+.phase-fields [data-role="agent"] dt{color:var(--logic)}
+.phase-fields [data-role="gate"]{margin:0 -10px;padding:8px 10px;border-top:0;border-left:3px solid var(--reflex);background:var(--purple-wash)}
+.phase-fields [data-role="gate"] dt{display:flex;align-items:center;gap:7px;color:var(--purple-deep)}
+.phase-fields [data-role="gate"] dt::before{content:"";width:8px;height:8px;background:var(--reflex);transform:rotate(45deg)}
+.phase-fields [data-role="gate"]+div{border-top:0}
+.phase-fields .phase-state{display:flex;align-items:center;gap:10px}
+.phase-state dt{margin:0}
+.phase-state dd{padding:3px 7px;border:1.5px dashed var(--purple-mid);color:var(--purple-deep);font:700 .66rem/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase}
+.product--uses{margin-top:auto;padding-top:8px;border-top:1px solid var(--line);font-size:.86rem;line-height:1.3}
+.product--uses img{width:24px;height:24px}
+
+.checkpoint{position:relative;display:flex;align-items:center;justify-content:center;padding:6px 0}
+.checkpoint::before{content:"";position:absolute;left:0;right:0;top:50%;border-top:2px dashed var(--ink)}
+.checkpoint-box{position:relative;display:grid;justify-items:center;gap:4px;max-width:30ch;padding:10px 14px;border:2px solid var(--ink);background:var(--white);text-align:center}
+.checkpoint-box strong{display:flex;align-items:center;gap:9px;font-size:.98rem;line-height:1.25}
+.checkpoint-box strong::before{content:"";flex:none;width:16px;height:16px;border:2px solid var(--ink);border-radius:50%;box-shadow:inset 0 0 0 2px var(--white),inset 0 0 0 8px var(--ink)}
+.checkpoint-box span{font-size:var(--small);line-height:1.35;color:var(--muted)}
+
+/* Phones: the agent stays visible as a raspberry spine running down the whole list, and each
+   field's label runs into its text to keep the four phases and four lanes short. */
+@media (max-width:699px){
+  .phases{margin-left:10px;padding:14px 0 0 16px;border-left:4px solid var(--logic)}
+  .phase-fields>div:not(.phase-state)>dt,.lane-fields>div:not([data-field="destination"])>dt{display:inline;margin-right:6px}
+  .phase-fields>div:not(.phase-state)>dd,.lane-fields>div:not([data-field="destination"])>dd{display:inline}
+  .phase-fields [data-role="gate"]>dt{display:inline-flex}
+  .phase-fields>div,.lane-fields>div{font-size:.9rem;line-height:1.45}
+  .phase-fields dd,.lane-fields dd{font-size:inherit}
+}
+/* Tablets: two phases a row, with the approval point a full row between Plan and Deploy. */
+@media (min-width:700px) and (max-width:1099px){
+  .phases{grid-template-columns:repeat(2,minmax(0,1fr));padding-top:14px}
+  .checkpoint{grid-column:1/-1}
+}
+/* Wide screens: four columns under the agent band. Solid lines carry governed tool calls down;
+   dashed lines carry evidence and status back up. The approval point sits between Plan and Deploy. */
+@media (min-width:1100px){
+  .phases{grid-template-columns:repeat(2,minmax(0,1fr)) 120px repeat(2,minmax(0,1fr));gap:0 14px;padding-top:30px}
+  .phase::before,.phase::after{content:"";position:absolute;bottom:100%;height:30px}
+  .phase::before{left:calc(50% - 6px);border-left:2px solid var(--logic)}
+  .phase::after{left:calc(50% + 6px);border-left:2px dashed var(--logic)}
+  .checkpoint{margin-top:30px;padding:0}
+  .checkpoint::before{left:50%;right:auto;top:0;bottom:0;border-top:0;border-left:2px dashed var(--ink)}
+  .checkpoint-box{padding:12px 8px}
+  .checkpoint-box strong{flex-direction:column;font-size:.9rem}
+  .checkpoint-box span{font-size:.78rem}
 }
 
-/* Pillar stack */
-.stack{margin-bottom:clamp(40px,6vw,72px)}
+.controls-strip{list-style:none;margin:22px 0 0;padding:0;max-width:none;display:grid;gap:0;border-top:2px solid var(--rule)}
+.controls-strip li{padding:12px 0;border-bottom:1px solid var(--line);font-size:var(--small);line-height:1.4}
+.controls-strip strong{display:inline-flex;align-items:center;gap:8px;margin-right:4px}
+.controls-strip strong::before{content:"";flex:none;width:10px;height:10px;background:var(--k,var(--ink))}
+.controls-strip [data-control="mcp"]{--k:var(--connect)}
+.controls-strip [data-control="jev"]{--k:var(--reflex)}
+.controls-strip [data-control="jev"] strong::before{transform:rotate(45deg) scale(.9)}
+.controls-strip [data-control="person"] strong::before{border-radius:50%}
+.controls-strip [data-control="lineage"]{--k:var(--context)}
+.controls-strip span{color:var(--muted)}
+@media (min-width:900px){
+  .controls-strip{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .controls-strip li{padding:14px 18px 4px 0;border-bottom:0}
+  .controls-strip li+li{padding-left:18px;border-left:1px solid var(--line)}
+  .controls-strip strong,.controls-strip span{display:flex}
+  .controls-strip strong{margin:0 0 4px}
+}
+
+/* ---------- Representative migration lanes ---------- */
+.lanes-head{display:grid;gap:12px;margin:clamp(48px,6vw,80px) 0 18px}
+.lanes-head h3{font-size:clamp(1.5rem,2.6vw,2.1rem);letter-spacing:-.025em}
+.lanes-note{margin:0;max-width:72ch;padding:12px 16px;border-left:4px solid var(--evidence);background:var(--evidence-wash)}
+.lanes-note strong{display:block}
+.lanes{list-style:none;margin:0;padding:0;max-width:none;border-top:2px solid var(--rule)}
+.lane{padding:18px 0 20px;border-bottom:1px solid var(--line)}
+.lane h4{display:flex;flex-wrap:wrap;align-items:center;gap:8px 14px;margin:0 0 14px;font-size:1.2rem;letter-spacing:-.015em}
+.lane-tag{font-size:.66rem;padding:3px 7px;font-weight:700}
+.lane-fields{margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px 16px;max-width:none}
+.lane-fields>[data-field="service"],.lane-fields>[data-field="destination"],.lane-fields>[data-field="validation"]{grid-column:1/-1}
+.lane-fields dt{margin:0 0 4px;font:700 .68rem/1.3 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--muted)}
+.lane-fields dd{margin:0;font-size:.9rem;line-height:1.45}
+.dest{display:flex;flex-wrap:wrap;align-items:center;gap:0 8px;min-height:36px}
+.dest+.dest{border-top:1px dotted var(--line)}
+.dest b{flex:none;width:7.5em;font:700 .64rem/1.3 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--evidence)}
+.product--inline{display:inline-flex;gap:7px;min-height:44px}
+.product--inline img{width:20px;height:20px}
+.lane-boundary{margin:14px 0 0;font-size:var(--small);color:var(--muted);max-width:90ch}
+@media (min-width:1000px){
+  .lane{display:grid;grid-template-columns:200px minmax(0,1fr);gap:0 28px;align-items:start}
+  .lane h4{flex-direction:column;align-items:flex-start;margin:0}
+  .lane-fields{grid-template-columns:minmax(0,.9fr) minmax(0,.9fr) minmax(0,1.3fr) minmax(0,1.3fr) minmax(0,1.1fr);gap:0}
+  .lane-fields>[data-field]{grid-column:auto}
+  .dest b{width:100%;margin-top:4px}
+  .dest{min-height:0}
+  .dest+.dest{border-top:0}
+  .lane-fields>div{position:relative;padding:0 16px;border-left:1px solid var(--line)}
+  .lane-fields>div:first-child{padding-left:0;border-left:0}
+  .lane-fields>div+div::before{content:"";position:absolute;left:-6px;top:1px;width:9px;height:9px;border-top:2px solid var(--muted);border-right:2px solid var(--muted);background:var(--white);transform:rotate(45deg)}
+  .lane-boundary{grid-column:2}
+}
+.architecture-caption{margin:18px 0 0;font-size:var(--small);color:var(--muted);max-width:90ch}
+
+/* ---------- Pillars and terms ---------- */
+.stack{margin-bottom:clamp(36px,5vw,56px)}
 .stack-layer{flex-wrap:wrap;row-gap:4px}
 .stack-layer span{flex:1 1 24ch}
 .go-deeper{font-weight:600}
 .go-deeper::after{content:" →"}
-.glossary-title{margin-bottom:16px}
+.glossary-title{margin-bottom:14px}
+@media (min-width:900px){
+  .defs{grid-template-columns:1fr 1fr;column-gap:48px}
+  .defs div{grid-template-columns:150px 1fr;padding:12px 0}
+}
 
-/* Guided example */
+/* ---------- Guided example ---------- */
 .result .why{margin:0}
 .hop-note{margin-top:12px}
 /* Graph labels, in the graph's own units: about 12px and 15px on a 1920 screen */
@@ -76,7 +234,19 @@
 .outcome-key [data-outcome="reject"]::before{clip-path:polygon(50% 0,100% 100%,0 100%)}
 .outcome-key [data-outcome="no_data"]{--k:var(--muted)}
 
-/* Use cases */
+/* Orchestrator view: where the selected request sits in the planned control plane. */
+.orch-view{margin:0 0 4px;padding:12px 14px 4px;border:1px solid var(--line);border-top:4px solid var(--logic);background:var(--white)}
+.orch-view-title{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:6px 12px;margin:0 0 6px;font-size:var(--small);font-weight:700}
+.orch-view-title .state-label{font-size:.62rem;padding:2px 6px}
+.orch-view dl{margin:0;display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 16px;max-width:none}
+.orch-view dl>div{padding:6px 0;border-top:1px solid var(--line);min-width:0}
+.orch-view dt{font:700 .64rem/1.3 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.orch-view dd{margin:0;font-size:.86rem;line-height:1.35}
+.orch-view [data-field="gate"] dt{color:var(--purple-deep)}
+.orch-view .annotation{margin:6px 0 8px;font-size:.78rem}
+@media (min-width:1280px){.orch-view dl{grid-template-columns:repeat(3,minmax(0,1fr))}}
+
+/* ---------- Use cases ---------- */
 .blast{width:100%;height:100%}
 .blast line{stroke:#7a7a7a;stroke-width:3}
 .blast .hit{stroke:var(--evidence);stroke-width:5}
@@ -84,16 +254,30 @@
 .blast .src{fill:var(--purple-mid)}.blast .mid{fill:var(--evidence)}.blast .out{fill:var(--black)}
 .blast text{font:600 20px var(--sans);fill:var(--ink);text-anchor:middle;paint-order:stroke;stroke:var(--paper);stroke-width:6px;stroke-linejoin:round}
 .blast .cap{font:600 15px var(--mono);letter-spacing:.14em;fill:var(--evidence)}
+.feature h3{margin-bottom:16px}
+.route{list-style:none;margin:0 0 4px;padding:0;max-width:none;display:grid;gap:0;border-top:1px solid var(--rule)}
+.route li{padding:10px 0;font-size:.95rem;line-height:1.4}
+.route li+li{border-top:1px solid var(--line)}
+.route b{display:block;font:700 .66rem/1.3 var(--mono);letter-spacing:.09em;text-transform:uppercase;color:var(--evidence);margin-bottom:2px}
+@media (min-width:640px){
+  .route{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .route li{position:relative;padding:10px 16px 10px 0}
+  .route li+li{padding-left:16px;border-top:0;border-left:1px solid var(--line)}
+  .route li+li::before{content:"";position:absolute;left:-6px;top:14px;width:9px;height:9px;border-top:2px solid var(--muted);border-right:2px solid var(--muted);background:var(--white);transform:rotate(45deg)}
+}
+.facts dt.role{color:var(--logic)}
+.facts dt.gate{color:var(--purple-deep)}
 
-/* Governance and closing */
+/* ---------- Where to start: the four phases ---------- */
+@media (min-width:900px){.steps--four{grid-template-columns:repeat(4,minmax(0,1fr))}}
+.steps--four li{padding-right:22px}
+@media (min-width:900px){.steps--four li+li{padding-left:22px}}
+.steps--four li::before{font-size:clamp(2.6rem,4.6vw,3.6rem)}
+
+/* ---------- Governance and closing ---------- */
 .scope-note{margin-top:28px}
 .closing .wrap{display:grid;gap:18px;justify-items:start}
 .closing p{margin:0;font-size:1.15rem}
-
-/* Hero headline: the longer line needs a smaller size so the lede stays above the fold */
-.hero{padding-top:clamp(44px,6vw,80px);padding-bottom:clamp(36px,4vw,60px)}
-.hero h1{font-size:clamp(2.25rem,4vw,3.25rem);max-width:none}
-.hero-art img{max-height:460px;margin:0 auto}
 
 /* Existing Stack: the base layer is the estate itself, drawn in neutral grey */
 .stack>[data-pillar="estate"]{--c:var(--muted)}
@@ -127,24 +311,78 @@
   .brand{max-width:calc(100% - 128px);white-space:normal;font-size:.9rem;line-height:1.2}
 }
 @media (max-width:700px){
-  .hero{padding:28px 0 14px}
-  .hero .lede{margin:18px 0 24px}
-  .hero-art{display:none}
+  .hero{padding:24px 0 20px}
+  .hero .lede{margin:16px 0 22px}
 }
 
 @media print{
   html{font-size:13px}
-  .status-shell{border-bottom:1px solid var(--rule)}
-  .status-ribbon{grid-template-columns:1fr 1fr;border-top:1px solid var(--rule)}
-  .status-state{padding:8px 10px}
-  .status-state img{width:24px;height:24px}
-  .status-state + .status-state{border-top:0;border-left:1px solid var(--line);box-shadow:none}
-  .architecture-band,.architecture-band *{background:none!important;color:var(--ink)!important}
-  .architecture-rail{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
-  .architecture-rail>li{padding:10px;margin:0;border:1px solid var(--rule);border-top:4px solid var(--purple);break-inside:avoid}
-  .architecture-rail p{margin-bottom:6px}
-  .architecture-index,.state-label{margin-top:6px;margin-bottom:6px}
-  .architecture-rail>li::before{content:none!important}
-  .source-notes{grid-template-columns:1fr 1fr}
-  .guided{grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:16px}
+  .hero .hero-grid{grid-template-areas:"copy plane" "status status";gap:14px 24px}
+  .hero-copy{grid-area:copy}.hero-plane{grid-area:plane}.status-ribbon{grid-area:status}
+  .hero-plane{padding:10px;break-inside:avoid}
+  .plane-phases{grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;padding-top:10px}
+  .plane-phase{min-height:0;padding:6px 4px}
+  .plane-phase::before{content:none!important}
+  .plane-approval{grid-column:1/-1;flex-direction:row;gap:8px;padding:4px 0;border-top:1.5px dashed var(--ink);border-bottom:1.5px dashed var(--ink)}
+  .plane-route div{padding:5px 0}
+  .plane-agent{background:none!important;color:var(--ink)!important;border:2px solid var(--logic)}
+  .plane-agent span{color:var(--muted)}
+  .status-ribbon{grid-template-columns:1fr 1fr}
+  .status-state{padding:8px 0}
+  .status-state img,.status-mark{width:20px;height:20px}
+  .status-state + .status-state{border-top:0;border-left:1px solid var(--line);padding-left:12px}
+  .source-notes{columns:2}
+  .orchestrator{background:none!important;color:var(--ink)!important;border:2px solid var(--logic);grid-template-columns:minmax(0,1fr);padding:10px 14px}
+  .orchestrator .product,.orchestrator p{color:var(--ink)!important}
+  .orchestrator .state-label{border-color:var(--purple-mid);color:var(--purple-deep)}
+  .problem-grid{grid-template-columns:1fr 1fr;gap:24px}
+  .phases{grid-template-columns:repeat(2,minmax(0,1fr)) 64px repeat(2,minmax(0,1fr));gap:0 8px;padding-top:8px;margin-left:0;border-left:0;padding-left:0}
+  .phase::before,.phase::after{content:none!important}
+  .phase{padding:8px;break-inside:avoid}
+  .phase h3{font-size:1.1rem;margin-bottom:6px}
+  .phase-fields>div{padding:4px 0}
+  .phase-fields dd{font-size:.8rem;line-height:1.35}
+  .phase-fields [data-role="gate"]{background:none;margin:0;padding:4px 0 4px 6px}
+  .product--uses{font-size:.78rem;min-height:0}
+  .checkpoint{grid-column:auto;margin:0;padding:0}
+  .checkpoint::before{left:50%;right:auto;top:0;bottom:0;border-top:0;border-left:1.5px dashed var(--ink)}
+  .checkpoint-box{padding:6px 4px}
+  .checkpoint-box strong{flex-direction:column;font-size:.7rem}
+  .checkpoint-box span{font-size:.62rem}
+  .result{break-inside:auto}
+  .controls-strip{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .lanes-note{background:none}
+  .lane{display:block;break-inside:avoid;padding:10px 0}
+  .lane h4{margin-bottom:8px}
+  .lane-fields{grid-template-columns:repeat(5,minmax(0,1fr));gap:8px 12px}
+  .lane-fields>[data-field]{grid-column:auto}
+  .lane-fields dd{font-size:.85rem}
+  .dest{min-height:0;display:block}
+  .dest+.dest{border-top:0}
+  .dest b{display:block;width:auto}
+  .product--inline{min-height:0}
+  .defs{grid-template-columns:1fr 1fr;column-gap:24px}
+  .defs div{grid-template-columns:120px 1fr;padding:6px 0}
+  .lane-fields>div{padding:0;border:0}
+  .lane-fields>div::before{content:none!important}
+  .orch-view dl{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .route{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .route li::before{content:none!important}
+  .steps--four{grid-template-columns:repeat(4,minmax(0,1fr))}
+  /* The guided example prints with the graph in a narrow first column beside the requests,
+     orchestrator view and result, so the whole example fits on one page. */
+  .guided{grid-template-columns:250px minmax(0,1fr);gap:16px}
+  .guided-graph{order:-1}
+  .stack>li{break-inside:auto}
+  .stack-layer{break-after:avoid}
+  .scenarios{grid-template-columns:1fr 1fr;column-gap:12px;margin-bottom:8px}
+  .scenario{padding:6px 8px}
+  .scenario:last-of-type{border-bottom:0}
+  .result{margin-top:10px;padding:10px 12px}
+  .lane,.controls-strip li,.orch-view{break-inside:avoid}
+  .phase,.checkpoint{break-inside:auto}
+  .feature{grid-template-columns:180px minmax(0,1fr);gap:16px;padding:12px 0}
+  .feature-art{max-height:130px}
+  .hero .hero-grid{grid-template-columns:minmax(0,1fr) 270px}
+  .plane-agent,.orchestrator,.phase,.plane-phase small::before,.phase-fields [data-role="gate"] dt::before,.controls-strip strong::before{-webkit-print-color-adjust:exact;print-color-adjust:exact}
 }
