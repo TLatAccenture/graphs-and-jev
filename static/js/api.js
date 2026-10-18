@@ -13,6 +13,13 @@
     return {ok: false, status, json: async () => ({outcome: "error", detail})};
   }
 
+  /* Who reads typed requests before the rules decide. Only the live API can call Gemini. */
+  function interpreter(domain) {
+    const reader = api().interpreter || {};
+    if (mode(domain) !== "live" || reader.by !== "gemini") return {by: "rules", model: null};
+    return {by: "gemini", model: reader.model || null};
+  }
+
   function source(domain) {
     if (mode(domain) !== "live") return "in-browser fixtures";
     const base = api().baseUrl;
@@ -46,6 +53,7 @@
   window.siteApi = {
     mode,
     source,
+    interpreter,
     health() {
       if (mode() !== "live") return Promise.resolve({ok: true, status: 200, json: async () => ({status: "ok", mode: "fixtures"})});
       return live("health", {method: "GET"});

@@ -2,6 +2,7 @@ mod auth;
 mod catalogue;
 mod decide;
 mod graph;
+mod interpret;
 mod pipeline;
 mod request;
 mod site;
@@ -23,6 +24,7 @@ use tower_http::services::ServeDir;
 
 use crate::auth::{error, guard, Limiter};
 use crate::catalogue::Catalogue;
+pub use crate::interpret::Interpreter;
 pub use crate::site::Site;
 
 const VERSION: &str = "0.1.0";
@@ -38,6 +40,7 @@ pub struct App {
     limiter: Limiter,
     log: Arc<dyn Fn(String) + Send + Sync>,
     site: Site,
+    interpreter: Interpreter,
 }
 
 impl App {
@@ -57,6 +60,7 @@ impl App {
             limiter: Limiter::new(rate),
             log: Arc::new(|line| println!("{line}")),
             site: Site::default(),
+            interpreter: Interpreter::Rules,
         })
     }
 
@@ -67,6 +71,11 @@ impl App {
 
     pub fn with_site(mut self, site: Site) -> Self {
         self.site = site;
+        self
+    }
+
+    pub fn with_interpreter(mut self, interpreter: Interpreter) -> Self {
+        self.interpreter = interpreter;
         self
     }
 
@@ -83,10 +92,14 @@ impl App {
 #[derive(Clone, Debug)]
 struct LogMetadata {
     outcome: &'static str,
+    interpreter: Option<String>,
 }
 
 fn with_log_metadata(mut response: Response, outcome: &'static str) -> Response {
-    response.extensions_mut().insert(LogMetadata { outcome });
+    response.extensions_mut().insert(LogMetadata {
+        outcome,
+        interpreter: None,
+    });
     response
 }
 
@@ -315,10 +328,29 @@ async fn run_pipeline(State(app): State<Arc<App>>, Json(body): Json<PipelineIn>)
             )
         }
     }
-    match pipeline::run(&app.cat, request, preference, app.min_confidence) {
-        Ok(v) => decision_response(v),
+    // With Gemini on, the rules decide on Gemini's reading in catalogue terms, or on the
+    // reader's own words when Gemini fails or finds something outside the catalogue.
+    let interpretation = app.interpreter.interpret(&app.cat, request).await;
+    let decided = interpretation
+        .as_ref()
+        .map_or(request, |reading| reading.request.as_str());
+    let mut response = match pipeline::run(&app.cat, decided, preference, app.min_confidence) {
+        Ok(mut v) => {
+            if let Some(reading) = &interpretation {
+                v["request"] = json!(request);
+                v["interpretation"] = reading.to_json();
+            }
+            decision_response(v)
+        }
         Err(e) => error(StatusCode::UNPROCESSABLE_ENTITY, &e.0),
+    };
+    if let (Some(reading), Some(metadata)) = (
+        &interpretation,
+        response.extensions_mut().get_mut::<LogMetadata>(),
+    ) {
+        metadata.interpreter = Some(reading.log_label().to_owned());
     }
+    response
 }
 
 async fn config_js(State(app): State<Arc<App>>) -> Response {
@@ -423,14 +455,19 @@ fn log_fields(
     status: StatusCode,
     latency_ms: u128,
     outcome: &str,
+    interpreter: Option<&str>,
 ) -> Value {
-    json!({
+    let mut fields = json!({
         "request_id": request_id,
         "route": route,
         "status": status.as_u16(),
         "latency_ms": latency_ms,
         "outcome": outcome,
-    })
+    });
+    if let Some(interpreter) = interpreter {
+        fields["interpreter"] = json!(interpreter);
+    }
+    fields
 }
 
 async fn limit_expensive(
@@ -450,7 +487,8 @@ async fn log_request(State(app): State<Arc<App>>, request: Request<Body>, next: 
     let request_id = format!("r-{}", REQUEST_SEQUENCE.fetch_add(1, Ordering::Relaxed));
     let mut response = next.run(request).await;
     let status = response.status();
-    let outcome = response.extensions().get::<LogMetadata>().map_or_else(
+    let metadata = response.extensions().get::<LogMetadata>().cloned();
+    let outcome = metadata.as_ref().map_or_else(
         || match status {
             StatusCode::PAYLOAD_TOO_LARGE => "payload_too_large",
             StatusCode::UNPROCESSABLE_ENTITY => "invalid_request",
@@ -462,6 +500,7 @@ async fn log_request(State(app): State<Arc<App>>, request: Request<Body>, next: 
         },
         |metadata| metadata.outcome,
     );
+    let interpreter = metadata.as_ref().and_then(|m| m.interpreter.as_deref());
     (app.log)(
         log_fields(
             &request_id,
@@ -469,6 +508,7 @@ async fn log_request(State(app): State<Arc<App>>, request: Request<Body>, next: 
             status,
             started.elapsed().as_millis(),
             outcome,
+            interpreter,
         )
         .to_string(),
     );

@@ -187,6 +187,8 @@ button{cursor:pointer}
 .result ul,.result ol{margin:0;padding-left:1.2em}
 .result li{margin:4px 0}
 .result .empty{color:var(--muted);font-style:italic}
+.result .read-by{margin:0 0 12px;max-width:var(--measure);font-size:var(--small);line-height:1.45}
+.result .read-by b{display:inline-block;margin-right:6px;font:700 var(--tiny)/1.2 var(--mono);letter-spacing:.08em;text-transform:uppercase;color:var(--purple-deep)}
 .evidence-path{list-style:none;padding:0!important;display:flex;flex-wrap:wrap;align-items:center;gap:6px 0;max-width:none}
 .evidence-path li{display:flex;align-items:center;margin:0}
 .evidence-path .n{background:var(--white);border:1.5px solid var(--evidence);color:var(--ink);padding:5px 10px;font-weight:600;font-size:.95rem}

@@ -51,7 +51,8 @@ Open <http://127.0.0.1:8080/>. Readiness and liveness are at `/api/ready` and `/
 ## Configure
 
 - **Static hosting:** edit `static/config.js`. It holds the brand text and API settings (`api.mode` is `"fixtures"` or `"live"`, with optional per-domain overrides).
-- **Rust service:** the service answers `GET /config.js` itself, rendered from environment variables, so no files change between environments. The variables are `BRAND_ORG`, `BRAND_NAME`, `BRAND_TAGLINE`, `BRAND_KIND`, `BRAND_DISCLAIMER`, `API_MODE`, `API_BASE_URL`, `API_TIMEOUT_MS`, `API_ROUTE_HEALTH`, `API_ROUTE_CATALOGUE`, `API_ROUTE_PIPELINE`, `API_MODE_CATALOGUE` and `API_MODE_LINEAGE`. Unset variables fall back to the service defaults.
+- **Rust service:** the service answers `GET /config.js` itself, rendered from environment variables, so no files change between environments. The variables are `BRAND_ORG`, `BRAND_NAME`, `BRAND_TAGLINE`, `BRAND_KIND`, `BRAND_DISCLAIMER`, `API_MODE`, `API_BASE_URL`, `API_TIMEOUT_MS`, `API_ROUTE_HEALTH`, `API_ROUTE_CATALOGUE`, `API_ROUTE_PIPELINE`, `API_MODE_CATALOGUE`, `API_MODE_LINEAGE`, `CATALOGUE_INTERPRETER` and `GEMINI_MODEL`. Unset variables fall back to the service defaults.
+- **Gemini presenter build:** with `CATALOGUE_INTERPRETER=gemini`, Gemini on Vertex AI reads typed Environmental Agency requests and maps them to catalogue terms; the rules still decide, and any Gemini failure falls back to the rules with a visible label. It is for a private presenter service only. See [docs/api-contract.md](docs/api-contract.md) and [the presenter runbook](docs/deployment/presenter-gemini.md).
 
 ## Deploy
 

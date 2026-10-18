@@ -42,6 +42,7 @@ export const DEFAULT_CONFIG = {
     timeoutMs: 15000,
     routes: { health: "/api/health", catalogue: "/api/catalogue", pipeline: "/api/pipeline" },
     domains: { catalogue: "fixtures", lineage: "fixtures" } as Record<string, string>,
+    interpreter: { by: "rules", model: null } as { by: string; model: string | null },
   },
 };
 

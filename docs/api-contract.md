@@ -67,8 +67,23 @@ window.SITE_CONFIG = {"brand":{...},"api":{...}};
 | `API_ROUTE_PIPELINE` | `/api/pipeline` | `api.routes.pipeline` | Absolute path starting with a single `/` |
 | `API_MODE_CATALOGUE` | value of `API_MODE` | `api.domains.catalogue` | `live`, `fixtures` |
 | `API_MODE_LINEAGE` | `fixtures` | `api.domains.lineage` | `live`, `fixtures` |
+| `CATALOGUE_INTERPRETER` | `rules` | `api.interpreter.by` | `rules`, `gemini`. With `gemini`, Gemini on Vertex AI reads typed catalogue requests first (see below). |
+| `GEMINI_MODEL` | `gemini-3.8-flash` | `api.interpreter.model` (only when the interpreter is `gemini`, else `null`) | Lower-case model id |
 
 An empty variable counts as unset. Put only public settings here; the whole object is sent to every browser.
+
+### Gemini interpreter settings (server only)
+
+These are read at start-up when `CATALOGUE_INTERPRETER=gemini` and never reach the browser. Invalid values stop the service. The presenter runbook is [docs/deployment/presenter-gemini.md](deployment/presenter-gemini.md).
+
+| Variable | Default | Valid values |
+|---|---|---|
+| `GEMINI_LOCATION` | `global` | Vertex AI location. `global` uses `aiplatform.googleapis.com`; any other uses `{location}-aiplatform.googleapis.com`. |
+| `GEMINI_TIMEOUT_MS` | `8000` | 1 to 60000. Keep it below `API_TIMEOUT_MS` so a slow reply falls back before the page gives up. |
+| `GEMINI_THINKING_LEVEL` | `low` | `minimal`, `low`, `medium`, `high`, or `model-default` to send no thinking setting. |
+| `GOOGLE_CLOUD_PROJECT` | from the metadata server | Project id that owns the Vertex AI call. |
+| `GEMINI_ACCESS_TOKEN` | none | Local runs only. `deploy/deploy.sh` refuses it; Cloud Run uses the runtime service account through the metadata server. |
+| `GEMINI_ENDPOINT`, `GCE_METADATA_HOST` | Google endpoints | Tests only, to point at a fake Vertex AI and metadata server. Not in the deploy allowlist. |
 
 ## GET /api/catalogue
 
@@ -131,6 +146,19 @@ The page labels outcomes as described in handover Section 5.3. `error` is never 
 ### Domain `catalogue`
 
 Adds `query` (the resolved pollutants, levels and filters), `solutions[]` (each with `id`, `summary`, `sources`, `profiles`, `cells` and `notes`), `subgraph` and `policy`. The Rust service sets `backend_label` to "Catalogue rules", `model` to `catalogue-rules-v1` and `residency` to `local`. `static/fixtures/catalogue.js` returns the same shape with `residency: "browser"`.
+
+When the service runs with `CATALOGUE_INTERPRETER=gemini`, the response also carries `interpretation`, and `request` stays the reader's own text:
+
+```json
+{"interpretation": {"by": "gemini | rules", "model": "gemini-3.8-flash", "request": "PM2.5 by country and year from 2019 to 2024", "note": "string or null"}}
+```
+
+- Gemini only maps the reader's words to catalogue terms, through a response schema whose values are the catalogue's own pollutants, groups, levels, places and sectors. The service writes those terms back as `interpretation.request`, and the catalogue rules decide on that text. Gemini never chooses the outcome, a dataset or a number.
+- `by: "gemini"` with `note: null`: the rules decided on Gemini's reading.
+- `by: "gemini"` with a note such as "Outside the catalogue: ozone. The rules decided on your words.": Gemini found something the catalogue does not hold, so the rules decided on the reader's text.
+- `by: "rules"`: Gemini failed (no token, HTTP error, timeout, unreadable reply or a term outside the catalogue) and the note says which. The rules decided on the reader's text. The outcome is never an error because of Gemini.
+- The request log gains an `interpreter` field (`gemini`, `gemini_outside_catalogue`, `gemini_no_terms` or `rules_fallback: <reason>`). It never holds request text.
+- Without the setting there is no `interpretation` field and no outbound call.
 
 ### Domain `lineage`
 

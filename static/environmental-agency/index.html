@@ -291,7 +291,7 @@
         </dl>
         <p class="annotation">The same five outcomes as the migration demos. Here the first is Answer rather than Proceed, because the catalogue answers a question instead of running a step.</p>
         <p class="annotation"><strong style="color:var(--graph)">Graph</strong> stages find and check evidence. <strong style="color:var(--purple-mid)">Decision</strong> stages are Jev's bounded calls.</p>
-        <p class="boundary boundary--scope"><strong>Scope</strong>Illustrative sources. Decision stages follow Jev's bounded-decision contract, answered by deterministic rules in your browser or on the Rust service. No hosted model is called; request text is not logged.</p>
+        <p class="boundary boundary--scope" id="scope-note"><strong>Scope</strong>Illustrative sources. Decision stages follow Jev's bounded-decision contract, answered by deterministic rules in your browser or on the Rust service. No hosted model is called; request text is not logged.</p>
         <p class="annotation" id="catalogue-summary"></p>
       </aside>
     </div>
@@ -409,6 +409,41 @@ function fact(dl, term, value) {
   const d = el("div"); d.append(el("dt", term), el("dd", value)); dl.append(d);
 }
 
+/* On a build where Gemini reads typed requests, the page says so before anyone asks. */
+const reader = siteApi.interpreter("catalogue");
+const geminiName = "Gemini" + (reader.model ? " (" + reader.model + ")" : "");
+if (reader.by === "gemini") {
+  $("#request-hint").textContent = "Write it in your own words. " + geminiName + " maps it to catalogue terms, then the rules decide.";
+  const scope = $("#scope-note");
+  scope.replaceChildren(el("strong", "Scope"), document.createTextNode(
+    "Illustrative sources. On this presenter build, " + geminiName + " on Vertex AI reads each typed request and maps it to catalogue terms. " +
+    "Jev's decision stages are still answered by deterministic rules on the Rust service, so Gemini never picks an outcome or a dataset. " +
+    "If Gemini fails, the rules read your words and the result says so. Request text is sent to Vertex AI; this service does not log it."));
+}
+
+/* Who read the request, in one line above the answer. Returns a sentence for the status line. */
+function readBy(interpretation) {
+  $("#read-by")?.remove();
+  if (!interpretation) return "";
+  const line = el("p", null, "read-by");
+  line.id = "read-by";
+  const name = "Gemini" + (interpretation.model ? " (" + interpretation.model + ")" : "");
+  let text, status;
+  if (interpretation.by === "gemini" && !interpretation.note) {
+    text = name + ": " + interpretation.request;
+    status = " " + name + " read the request.";
+  } else if (interpretation.by === "gemini") {
+    text = name + ". " + interpretation.note;
+    status = " " + name + " found terms outside the catalogue.";
+  } else {
+    text = "Catalogue rules. " + (interpretation.note || "");
+    status = " Gemini was unavailable, so the rules read the request.";
+  }
+  line.append(el("b", "Read by"), document.createTextNode(" " + text));
+  $("#answer").before(line);
+  return status;
+}
+
 siteApi.catalogue().then(r => {
   if (!r.ok) throw new Error("catalogue unavailable");
   return r.json();
@@ -469,13 +504,15 @@ function render(body) {
     fact(tech, "Breakdown", Object.entries(body.query.levels || {}).map(([k, v]) => k + ": " + v).join(", ") || "none");
   }
   if (body.stages) fact(tech, "Stages run", body.stages.map(s => s.title).join(" → "));
+  if (body.interpretation) fact(tech, "Read by", body.interpretation.by === "gemini" ? "Gemini on Vertex AI (" + body.interpretation.model + ")" : "Catalogue rules, after Gemini was unavailable");
   fact(tech, "Decided by", siteApi.source("catalogue") + (body.model ? ": " + body.backend_label + " (" + body.model + "), " + body.residency : ""));
   if (body.totals) fact(tech, "Decisions", body.totals.decisions + " in " + body.totals.calls + " calls, " + body.totals.wall_ms + " ms");
   $("#raw").textContent = JSON.stringify(body, null, 2);
+  const read = readBy(outcome === "error" ? null : body.interpretation);
   result.hidden = false;
   result.getAnimations({ subtree: true }).forEach(a => { a.cancel(); a.play(); });
   siteUi.reveal(result);
-  return OUTCOME_LABEL[outcome];
+  return {label: OUTCOME_LABEL[outcome], read};
 }
 
 form.addEventListener("submit", async (ev) => {
@@ -504,8 +541,8 @@ form.addEventListener("submit", async (ev) => {
       return;
     }
     if (!res.ok) body = {outcome: "error", detail: body.detail || "The service returned HTTP " + res.status + "."};
-    const label = render(body);
-    setStatus(res.ok ? "Done. Outcome: " + label + "." : "The service could not complete the request.", res.ok ? "done" : "error");
+    const {label, read} = render(body);
+    setStatus(res.ok ? "Done. Outcome: " + label + "." + read : "The service could not complete the request.", res.ok ? "done" : "error");
   } finally {
     submit.disabled = false;
     scenarios.forEach(button => button.disabled = false);

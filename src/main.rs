@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use serve::{router, App, Site};
+use serve::{router, App, Interpreter, Site};
 
 fn env_or(key: &str, default: &str) -> String {
     std::env::var(key)
@@ -22,7 +22,12 @@ async fn main() {
                 .parse()
                 .unwrap_or(120),
         )
-        .and_then(|app| Ok(app.with_site(Site::from_lookup(|key| std::env::var(key).ok())?)))
+        .and_then(|app| {
+            let lookup = |key: &str| std::env::var(key).ok();
+            Ok(app
+                .with_site(Site::from_lookup(lookup)?)
+                .with_interpreter(Interpreter::from_lookup(lookup)?))
+        })
         .unwrap_or_else(|error| {
             eprintln!("{error}");
             std::process::exit(1);
