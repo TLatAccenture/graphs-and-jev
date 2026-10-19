@@ -3,6 +3,8 @@ use std::net::{Ipv4Addr, Ipv6Addr};
 use axum::http::HeaderValue;
 use serde_json::json;
 
+use crate::interpret::DEFAULT_MODEL;
+
 const DISCLAIMER: &str = "An Accenture thought piece on agentic migration and modernisation. It is not a product or service offer from Accenture or Google Cloud. Product names and marks belong to their owners.";
 
 /// Browser config and CSP, rendered once at start-up from environment variables.
@@ -61,6 +63,12 @@ impl Site {
             }
         }
         let [(_, health), (_, catalogue), (_, pipeline)] = routes;
+        // Tells the pages who reads typed requests, so their copy stays true on a Gemini build.
+        let interpreter = match var("CATALOGUE_INTERPRETER", "rules").as_str() {
+            "rules" => json!({"by": "rules", "model": null}),
+            "gemini" => json!({"by": "gemini", "model": var("GEMINI_MODEL", DEFAULT_MODEL)}),
+            _ => return Err("CATALOGUE_INTERPRETER must be \"rules\" or \"gemini\".".into()),
+        };
         let config = json!({
             "brand": {
                 "org": var("BRAND_ORG", "Accenture"),
@@ -82,6 +90,7 @@ impl Site {
                     "catalogue": var("API_MODE_CATALOGUE", &mode),
                     "lineage": var("API_MODE_LINEAGE", "fixtures"),
                 },
+                "interpreter": interpreter,
             },
         });
         // '<' only occurs inside JSON strings, so escaping it keeps `</script>` and `<!--` inert.

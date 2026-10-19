@@ -63,6 +63,16 @@ for key in ("API_ROUTE_HEALTH", "API_ROUTE_CATALOGUE", "API_ROUTE_PIPELINE"):
     route = settings.get(key)
     if route is not None and (not route.startswith("/") or route.startswith("//") or re.search(r"[\s\\\x00-\x1f\x7f]", route)):
         raise SystemExit(f"{key} must be a path starting with a single '/'")
+# Mirrors Interpreter::from_lookup in src/interpret.rs.
+if settings.get("CATALOGUE_INTERPRETER", "rules") not in ("rules", "gemini"):
+    raise SystemExit("CATALOGUE_INTERPRETER must be rules or gemini")
+for key in ("GEMINI_MODEL", "GEMINI_LOCATION", "GOOGLE_CLOUD_PROJECT"):
+    if key in settings and not re.fullmatch(r"[a-z0-9._-]+", settings[key]):
+        raise SystemExit(f"{key} must use lower-case letters, digits, '.', '_' or '-'")
+if "GEMINI_TIMEOUT_MS" in settings and not (re.fullmatch(r"[1-9][0-9]{0,4}", settings["GEMINI_TIMEOUT_MS"]) and int(settings["GEMINI_TIMEOUT_MS"]) <= 60000):
+    raise SystemExit("GEMINI_TIMEOUT_MS must be an integer from 1 to 60000")
+if settings.get("GEMINI_THINKING_LEVEL", "low") not in ("minimal", "low", "medium", "high", "model-default"):
+    raise SystemExit("GEMINI_THINKING_LEVEL must be minimal, low, medium, high or model-default")
 print(json.dumps(settings, sort_keys=True))
 PY
 }
@@ -80,7 +90,7 @@ main() (
   local gjd_image_digest gjd_service_exists gjd_candidate_url gjd_service_url gjd_service_json gjd_describe_stdout gjd_describe_stderr
   local gjd_describe_status gjd_describe_result gjd_revision_json gjd_iam_json gjd_tmp_output gjd_revision
   local gjd_upload_files gjd_upload_count gjd_upload_bytes gjd_upload_file gjd_upload_unexpected
-  local gjd_app_key gjd_app_env_json gjd_app_env_file gjd_prior_public gjd_prior_serving gjd_identity_token
+  local gjd_app_key gjd_app_env_json gjd_app_env_file gjd_prior_public gjd_prior_serving gjd_identity_token gjd_gemini
   local -a gjd_required_apis gjd_deploy_traffic_args gjd_app_env_keys gjd_app_env gjd_app_env_args
 
   gjd_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -130,6 +140,7 @@ main() (
     API_MODE API_BASE_URL API_TIMEOUT_MS
     API_ROUTE_HEALTH API_ROUTE_CATALOGUE API_ROUTE_PIPELINE
     API_MODE_CATALOGUE API_MODE_LINEAGE
+    CATALOGUE_INTERPRETER GEMINI_MODEL GEMINI_LOCATION GEMINI_TIMEOUT_MS GEMINI_THINKING_LEVEL GOOGLE_CLOUD_PROJECT
   )
   gjd_app_env=()
   for gjd_app_key in "${gjd_app_env_keys[@]}"; do
@@ -138,6 +149,10 @@ main() (
     fi
   done
   gjd_app_env_json="$(app_env_json ${gjd_app_env[@]+"${gjd_app_env[@]}"})" || fail 'invalid app environment variables'
+  # Cloud Run reaches Gemini as the runtime service account. Keys and tokens never go in a revision.
+  [[ -z "${GEMINI_ACCESS_TOKEN:-}" ]] || fail 'GEMINI_ACCESS_TOKEN is for local runs only; Cloud Run uses the runtime service account'
+  gjd_gemini=false
+  [[ "${CATALOGUE_INTERPRETER:-rules}" == gemini ]] && gjd_gemini=true
   require_permission() {
     local principal="$1" resource="$2" permission="$3" state
     state="$(gcloud policy-intelligence troubleshoot-policy iam "$resource" \
@@ -186,6 +201,7 @@ main() (
     serviceusage.googleapis.com
     storage.googleapis.com
   )
+  [[ "$gjd_gemini" == true ]] && gjd_required_apis+=(aiplatform.googleapis.com)
   gjd_enabled_apis="$(gcloud services list --enabled --project="$gjd_PROJECT_ID" --format='value(config.name)')"
   for gjd_api in "${gjd_required_apis[@]}"; do
     grep -Fxq "$gjd_api" <<<"$gjd_enabled_apis" || fail "required API is not enabled: $gjd_api"
@@ -238,6 +254,10 @@ if failed:
   require_permission "$gjd_active_account" "$gjd_PROJECT_RESOURCE" run.services.setIamPolicy
   require_permission "$gjd_active_account" "//iam.googleapis.com/projects/${gjd_PROJECT_ID}/serviceAccounts/${gjd_BUILD_SERVICE_ACCOUNT}" iam.serviceAccounts.actAs
   require_permission "$gjd_active_account" "$gjd_RUNTIME_SA_RESOURCE" iam.serviceAccounts.actAs
+  # generateContent on a Gemini model needs this on the project (roles/aiplatform.user grants it).
+  if [[ "$gjd_gemini" == true ]]; then
+    require_permission "$gjd_RUNTIME_SERVICE_ACCOUNT" "$gjd_PROJECT_RESOURCE" aiplatform.endpoints.predict
+  fi
 
   [[ -z "$(git status --porcelain --untracked-files=normal)" ]] || fail 'worktree must be clean'
   git diff-index --quiet HEAD -- || fail 'tracked files differ from HEAD'
@@ -305,11 +325,17 @@ if failed:
   gjd_prior_serving='{}'
   if [[ "$gjd_service_exists" == true ]]; then
     gjd_deploy_traffic_args=(--no-traffic)
-    gjd_prior_public="$(gcloud run services get-iam-policy "$gjd_SERVICE" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json \
-      | python3 -c 'import json,sys; print(str(any(b.get("role") == "roles/run.invoker" and "allUsers" in b.get("members", []) for b in json.load(sys.stdin).get("bindings", []))).lower())')"
+    gjd_prior_public="$(python3 -c 'import json,sys
+service=json.load(open(sys.argv[1])); iam=json.load(sys.stdin)
+annotation=service.get("metadata", {}).get("annotations", {}).get("run.googleapis.com/invoker-iam-disabled")
+if annotation not in (None, "true", "false"): raise SystemExit("unknown invoker IAM annotation")
+public=annotation == "true" or any(b.get("role") == "roles/run.invoker" and "allUsers" in b.get("members", []) for b in iam.get("bindings", []))
+print(str(public).lower())' <(gcloud run services describe "$gjd_SERVICE" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json) < <(gcloud run services get-iam-policy "$gjd_SERVICE" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json))" || fail 'could not determine effective Cloud Run privacy state'
     gjd_prior_serving="$(gcloud run services describe "$gjd_SERVICE" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json \
       | python3 -c 'import json,sys; print(json.dumps({t.get("revisionName", "LATEST"): t["percent"] for t in json.load(sys.stdin)["status"].get("traffic", []) if t.get("percent")}, sort_keys=True))')"
   fi
+  # Gemini reads typed requests on the presenter service only, never on a public one.
+  [[ "$gjd_gemini" == true && "$gjd_prior_public" == true ]] && fail "CATALOGUE_INTERPRETER=gemini is presenter-only, but $gjd_SERVICE is public"
 
   # The revision gets exactly the allowlisted settings; unset keys fall back to the Rust defaults.
   gjd_app_env_file="$(mktemp)"
@@ -375,7 +401,11 @@ container = spec["containers"][0]
 annotations = metadata.get("annotations", {})
 limits = container.get("resources", {}).get("limits", {})
 traffic = service.get("status", {}).get("traffic", [])
-public = any(
+invoker_iam_disabled = service.get("metadata", {}).get("annotations", {}).get("run.googleapis.com/invoker-iam-disabled")
+assert_effective_annotation = invoker_iam_disabled in (None, "true", "false")
+if not assert_effective_annotation:
+    raise SystemExit("effective deployment mismatch: unknown invoker IAM annotation")
+public = invoker_iam_disabled == "true" or any(
     binding.get("role") == "roles/run.invoker" and "allUsers" in binding.get("members", [])
     for binding in iam.get("bindings", [])
 )
@@ -397,6 +427,7 @@ actual = {
     "app_env": {item["name"]: item.get("value", "") for item in container.get("env", [])},
     "traffic": traffic,
     "public_invocation": public,
+    "invoker_iam_disabled": invoker_iam_disabled == "true",
     "service_private": not public,
     "serving": {item.get("revisionName", "LATEST"): item["percent"] for item in traffic if item.get("percent")},
     "candidate_zero_traffic": not expected_bootstrap,
@@ -460,7 +491,11 @@ PY
   else
     printf 'Validated revision %s at 0%% traffic; live traffic and access unchanged\n' "$gjd_revision"
   fi
-  printf 'Promote with: deploy/promote.sh %s\n' "$gjd_revision"
+  if [[ "$gjd_gemini" == true ]]; then
+    printf 'Promote with: deploy/promote-private.sh %s [environment-file]\n' "$gjd_revision"
+  else
+    printf 'Promote with: deploy/promote.sh %s\n' "$gjd_revision"
+  fi
   printf 'Captured verified effective settings in %s\n' "$gjd_DEPLOY_OUTPUT"
 )
 

@@ -57,7 +57,8 @@ case "$*" in
   "auth list"*) printf '%s\n' anthony.lui@archegon.com ;;
   "config get-value project"*) printf '%s\n' ninth-airship-386815 ;;
   "beta billing projects describe"*) printf '%s\n' True ;;
-  "services list"*) printf '%s\n' artifactregistry.googleapis.com cloudbuild.googleapis.com iam.googleapis.com logging.googleapis.com policytroubleshooter.googleapis.com run.googleapis.com serviceusage.googleapis.com storage.googleapis.com ;;
+  "services list"*) printf '%s\n' artifactregistry.googleapis.com cloudbuild.googleapis.com iam.googleapis.com logging.googleapis.com policytroubleshooter.googleapis.com run.googleapis.com serviceusage.googleapis.com storage.googleapis.com ${MOCK_EXTRA_APIS:-} ;;
+  "policy-intelligence troubleshoot-policy iam"*"--permission=aiplatform.endpoints.predict"*) printf '%s\n' "${MOCK_PREDICT_STATE:-ALLOW_ACCESS_STATE_GRANTED}" ;;
   *"artifacts repositories describe"*"value(name)"*) printf '%s\n' projects/ninth-airship-386815/locations/australia-southeast1/repositories/graphs-and-jev ;;
   *"artifacts repositories describe"*"value(format)"*) printf '%s\n' DOCKER ;;
   *"iam service-accounts describe graphs-and-jev-builder"*) printf '%s\n' graphs-and-jev-builder@ninth-airship-386815.iam.gserviceaccount.com ;;
@@ -126,6 +127,25 @@ for bad_setting in 'API_MODE=remote' 'API_MODE_LINEAGE=Live' 'API_TIMEOUT_MS=soo
   [[ "$mock_status" == 1 && "$mock_output" == *'invalid app environment variables'* ]] || fail "bad app setting passed preflight: $bad_setting ($mock_status) $mock_output"
   [[ ! -e "$mock_log" ]] || fail "bad app setting reached the build: $bad_setting"
 done
+# A Gemini presenter build needs the Vertex AI API and predict permission for the runtime identity,
+# and never takes a token from the env file.
+printf '%s\n' CATALOGUE_INTERPRETER=gemini SERVICE=graphs-and-jev-presenter >"$mock_dir/gemini.env"
+gemini_deploy() {
+  rm -f "$mock_log"
+  set +e
+  mock_output="$(PATH="$mock_dir/bin:$PATH" MOCK_BUILD_LOG="$mock_log" "$@" "$script" "$mock_dir/gemini.env" 2>&1)"
+  mock_status=$?
+  set -e
+}
+gemini_deploy env
+[[ "$mock_status" == 1 && "$mock_output" == *'required API is not enabled: aiplatform.googleapis.com'* ]] || fail "Gemini build passed without the Vertex AI API: $mock_status $mock_output"
+gemini_deploy env MOCK_EXTRA_APIS=aiplatform.googleapis.com MOCK_PREDICT_STATE=ALLOW_ACCESS_STATE_NOT_GRANTED
+[[ "$mock_status" == 1 && "$mock_output" == *'lacks aiplatform.endpoints.predict'* ]] || fail "Gemini build passed without predict permission: $mock_status $mock_output"
+gemini_deploy env MOCK_EXTRA_APIS=aiplatform.googleapis.com
+[[ "$mock_status" == 73 ]] || fail "valid Gemini build did not reach the build: $mock_status $mock_output"
+gemini_deploy env MOCK_EXTRA_APIS=aiplatform.googleapis.com GEMINI_ACCESS_TOKEN=ya29.local
+[[ "$mock_status" == 1 && "$mock_output" == *'GEMINI_ACCESS_TOKEN is for local runs only'* && ! -e "$mock_log" ]] || fail "deploy accepted a Gemini access token: $mock_status $mock_output"
+[[ "$mock_output" != *ya29.local* ]] || fail 'access token echoed by deploy'
 if rg -n '^  gjd_(git_sha|revision_suffix|image_tag)$' "$script"; then fail 'bare derived-variable command remains'; fi
 rm -rf "$mock_dir"
 
@@ -253,10 +273,19 @@ for bad_setting in API_MODE=remote API_MODE_CATALOGUE=LIVE API_TIMEOUT_MS=0 API_
   'API_BASE_URL=https://api.example.com:' 'API_BASE_URL=https://api.example.com:99999' 'API_BASE_URL=https://api.example.com:+80' \
   'API_BASE_URL=https://api..example.com' 'API_BASE_URL=https://-api.example.com' 'API_BASE_URL=https://1.2.3.999' 'API_BASE_URL=https://api.example.com/a b' \
   'API_BASE_URL=https://api.example.run.app/v1' 'API_BASE_URL=https://api.example.run.app/' 'API_BASE_URL=https://[::1]:8443?x=1' 'API_BASE_URL=https://api.example.run.app#f' \
-  'API_ROUTE_HEALTH=api/health' 'API_ROUTE_CATALOGUE=//evil.example/catalogue' 'API_ROUTE_PIPELINE=/api/pipe line' 'API_ROUTE_PIPELINE=/\evil.example'; do
+  'API_ROUTE_HEALTH=api/health' 'API_ROUTE_CATALOGUE=//evil.example/catalogue' 'API_ROUTE_PIPELINE=/api/pipe line' 'API_ROUTE_PIPELINE=/\evil.example' \
+  CATALOGUE_INTERPRETER=llm CATALOGUE_INTERPRETER=Gemini 'GEMINI_MODEL=Gemini 3.8' GEMINI_LOCATION=global/x GOOGLE_CLOUD_PROJECT=a/b \
+  GEMINI_TIMEOUT_MS=0 GEMINI_TIMEOUT_MS=60001 GEMINI_THINKING_LEVEL=max; do
   if app_env_json "$bad_setting" >/dev/null 2>&1; then fail "app_env_json accepted $bad_setting"; fi
 done
-for app_key in BRAND_ORG BRAND_NAME BRAND_TAGLINE BRAND_KIND BRAND_DISCLAIMER API_MODE API_BASE_URL API_TIMEOUT_MS API_ROUTE_HEALTH API_ROUTE_CATALOGUE API_ROUTE_PIPELINE API_MODE_CATALOGUE API_MODE_LINEAGE; do
+app_env_json CATALOGUE_INTERPRETER=gemini GEMINI_MODEL=gemini-3.8-flash GEMINI_LOCATION=global GEMINI_TIMEOUT_MS=8000 \
+  GEMINI_THINKING_LEVEL=model-default GOOGLE_CLOUD_PROJECT=ninth-airship-386815 >/dev/null || fail 'app_env_json rejected valid Gemini settings'
+# Local-only and test-only settings never reach a revision.
+for local_key in GEMINI_ACCESS_TOKEN GEMINI_ENDPOINT GCE_METADATA_HOST GOOGLE_APPLICATION_CREDENTIALS; do
+  if sed -n '/^  gjd_app_env_keys=(/,/^  )/p' "$script" | rg -q -w "$local_key"; then fail "$local_key is in the app env allowlist"; fi
+done
+for app_key in BRAND_ORG BRAND_NAME BRAND_TAGLINE BRAND_KIND BRAND_DISCLAIMER API_MODE API_BASE_URL API_TIMEOUT_MS API_ROUTE_HEALTH API_ROUTE_CATALOGUE API_ROUTE_PIPELINE API_MODE_CATALOGUE API_MODE_LINEAGE \
+  CATALOGUE_INTERPRETER GEMINI_MODEL GEMINI_LOCATION GEMINI_TIMEOUT_MS GEMINI_THINKING_LEVEL GOOGLE_CLOUD_PROJECT; do
   contains "$app_key" "$script"
   contains "#${app_key}=" "$env_example"
 done
@@ -278,6 +307,7 @@ contains 'Validated private bootstrap revision' "$script"
 [[ "$(rg -c -- '--no-allow-unauthenticated' "$script")" == 1 ]] || fail 'IAM flag must appear only on the bootstrap deploy'
 if rg -n -- '(^|[^-])--allow-unauthenticated|add-iam-policy-binding|set-iam-policy' "$script"; then fail 'deploy workflow changes service IAM'; fi
 contains 'live traffic changed during candidate deploy' "$script"
+contains 'CATALOGUE_INTERPRETER=gemini is presenter-only, but' "$script"
 contains 'service IAM changed during candidate deploy' "$script"
 # shellcheck disable=SC2016
 contains 'gjd_MIN_INSTANCES="${MIN_INSTANCES:-0}"' "$script"
@@ -384,6 +414,22 @@ for case in "iam.json|true|{\"graphs-and-jev-old\": 100}" "iam-public.json|true|
   if python3 -c "$validator" "$validator_dir/service-live.json" "$validator_dir/revision.json" "$validator_dir/$iam_file" \
     "${validator_args[@]}" '{}' "$public" "$serving" >/dev/null 2>&1; then fail "validator accepted changed access or traffic: $case"; fi
 done
+# Disabling the invoker IAM check makes a service public even without an allUsers binding.
+python3 - "$validator_dir/service.json" "$validator_dir/service-disabled.json" <<'PYDISABLED'
+import json, sys
+service=json.load(open(sys.argv[1]))
+service.setdefault("metadata", {}).setdefault("annotations", {})["run.googleapis.com/invoker-iam-disabled"]="true"
+json.dump(service, open(sys.argv[2], "w"))
+PYDISABLED
+if python3 -c "$validator" "$validator_dir/service-disabled.json" "$validator_dir/revision.json" "$validator_dir/iam.json" \
+  "${validator_args[@]}" '{}' false '{}' >/dev/null 2>&1; then fail 'validator treated disabled invoker IAM check as private'; fi
+
+private_promote="$root/deploy/promote-private.sh"
+[[ -x "$private_promote" ]] || fail "$private_promote must exist and be executable"
+bash -n "$private_promote"
+if rg -n 'add-iam-policy-binding|set-iam-policy' "$private_promote"; then fail 'private promotion can modify IAM'; fi
+contains 'GEMINI_VERIFY=1' "$private_promote"
+contains 'VERIFY_EXPECTED_MODEL' "$private_promote"
 if rg -n '\b(gjd_|GJ_)[A-Za-z_]*' <<<"$validator"; then fail 'shell namespace leaked into embedded Python'; fi
 trap - EXIT
 rm -rf "$validator_dir"
@@ -392,6 +438,77 @@ promote="$root/deploy/promote.sh"
 [[ -x "$promote" ]] || fail "$promote must exist and be executable"
 bash -n "$promote"
 python3 -c 'import ast, sys; ast.parse(open(sys.argv[1]).read())' "$root/deploy/verify.py"
+python3 - "$root/deploy/verify.py" <<'PYREDIRECT'
+import http.server, os, subprocess, sys, threading
+verify = sys.argv[1]
+seen = []
+class Target(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        seen.append(self.headers.get("Authorization"))
+        self.send_response(200); self.end_headers(); self.wfile.write(b'{"ok":true}')
+    def log_message(self, *_): pass
+class Redirect(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(302); self.send_header("Location", target); self.end_headers()
+    def log_message(self, *_): pass
+def server(handler):
+    value=http.server.ThreadingHTTPServer(("127.0.0.1",0),handler)
+    threading.Thread(target=value.serve_forever,daemon=True).start(); return value
+sink=server(Target); target=f"http://127.0.0.1:{sink.server_port}/stolen"
+source=server(Redirect)
+env={**os.environ,"VERIFY_BEARER":"secret-identity-token","VERIFY_ATTEMPTS":"1"}
+run=subprocess.run([sys.executable,verify,f"http://127.0.0.1:{source.server_port}"],env=env,text=True,capture_output=True,timeout=10)
+source.shutdown(); sink.shutdown()
+assert run.returncode != 0, run.stdout
+assert not seen, f"bearer reached redirect target: {seen}"
+assert "HTTP 302" in run.stderr and target in run.stderr, run.stderr
+PYREDIRECT
+python3 - "$root/deploy/verify.py" <<'PYRETIRED'
+import http.server, json, os, subprocess, sys, threading
+verify=sys.argv[1]; seen=[]
+locations={"/dcceew/":"/environmental-agency/","/parkinsons/":None}
+class App(http.server.BaseHTTPRequestHandler):
+    def send(self, code, body=b"", location=None, content="application/json"):
+        self.send_response(code)
+        if location: self.send_header("Location", location)
+        self.send_header("Content-Type", content); self.end_headers(); self.wfile.write(body)
+    def do_GET(self):
+        seen.append((self.path, self.headers.get("Authorization")))
+        if self.path == "/api/health": return self.send(200,b'{"ok":true}')
+        if self.path == "/api/ready": return self.send(200,b'{"ok":true}')
+        if self.path == "/api/catalogue": return self.send(200,b'{"sources":[1]}')
+        if self.path in ("/","/technical-guide/","/environmental-agency/","/lineage-migration/","/little-bunnies/"):
+            return self.send(200,b'<html data-brand="name">',content="text/html")
+        if self.path in locations: return self.send(308,location=locations[self.path] or f"http://127.0.0.1:{self.server.server_port}/lineage-migration/")
+        if self.path == "/config.js": return self.send(200,b'window.SITE_CONFIG = {};\n',content="text/javascript")
+        return self.send(404)
+    def do_POST(self):
+        size=int(self.headers.get("Content-Length","0")); body=json.loads(self.rfile.read(size))
+        if body.get("domain") == "lineage": return self.send(501,b'{}')
+        outcomes={"annual CO2 for Australia in 2024":"answer","emissions":"clarify","write me a poem about the sea":"reject"}
+        return self.send(200,json.dumps({"outcome":outcomes[body["request"]]}).encode())
+    def log_message(self,*_): pass
+server=http.server.ThreadingHTTPServer(("127.0.0.1",0),App)
+threading.Thread(target=server.serve_forever,daemon=True).start()
+base=f"http://127.0.0.1:{server.server_port}"
+env={**os.environ,"VERIFY_BEARER":"retired-route-token","VERIFY_ATTEMPTS":"1"}
+run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True,timeout=10)
+assert run.returncode == 0, run.stderr
+for old in ("/dcceew/","/parkinsons/"):
+    assert (old,"Bearer retired-route-token") in seen, (old,seen)
+assert "verify passed" in run.stdout
+for unsafe in (
+    "https://127.0.0.1/environmental-agency/",
+    "http://example.invalid/environmental-agency/",
+    "http://127.0.0.1:1/environmental-agency/",
+    "/wrong-path/",
+    "/environmental-agency/?query=unsafe",
+):
+    locations["/dcceew/"]=unsafe
+    run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True,timeout=10)
+    assert run.returncode != 0 and "expected HTTP 308 to same-origin /environmental-agency/" in run.stderr, (unsafe,run.stderr)
+server.shutdown(); server.server_close()
+PYRETIRED
 promote_dir="$(mktemp -d)"
 mkdir -p "$promote_dir/deploy" "$promote_dir/bin"
 cp "$promote" "$promote_dir/deploy/promote.sh"
@@ -413,6 +530,7 @@ case "$*" in
       printf '%s\n' '{"status":{"url":"https://live.example.run.app","traffic":[{"revisionName":"graphs-and-jev-old","percent":100},{"revisionName":"graphs-and-jev-new","percent":0,"tag":"candidate-new","url":"https://candidate-new---live.example.run.app"}]}}'
     fi ;;
   "run services get-iam-policy"*) printf '%s\n' '{"bindings":[{"role":"roles/run.invoker","members":["allUsers"]}],"etag":"BwX"}' ;;
+  "run revisions describe"*"--format=json"*) printf '{"spec":{"containers":[{"env":[{"name":"CATALOGUE_INTERPRETER","value":"%s"}]}]}}\n' "${MOCK_INTERPRETER:-rules}" ;;
   "run revisions describe"*) printf '%s\n' True ;;
   "run services update-traffic"*"graphs-and-jev-new=100"*) : >"$MOCK_STATE/promoted" ;;
   "run services update-traffic"*|"run services add-iam-policy-binding"*|"run services set-iam-policy"*) ;;
@@ -440,6 +558,55 @@ if run_promote 'https://live.example.run.app'; then fail 'promotion passed with 
 log="$(cat "$promote_dir/log")"
 [[ "$log" == *'--to-revisions=graphs-and-jev-old=100'* && "$log" == *'set-iam-policy graphs-and-jev'* ]] || fail "failed canonical check did not roll back traffic and IAM: $log"
 [[ "$(cat "$promote_dir/out")" == *'rolling back'* ]] || fail 'rollback was not reported'
+if MOCK_INTERPRETER=gemini run_promote ''; then fail 'promotion made a Gemini presenter revision public'; fi
+log="$(cat "$promote_dir/log")"
+[[ "$log" != *update-traffic* && "$log" != *iam-policy-binding* && "$log" != *set-iam-policy* && "$log" != *'verify '* ]] || fail "Gemini revision still changed the service: $log"
+[[ "$(cat "$promote_dir/out")" == *'presenter-only and is never made public'* ]] || fail 'Gemini refusal was not reported'
 rm -rf "$promote_dir"
+
+private_dir="$(mktemp -d)"
+mkdir -p "$private_dir/deploy" "$private_dir/bin" "$private_dir/state"
+cp "$private_promote" "$private_dir/deploy/promote-private.sh"
+cat >"$private_dir/deploy/verify.py" <<'FAKE'
+import os, sys
+open(os.environ["MOCK_LOG"], "a").write(f"verify {sys.argv[1]} bearer={'yes' if os.environ.get('VERIFY_BEARER') else 'no'} gemini={os.environ.get('GEMINI_VERIFY')} model={os.environ.get('VERIFY_EXPECTED_MODEL')}\n")
+raise SystemExit(1 if sys.argv[1] == os.environ.get("FAIL_VERIFY_URL") else 0)
+FAKE
+cat >"$private_dir/bin/gcloud" <<'MOCK'
+#!/usr/bin/env bash
+printf 'gcloud %s\n' "$*" >>"$MOCK_LOG"
+case "$*" in
+  "auth list"*) printf '%s\n' anthony.lui@archegon.com ;;
+  "auth print-identity-token"*) printf '%s\n' private-token ;;
+  "config get-value project"*) printf '%s\n' ninth-airship-386815 ;;
+  "run services get-iam-policy"*) printf '%s\n' '{"bindings":[{"role":"roles/run.invoker","members":["user:presenter@example.com"]}]}' ;;
+  "run revisions describe"*) printf '%s\n' '{"spec":{"containers":[{"env":[{"name":"CATALOGUE_INTERPRETER","value":"gemini"},{"name":"GEMINI_MODEL","value":"gemini-3.8-flash"}]}]}}' ;;
+  "run services describe"*)
+    if [[ -e "$MOCK_STATE/promoted" ]]; then
+      printf '%s\n' '{"metadata":{"annotations":{}},"status":{"url":"https://private.example.run.app","traffic":[{"revisionName":"graphs-and-jev-presenter-new","percent":100}]}}'
+    else
+      printf '%s\n' '{"metadata":{"annotations":{}},"status":{"url":"https://private.example.run.app","traffic":[{"revisionName":"graphs-and-jev-presenter-old","percent":100},{"revisionName":"graphs-and-jev-presenter-new","percent":0,"tag":"candidate-new","url":"https://candidate-new---private.example.run.app"}]}}'
+    fi ;;
+  "run services update-traffic"*"graphs-and-jev-presenter-new=100"*) : >"$MOCK_STATE/promoted" ;;
+  "run services update-traffic"*"graphs-and-jev-presenter-old=100"*) rm -f "$MOCK_STATE/promoted" ;;
+  *) printf 'unexpected gcloud: %s\n' "$*" >&2; exit 72 ;;
+esac
+MOCK
+chmod +x "$private_dir/bin/gcloud" "$private_dir/deploy/promote-private.sh"
+run_private_promote() {
+  rm -f "$private_dir/state/promoted"; : >"$private_dir/log"
+  PATH="$private_dir/bin:$PATH" MOCK_LOG="$private_dir/log" MOCK_STATE="$private_dir/state" FAIL_VERIFY_URL="$1" \
+    "$private_dir/deploy/promote-private.sh" graphs-and-jev-presenter-new >"$private_dir/out" 2>&1
+}
+run_private_promote '' || fail "private promotion failed: $(cat "$private_dir/out")"
+log="$(cat "$private_dir/log")"
+[[ "$log" == *'auth print-identity-token --audiences=https://private.example.run.app'* && "$log" == *'verify https://candidate-new---private.example.run.app bearer=yes gemini=1 model=gemini-3.8-flash'* ]] || fail "private candidate was not Gemini-verified with auth: $log"
+[[ "$(rg -c -F 'auth print-identity-token --audiences=https://private.example.run.app' <<<"$log")" == 2 && "$log" == *'verify https://private.example.run.app bearer=yes gemini=1 model=gemini-3.8-flash'* ]] || fail "private canonical URL was not Gemini-verified with auth: $log"
+[[ "$log" != *'add-iam-policy-binding'* && "$log" != *'set-iam-policy'* ]] || fail "private promotion changed IAM: $log"
+if run_private_promote 'https://private.example.run.app'; then fail 'private promotion passed failed canonical verification'; fi
+log="$(cat "$private_dir/log")"
+[[ "$log" == *'--to-revisions=graphs-and-jev-presenter-old=100'* ]] || fail "private promotion did not roll back traffic: $log"
+[[ "$log" != *'add-iam-policy-binding'* && "$log" != *'set-iam-policy'* ]] || fail "private rollback changed IAM: $log"
+rm -rf "$private_dir"
 
 printf 'deploy static checks passed\n'

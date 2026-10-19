@@ -19,6 +19,10 @@ window.SITE_CONFIG = {
     domains: {                   // per-domain override; omit a key to inherit api.mode
       catalogue: "fixtures",
       lineage: "fixtures"
+    },
+    interpreter: {               // who reads typed catalogue requests on the live API: "rules" | "gemini"
+      by: "rules",
+      model: null
     }
   }
 };

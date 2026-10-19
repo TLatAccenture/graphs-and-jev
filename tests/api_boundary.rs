@@ -361,7 +361,8 @@ async fn config_js_renders_rust_defaults_over_the_static_file() {
                 "baseUrl": "",
                 "timeoutMs": 15000,
                 "routes": {"health": "/api/health", "catalogue": "/api/catalogue", "pipeline": "/api/pipeline"},
-                "domains": {"catalogue": "live", "lineage": "fixtures"}
+                "domains": {"catalogue": "live", "lineage": "fixtures"},
+                "interpreter": {"by": "rules", "model": null}
             }
         })
     );
@@ -399,6 +400,21 @@ async fn config_js_applies_overrides_and_escapes_hostile_values() {
     assert_eq!(value["api"]["domains"]["lineage"], "live");
 }
 
+#[tokio::test]
+async fn config_js_names_gemini_only_when_it_reads_requests() {
+    let (_, _, value) = config(app_with_site(10, site(&[("GEMINI_MODEL", "x")]).unwrap()).0).await;
+    assert_eq!(
+        value["api"]["interpreter"],
+        json!({"by": "rules", "model": null})
+    );
+    let gemini = site(&[("CATALOGUE_INTERPRETER", "gemini")]).unwrap();
+    let (_, _, value) = config(app_with_site(10, gemini).0).await;
+    assert_eq!(
+        value["api"]["interpreter"],
+        json!({"by": "gemini", "model": "gemini-3.8-flash"})
+    );
+}
+
 #[test]
 fn invalid_site_settings_fail_at_startup() {
     for vars in [
@@ -429,6 +445,7 @@ fn invalid_site_settings_fail_at_startup() {
         vec![("API_ROUTE_CATALOGUE", "//evil.example/catalogue")],
         vec![("API_ROUTE_PIPELINE", "/api/pipe line")],
         vec![("API_ROUTE_PIPELINE", "/\\evil.example")],
+        vec![("CATALOGUE_INTERPRETER", "Gemini")],
     ] {
         assert!(site(&vars).is_err(), "{vars:?}");
     }

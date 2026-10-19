@@ -19,7 +19,7 @@ print("--to-revisions=" + ",".join("%s=%s" % (t["revisionName"], t["percent"]) f
 main() (
   set -euo pipefail
   local gjp_REPO_ROOT gjp_PROJECT_ID gjp_REGION gjp_SERVICE gjp_EXPECTED_ACCOUNT gjp_revision
-  local gjp_state gjp_service_json gjp_iam_json gjp_rollback_args gjp_candidate_url gjp_service_url gjp_ready
+  local gjp_state gjp_service_json gjp_iam_json gjp_rollback_args gjp_candidate_url gjp_service_url gjp_ready gjp_interpreter
 
   gjp_REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
   if [[ $# -lt 1 || $# -gt 2 ]]; then
@@ -59,6 +59,11 @@ print(tagged[0]["url"] if tagged else "")
   [[ "$gjp_candidate_url" == https://* ]] || fail "$gjp_revision has no candidate tag URL"
   gjp_ready="$(gcloud run revisions describe "$gjp_revision" "${gjp_where[@]}" --format='value(status.conditions[0].status)')"
   [[ "$gjp_ready" == True ]] || fail "$gjp_revision is not ready"
+  # A revision where Gemini reads typed requests is presenter-only and is never made public.
+  gjp_interpreter="$(gcloud run revisions describe "$gjp_revision" "${gjp_where[@]}" --format=json \
+    | python3 -c 'import json,sys; env={e["name"]: e.get("value", "") for e in json.load(sys.stdin)["spec"]["containers"][0].get("env", [])}; print(env.get("CATALOGUE_INTERPRETER") or "rules")')" \
+    || fail "could not read the settings of $gjp_revision"
+  [[ "$gjp_interpreter" != gemini ]] || fail "$gjp_revision has CATALOGUE_INTERPRETER=gemini; it is presenter-only and is never made public"
 
   VERIFY_BEARER="$(gcloud auth print-identity-token)" python3 "$gjp_REPO_ROOT/deploy/verify.py" "$gjp_candidate_url" || fail 'candidate checks failed'
 

@@ -114,3 +114,51 @@ test("overlapping requests keep the first result (stale-result race)", async ({ 
   await expect(form.locator("[aria-live]")).toHaveAttribute("data-state", "done");
   await expect(page.locator("main")).toContainText("First request completed.");
 });
+
+// Presenter build: Gemini reads typed requests on the live API, the rules still decide.
+const geminiBuild = (c: Parameters<typeof liveCatalogue>[0]) => {
+  liveCatalogue(c);
+  c.api.interpreter = { by: "gemini", model: "gemini-3.8-flash" };
+};
+
+test("a Gemini build says who reads the request and shows Gemini's reading", async ({ page }) => {
+  await useConfig(page, geminiBuild);
+  await page.route("**/api/catalogue", r => r.fulfill({ json: { summary: "Mock live catalogue.", sources: [{ id: 1 }] } }));
+  await page.route("**/api/pipeline", r => r.fulfill({ json: {
+    ...MOCK_ANSWER,
+    request: r.request().postDataJSON().request,
+    interpretation: { by: "gemini", model: "gemini-3.8-flash", request: "PM2.5 by country and year from 2019 to 2024", note: null },
+  } }));
+  await page.goto(PAGE);
+  await expect(page.locator("#scope-note")).toContainText("Gemini (gemini-3.8-flash) on Vertex AI reads each typed request");
+  await expect(page.locator("#scope-note")).toContainText("Request text is sent to Vertex AI");
+  await expect(page.locator("#scope-note")).not.toContainText("No hosted model is called");
+  await expect(page.locator("#request-hint")).toContainText("in your own words");
+  await expectOutcome(page, CATALOGUE_LABELS, "Answer", () => examples(page).first().click());
+  await expect(page.locator("#read-by")).toHaveText("Read by Gemini (gemini-3.8-flash): PM2.5 by country and year from 2019 to 2024");
+  await expect(page.locator("#status")).toContainText("Gemini (gemini-3.8-flash) read the request.");
+  await expect(page.locator("#tech")).toContainText("Gemini on Vertex AI (gemini-3.8-flash)");
+});
+
+test("a Gemini build labels the rules fallback when Gemini is unavailable", async ({ page }) => {
+  await useConfig(page, geminiBuild);
+  const note = "Gemini unavailable: Vertex AI returned HTTP 404. The rules read your words.";
+  await page.route("**/api/catalogue", r => r.fulfill({ json: { summary: "Mock live catalogue.", sources: [{ id: 1 }] } }));
+  await page.route("**/api/pipeline", r => r.fulfill({ json: {
+    ...MOCK_ANSWER,
+    interpretation: { by: "rules", model: "gemini-3.8-flash", request: r.request().postDataJSON().request, note },
+  } }));
+  await page.goto(PAGE);
+  await expectOutcome(page, CATALOGUE_LABELS, "Answer", () => examples(page).first().click());
+  await expect(page.locator("#read-by")).toContainText("Catalogue rules. " + note);
+  await expect(page.locator("#status")).toContainText("Gemini was unavailable, so the rules read the request.");
+  await expect(page.locator("#tech")).toContainText("Catalogue rules, after Gemini was unavailable");
+});
+
+test("without Gemini the page keeps its rules-only copy and shows no reading", async ({ page }) => {
+  await page.goto(PAGE);
+  await expect(page.locator("#scope-note")).toContainText("No hosted model is called");
+  await expect(page.locator("#request-hint")).toHaveText("Name a pollutant and a breakdown, such as country and year.");
+  await expectOutcome(page, CATALOGUE_LABELS, "Answer", () => examples(page).first().click());
+  await expect(page.locator("#read-by")).toHaveCount(0);
+});
