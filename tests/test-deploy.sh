@@ -467,6 +467,7 @@ python3 - "$root/deploy/verify.py" <<'PYRETIRED'
 import http.server, json, os, subprocess, sys, threading
 verify=sys.argv[1]; seen=[]
 locations={"/dcceew/":"/environmental-agency/","/parkinsons/":None}
+hi_message="Hello! Friendly catalogue help."
 class App(http.server.BaseHTTPRequestHandler):
     def send(self, code, body=b"", location=None, content="application/json"):
         self.send_response(code)
@@ -485,8 +486,10 @@ class App(http.server.BaseHTTPRequestHandler):
     def do_POST(self):
         size=int(self.headers.get("Content-Length","0")); body=json.loads(self.rfile.read(size))
         if body.get("domain") == "lineage": return self.send(501,b'{}')
-        outcomes={"annual CO2 for Australia in 2024":"answer","emissions":"clarify","write me a poem about the sea":"reject"}
-        return self.send(200,json.dumps({"outcome":outcomes[body["request"]]}).encode())
+        outcomes={"annual CO2 for Australia in 2024":"answer","emissions":"clarify","hi":"clarify","write me a poem about the sea":"reject"}
+        response={"outcome":outcomes[body["request"]]}
+        if body["request"] == "hi": response["message"]=hi_message
+        return self.send(200,json.dumps(response).encode())
     def log_message(self,*_): pass
 server=http.server.ThreadingHTTPServer(("127.0.0.1",0),App)
 threading.Thread(target=server.serve_forever,daemon=True).start()
@@ -497,6 +500,10 @@ assert run.returncode == 0, run.stderr
 for old in ("/dcceew/","/parkinsons/"):
     assert (old,"Bearer retired-route-token") in seen, (old,seen)
 assert "verify passed" in run.stdout
+hi_message="A generic clarification without the friendly marker."
+run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True,timeout=10)
+assert run.returncode != 0 and "friendly Hello marker" in run.stderr, run.stderr
+hi_message="Hello! Friendly catalogue help."
 for unsafe in (
     "https://127.0.0.1/environmental-agency/",
     "http://example.invalid/environmental-agency/",

@@ -5,7 +5,7 @@ use serde_json::{json, Map, Value};
 use crate::catalogue::Catalogue;
 use crate::decide::{decide, DecisionError};
 use crate::graph::{discover, subgraph};
-use crate::request::{re, requested_groups, resolve};
+use crate::request::{re, requested_groups, resolve, CLARIFY_MESSAGE, REJECT_MESSAGE};
 
 const RELEVANCE_THRESHOLD: f64 = 0.5;
 const MAX_CANDIDATES: usize = 8;
@@ -350,7 +350,7 @@ pub fn run(
         return Ok(finish(
             out,
             "reject",
-            Some("The request requires unsupported data, granularity or years outside 2015-2025."),
+            Some(REJECT_MESSAGE),
             &mut totals,
             started,
         ));
@@ -380,7 +380,7 @@ pub fn run(
     }
     if gate["top"] != "answer" {
         let msg = if gate["top"] == "clarify" {
-            "The request needs more detail: name a pollutant (or ask for emissions in general) and a breakdown such as country and year."
+            CLARIFY_MESSAGE
         } else {
             "The catalogue does not hold what this request needs."
         };
