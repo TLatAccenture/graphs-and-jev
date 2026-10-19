@@ -5,7 +5,7 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Accelerating stack migration and modernisation with Google Cloud</title>
-<meta name="description" content="An Accenture thought piece on accelerating stack migration and modernisation with a planned Google Cloud reference architecture, five delivery pillars and existing deterministic demonstrations.">
+<meta name="description" content="An Accenture thought piece on accelerating stack migration and modernisation: in a planned Google Cloud reference architecture, a Gemini Migration Agent built with ADK orchestrates Assess, Plan, Deploy and Optimise. The live demonstrations are deterministic.">
 <link rel="stylesheet" href="guide.css">
 <link rel="stylesheet" href="styles/landing.css">
 <script src="config.js"></script>
@@ -26,41 +26,48 @@
 <main id="main">
 
 <section id="top" class="hero" aria-labelledby="hero-title">
-  <div class="wrap">
-    <div>
+  <div class="wrap hero-grid">
+    <div class="hero-copy">
       <span class="eyebrow">Stack migration and modernisation</span>
-      <h1 id="hero-title">Accelerating stack migration and modernisation <em>with Google Cloud</em></h1>
-      <p class="lede">Move from a fragmented estate to governed delivery with clear evidence at every step. Google Cloud supplies the planned reference platform across connectivity, retrieval, operational data, reasoning, lineage and reporting. The live demonstration remains a deterministic Rust and browser experience.</p>
+      <h1 id="hero-title">Accelerate stack migration and modernisation <em>with a Gemini Migration Agent</em></h1>
+      <p class="lede">In the planned Google Cloud reference architecture, one Gemini agent built with Agent Development Kit (ADK) orchestrates the migration through Assess, Plan, Deploy and Optimise. Deterministic services move and check the data, Jev gates routine decisions and people approve the plan.</p>
       <div class="actions">
-        <a class="btn" href="#pillars">See the approach</a>
+        <a class="btn" href="#google-cloud-architecture">See how it works</a>
         <a class="btn btn--ghost" href="#example">Watch one decision</a>
       </div>
     </div>
-    <figure class="hero-art">
-      <img src="assets/hero-migration.svg" width="480" height="540" alt="Source systems such as PySpark, Hadoop, SAP and Databricks flow through the MCP Tool Shed and a System 1 gate run by Jev into a planned Google Cloud reference architecture: Cloud Storage, AlloyDB AI, ADK with Gemini, Spanner Graph, BigQuery and Looker.">
+
+    <aside id="implementation-status" class="status-ribbon" aria-label="Implementation status">
+      <div class="status-state status-state--live" data-state="live" data-product="cloud-run">
+        <img data-product-mark="cloud-run" src="assets/gcp-icons/cloud-run.svg" width="28" height="28" alt="">
+        <p><strong>Live today</strong> <span>Rust and static publication on Cloud Run, deterministic rules and the existing demonstrations.</span></p>
+      </div>
+      <div class="status-state status-state--reference" data-state="reference">
+        <span class="status-mark" aria-hidden="true"></span>
+        <p><strong>Google Cloud reference architecture</strong> <span>The Google Cloud reference architecture is planned and not live in this demo.</span></p>
+      </div>
+    </aside>
+
+    <figure class="hero-plane" aria-labelledby="hero-plane-title">
+      <p class="plane-tag">Planned reference</p>
+      <div class="plane-agent" data-product="gemini">
+        <img data-product-mark="gemini" src="assets/gcp-icons/gemini.png" width="32" height="32" alt="">
+        <p id="hero-plane-title"><strong>Gemini Migration Agent</strong> <span>Built with ADK. Orchestrates every phase.</span></p>
+      </div>
+      <ol class="plane-phases" aria-label="Google's four migration phases, each gated by Jev, with a person approving between Plan and Deploy">
+        <li class="plane-phase"><span>Assess</span><small>Jev gate</small></li>
+        <li class="plane-phase"><span>Plan</span><small>Jev gate</small></li>
+        <li class="plane-approval"><span>Person approves</span></li>
+        <li class="plane-phase"><span>Deploy</span><small>Jev gate</small></li>
+        <li class="plane-phase"><span>Optimise</span><small>Jev gate</small></li>
+      </ol>
+      <dl class="plane-route">
+        <div><dt>From</dt><dd>SAP, Oracle, Amazon S3, Azure Blob, Microsoft 365, virtual machines and Spark jobs</dd></div>
+        <div><dt>To</dt><dd>Cloud Storage, BigQuery, AlloyDB, Compute Engine and Cloud Run, chosen per workload</dd></div>
+      </dl>
     </figure>
   </div>
 </section>
-
-<div class="status-shell">
-  <div class="wrap">
-    <aside id="implementation-status" class="status-ribbon" aria-label="Implementation status">
-      <div class="status-state status-state--live" data-state="live" data-product="cloud-run">
-        <img data-product-mark="cloud-run" src="assets/gcp-icons/cloud-run.svg" width="40" height="40" alt="">
-        <div>
-          <strong>Live today</strong>
-          <span>Rust and static publication on Cloud Run, deterministic rules and the existing demonstrations.</span>
-        </div>
-      </div>
-      <div class="status-state status-state--reference" data-state="reference">
-        <div>
-          <strong>Google Cloud reference architecture</strong>
-          <span>The Google Cloud reference architecture is planned and not live in this demo.</span>
-        </div>
-      </div>
-    </aside>
-  </div>
-</div>
 
 <section id="problem" class="band band--paper" aria-labelledby="problem-title">
   <div class="wrap">
@@ -91,87 +98,155 @@
   </div>
 </section>
 
-<section id="google-cloud-architecture" class="band architecture-band" aria-labelledby="architecture-title">
+<section id="google-cloud-architecture" class="band control-band" aria-labelledby="architecture-title">
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">Planned reference architecture</span>
-      <h2 id="architecture-title">A governed path from source estate to measured outcomes.</h2>
-      <p>This planned Google Cloud reference architecture is not live in this demo. It keeps deterministic parsing, counting and schema validation in code and SQL, while model layers interpret intent, route work and gate bounded decisions.</p>
+      <h2 id="architecture-title">One agent orchestrates every phase.</h2>
+      <p>The Gemini Migration Agent coordinates the work, reasons over evidence, proposes plans and calls governed tools. It does not copy bytes, parse exact formats, count rows or bypass approvals: deterministic services, code and SQL do that. The phases follow Google's <a href="https://docs.cloud.google.com/architecture/migration-to-gcp-getting-started">migration framework</a> and its <a href="https://docs.cloud.google.com/docs/migration">migration documentation</a>. This planned Google Cloud reference architecture is not live in this demo.</p>
     </div>
-    <ol class="architecture-rail" aria-label="Five stages from the source estate through the planned Google Cloud reference architecture">
-      <li data-architecture-stage="sources">
-        <span class="architecture-index">01</span>
-        <h3>Source estate</h3>
-        <p>What is being migrated. These systems keep running while work moves across, and none of them needs to be on Google Cloud.</p>
-        <ul class="source-estate">
-          <li>PySpark and Spark jobs</li>
-          <li>Hadoop and Hive</li>
-          <li>SAP</li>
-          <li>Databricks</li>
-          <li>Salesforce</li>
-          <li>AWS S3 and Azure Blob</li>
-          <li>Microsoft 365 files</li>
-        </ul>
-        <span class="state-label">Existing estate</span>
-      </li>
-      <li data-architecture-stage="connect-retrieve">
-        <span class="architecture-index">02</span>
-        <h3>Connect and land</h3>
-        <p>Governed MCP servers reach into the source estate and may run on Compute Engine. Raw documents and source objects land in Cloud Storage. Google Cloud RAG Engine provides managed document parsing and retrieval where suitable.</p>
-        <a class="product" data-product="compute-engine" href="https://cloud.google.com/compute/docs/overview">
-          <img data-product-mark="compute-engine" src="assets/gcp-icons/compute-engine.svg" width="32" height="32" alt="">
-          <span>Compute Engine</span>
-        </a>
-        <a class="product" data-product="cloud-storage" href="https://cloud.google.com/storage/docs/introduction">
-          <img data-product-mark="cloud-storage" src="assets/gcp-icons/cloud-storage.svg" width="32" height="32" alt="">
-          <span>Cloud Storage</span>
-        </a>
-        <a class="product product--text" data-product="rag-engine" href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/rag-engine/layout-parser-integration">Google Cloud RAG Engine</a>
+
+    <div class="control-plane">
+      <div class="orchestrator" data-orchestrator="gemini">
+        <div class="orchestrator-name">
+          <a class="product" data-product="gemini" href="https://docs.cloud.google.com/architecture/single-agent-ai-system-adk-cloud-run">
+            <img data-product-mark="gemini" src="assets/gcp-icons/gemini.png" width="32" height="32" alt="">
+            <span>Gemini Migration Agent</span>
+          </a>
+          <a class="product product--built" data-product="adk" href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/adk">
+            <img data-product-mark="adk" src="assets/gcp-icons/adk.png" width="24" height="24" alt="">
+            <span>Built with Agent Development Kit (ADK)</span>
+          </a>
+        </div>
+        <p>Spans all four phases. Sends governed tool calls down, gets evidence and status back.</p>
         <span class="state-label">Planned reference</span>
+      </div>
+
+      <ol class="phases" aria-label="Google's four migration phases, in order">
+        <li class="phase" data-phase="assess">
+          <h3><span class="phase-n">01</span> Assess</h3>
+          <dl class="phase-fields">
+            <div><dt>Inputs</dt><dd>Inventory, owners, dependencies, constraints, cost and use.</dd></div>
+            <div data-role="agent"><dt>Agent action</dt><dd>Summarises the evidence and the gaps. MCP tools inspect authorised sources; <a href="https://cloud.google.com/migration-center/docs/migration-center-overview">Migration Center</a> discovers infrastructure.</dd></div>
+            <div data-role="gate"><dt>Jev gate</dt><dd>Routes findings. Unclear ownership or sensitivity goes to a person.</dd></div>
+            <div><dt>Output</dt><dd>Assessed inventory, dependency map, baseline and gap list.</dd></div>
+            <div class="phase-state"><dt>State</dt><dd>Planned reference</dd></div>
+          </dl>
+          <a class="product product--uses" data-product="spanner-graph" href="https://cloud.google.com/spanner/docs/graph/overview">
+            <img data-product-mark="spanner" src="assets/engine-logos/google-cloud-spanner.svg" width="24" height="24" alt="">
+            <span>Spanner Graph holds dependencies and lineage</span>
+          </a>
+        </li>
+        <li class="phase" data-phase="plan">
+          <h3><span class="phase-n">02</span> Plan</h3>
+          <dl class="phase-fields">
+            <div><dt>Inputs</dt><dd>Assessed inventory, dependency graph, baseline and constraints.</dd></div>
+            <div data-role="agent"><dt>Agent action</dt><dd>Proposes the target, sequence, access, cutover, rollback and acceptance tests.</dd></div>
+            <div data-role="gate"><dt>Jev gate</dt><dd>Stops low-confidence recommendations becoming actions.</dd></div>
+            <div><dt>Output</dt><dd>A source-to-destination plan with run order, rollback and tests.</dd></div>
+            <div class="phase-state"><dt>State</dt><dd>Planned reference</dd></div>
+          </dl>
+        </li>
+        <li class="checkpoint" data-checkpoint="human-approval">
+          <div class="checkpoint-box">
+            <strong>Person approves the plan</strong>
+            <span>Nothing deploys without it.</span>
+          </div>
+        </li>
+        <li class="phase" data-phase="deploy">
+          <h3><span class="phase-n">03</span> Deploy</h3>
+          <dl class="phase-fields">
+            <div><dt>Inputs</dt><dd>Approved plan, runbook, rollback and validation criteria.</dd></div>
+            <div data-role="agent"><dt>Agent action</dt><dd>Coordinates jobs, status and evidence. It does not move bytes.</dd></div>
+            <div><dt>Execution</dt><dd>Migration services move the data. Code and SQL count rows and validate schemas.</dd></div>
+            <div data-role="gate"><dt>Jev gate</dt><dd>Gates routine steps. Escalates policy failures and evidence gaps.</dd></div>
+            <div><dt>Output</dt><dd><b>Validate before cutover.</b> <b>Roll back if validation fails.</b></dd></div>
+            <div class="phase-state"><dt>State</dt><dd>Planned reference</dd></div>
+          </dl>
+        </li>
+        <li class="phase" data-phase="optimise">
+          <h3><span class="phase-n">04</span> Optimise</h3>
+          <dl class="phase-fields">
+            <div><dt>Inputs</dt><dd>Baseline, migration evidence, cost and performance telemetry.</dd></div>
+            <div data-role="agent"><dt>Agent action</dt><dd>Interprets the evidence and proposes the next improvement.</dd></div>
+            <div data-role="gate"><dt>Jev gate</dt><dd>Routes anomalies. Escalates uncertain recommendations.</dd></div>
+            <div><dt>Output</dt><dd>An outcome comparison and the next backlog.</dd></div>
+            <div class="phase-state"><dt>State</dt><dd>Planned reference</dd></div>
+          </dl>
+          <a class="product product--uses" data-product="looker" href="https://cloud.google.com/looker/docs">
+            <img data-product-mark="looker" src="assets/gcp-icons/looker.svg" width="24" height="24" alt="">
+            <span>Looker reports quality, cost and performance</span>
+          </a>
+        </li>
+      </ol>
+
+      <ul class="controls-strip" aria-label="Controls repeated in every phase">
+        <li data-control="mcp"><strong>MCP Tool Shed</strong> <span>Governed tools and resources. A protocol boundary, not a parser.</span></li>
+        <li data-control="jev"><strong>Jev gate</strong> <span>Bounded System 1 decisions in every phase.</span></li>
+        <li data-control="person"><strong>People</strong> <span>Approve the plan and decide what the gate cannot.</span></li>
+        <li data-control="lineage"><strong>Lineage evidence</strong> <span>What depends on what, before anything changes.</span></li>
+      </ul>
+    </div>
+
+    <div class="lanes-head">
+      <h3 id="lanes-title">What moves, from where, to where</h3>
+      <p class="lanes-note"><strong>Destination is chosen by workload. Not all data belongs in BigQuery.</strong> Each lane is a representative reference path, not an automatic recommendation. In every lane, deterministic checks produce the evidence and Gemini interprets it.</p>
+    </div>
+    <ol class="lanes" aria-labelledby="lanes-title">
+      <li class="lane" data-lane="documents">
+        <h4>Unstructured documents <span class="lane-tag">Representative reference path</span></h4>
+        <dl class="lane-fields">
+          <div data-field="source"><dt>Source</dt><dd>Microsoft 365, Amazon S3 and Azure Blob Storage.</dd></div>
+          <div data-field="moves"><dt>What moves</dt><dd>PDFs, Office files and images.</dd></div>
+          <div data-field="service"><dt>Movement or service</dt><dd><a href="https://cloud.google.com/storage-transfer/docs/overview">Storage Transfer Service</a> where its documented sources fit, such as Amazon S3 and Azure Blob Storage. Microsoft 365 needs its own export path.</dd></div>
+          <div data-field="destination"><dt>Destination</dt><dd>
+            <span class="dest"><b>Landing</b> <a class="product product--inline" data-product="cloud-storage" href="https://cloud.google.com/storage/docs/introduction"><img data-product-mark="cloud-storage" src="assets/gcp-icons/cloud-storage.svg" width="20" height="20" alt=""><span>Cloud Storage</span></a></span>
+            <span class="dest"><b>Retrieval</b> <a class="product product--inline" data-product="rag-engine" href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/rag-engine/layout-parser-integration"><span>Google Cloud RAG Engine</span></a></span>
+            <span class="dest"><b>Analytics</b> <span><strong>BigQuery</strong>, optional</span></span>
+          </dd></div>
+          <div data-field="validation"><dt>Validation or evidence</dt><dd>Code checks object counts, checksums and metadata.</dd></div>
+        </dl>
       </li>
-      <li data-architecture-stage="state-gate">
-        <span class="architecture-index">03</span>
-        <h3>Operational state</h3>
-        <p>AlloyDB AI holds operational PostgreSQL state and can call TypeSafe's hosted Jev API through AI functions and Model Endpoint Management. Jev is not embedded in AlloyDB.</p>
-        <a class="product" data-product="alloydb-ai" href="https://codelabs.developers.google.com/alloydb-ai-jev?hl=en#0">
-          <img data-product-mark="alloydb" src="assets/gcp-icons/alloydb.svg" width="32" height="32" alt="">
-          <span>AlloyDB AI</span>
-        </a>
-        <a class="product product--text" data-product="hosted-jev-api" href="https://codelabs.developers.google.com/alloydb-ai-jev?hl=en#0">TypeSafe's hosted Jev API</a>
-        <p class="architecture-note"><a href="https://codelabs.developers.google.com/codelabs/discriminative-models#0">DiffusionGemma</a> can sit behind the same discriminative-model API on Compute Engine or Cloud Run.</p>
-        <span class="state-label">Planned reference</span>
+      <li class="lane" data-lane="tabular">
+        <h4>Spreadsheets and tabular files <span class="lane-tag">Representative reference path</span></h4>
+        <dl class="lane-fields">
+          <div data-field="source"><dt>Source</dt><dd>Excel and CSV files in Microsoft 365, Amazon S3 and Azure Blob Storage.</dd></div>
+          <div data-field="moves"><dt>What moves</dt><dd>Sheets, tables, schemas and metadata.</dd></div>
+          <div data-field="service"><dt>Movement or service</dt><dd>A documented transfer into a Cloud Storage landing zone, then deterministic loaders and SQL.</dd></div>
+          <div data-field="destination"><dt>Destination</dt><dd>
+            <span class="dest"><b>Landing</b> <strong>Cloud Storage</strong></span>
+            <span class="dest"><b>Analytics</b> <a class="product product--inline" data-product="bigquery" href="https://cloud.google.com/bigquery/docs"><img data-product-mark="bigquery" src="assets/gcp-icons/bigquery.svg" width="20" height="20" alt=""><span>BigQuery</span></a></span>
+          </dd></div>
+          <div data-field="validation"><dt>Validation or evidence</dt><dd>SQL counts rows, validates schemas and reconciles totals. RAG is not the row counter.</dd></div>
+        </dl>
       </li>
-      <li data-architecture-stage="orchestrate">
-        <span class="architecture-index">04</span>
-        <h3>System 2 orchestration</h3>
-        <p>Agent Development Kit (ADK) with Gemini orchestrates agents and tool use after routine decisions have passed the System 1 gate.</p>
-        <a class="product" data-product="adk" href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/adk">
-          <img data-product-mark="adk" src="assets/gcp-icons/adk.png" width="32" height="32" alt="">
-          <span>Agent Development Kit (ADK)</span>
-        </a>
-        <a class="product" data-product="gemini" href="https://docs.cloud.google.com/architecture/single-agent-ai-system-adk-cloud-run">
-          <img data-product-mark="gemini" src="assets/gcp-icons/gemini.png" width="32" height="32" alt="">
-          <span>Gemini</span>
-        </a>
-        <span class="state-label">Planned reference</span>
+      <li class="lane" data-lane="relational">
+        <h4>Operational relational data <span class="lane-tag">Representative reference path</span></h4>
+        <dl class="lane-fields">
+          <div data-field="source"><dt>Source</dt><dd>PostgreSQL, Oracle, SQL Server and SAP-backed data.</dd></div>
+          <div data-field="moves"><dt>What moves</dt><dd>Tables, change streams, schema and state.</dd></div>
+          <div data-field="service"><dt>Movement or service</dt><dd><a href="https://cloud.google.com/database-migration/docs">Database Migration Service</a> or <a href="https://cloud.google.com/datastream/docs/overview">Datastream</a>, only where documented for the exact source and target. SAP needs a path chosen for the specific system.</dd></div>
+          <div data-field="destination"><dt>Destination</dt><dd>
+            <span class="dest"><b>Operational</b> <a class="product product--inline" data-product="alloydb" href="https://cloud.google.com/alloydb/docs"><img data-product-mark="alloydb" src="assets/gcp-icons/alloydb.svg" width="20" height="20" alt=""><span>AlloyDB for PostgreSQL</span></a></span>
+            <span class="dest"><b>Analytics</b> <strong>BigQuery</strong></span>
+          </dd></div>
+          <div data-field="validation"><dt>Validation or evidence</dt><dd>Schema, row, change-lag and integrity checks.</dd></div>
+        </dl>
+        <p class="lane-boundary"><a data-product="alloydb-ai" href="https://codelabs.developers.google.com/alloydb-ai-jev?hl=en#0">AlloyDB AI</a> can call <span data-product="hosted-jev-api">TypeSafe's hosted Jev API</span> through AI functions and Model Endpoint Management in the planned reference architecture. Jev is not stored or hosted in AlloyDB.</p>
       </li>
-      <li data-architecture-stage="observe">
-        <span class="architecture-index">05</span>
-        <h3>Lineage, analytics and reporting</h3>
-        <p>Spanner Graph holds lineage and semantic context. BigQuery holds analytical data, eval records and telemetry. Looker reports outcomes, quality and cost.</p>
-        <a class="product" data-product="spanner-graph" href="https://cloud.google.com/spanner/docs/graph/overview">
-          <img data-product-mark="spanner" src="assets/engine-logos/google-cloud-spanner.svg" width="32" height="32" alt="">
-          <span>Spanner Graph</span>
-        </a>
-        <a class="product" data-product="bigquery" href="https://cloud.google.com/bigquery/docs">
-          <img data-product-mark="bigquery" src="assets/gcp-icons/bigquery.svg" width="32" height="32" alt="">
-          <span>BigQuery</span>
-        </a>
-        <a class="product" data-product="looker" href="https://cloud.google.com/looker/docs">
-          <img data-product-mark="looker" src="assets/gcp-icons/looker.svg" width="32" height="32" alt="">
-          <span>Looker</span>
-        </a>
-        <span class="state-label">Planned reference</span>
+      <li class="lane" data-lane="applications">
+        <h4>Applications and jobs <span class="lane-tag">Representative reference path</span></h4>
+        <dl class="lane-fields">
+          <div data-field="source"><dt>Source</dt><dd>Virtual machines, Spark and Hadoop jobs, containerisable apps.</dd></div>
+          <div data-field="moves"><dt>What moves</dt><dd>Workloads, binaries and configuration. Not data.</dd></div>
+          <div data-field="service"><dt>Movement or service</dt><dd><a href="https://cloud.google.com/migrate/virtual-machines/docs/5.0/discover/overview">Migrate to Virtual Machines</a> and <a href="https://cloud.google.com/migrate/containers/docs">Migrate to Containers</a> for their documented paths; workload-specific tooling for Spark and Hadoop.</dd></div>
+          <div data-field="destination"><dt>Destination</dt><dd>
+            <span class="dest"><b>Machines</b> <a class="product product--inline" data-product="compute-engine" href="https://cloud.google.com/compute/docs/overview"><img data-product-mark="compute-engine" src="assets/gcp-icons/compute-engine.svg" width="20" height="20" alt=""><span>Compute Engine</span></a></span>
+            <span class="dest"><b>Jobs</b> <span><a href="https://cloud.google.com/dataproc/docs">Dataproc</a> or <a href="https://cloud.google.com/kubernetes-engine/docs">GKE</a></span></span>
+            <span class="dest"><b>Stateless</b> <a href="https://cloud.google.com/run/docs">Cloud Run</a></span>
+          </dd></div>
+          <div data-field="validation"><dt>Validation or evidence</dt><dd>Health, behaviour, performance and rollback checks.</dd></div>
+        </dl>
       </li>
     </ol>
     <p class="architecture-caption">MCP exposes tools and resources. Deterministic code or SQL parses exact formats, counts rows and validates schemas. The current demo does not run MCP servers.</p>
@@ -182,9 +257,9 @@
   <div class="wrap">
     <div class="section-head">
       <span class="eyebrow">The approach</span>
-      <h2 id="pillars-title">Five layers. One way of working.</h2>
-      <p>It starts with the stack you already run. The MCP Tool Shed defines governed connectivity. System 1 and Jev filter routine noise and gate bounded actions, so ADK with Gemini can spend System 2 reasoning on higher-level migration decisions. Spanner Graph supplies context, while BigQuery and Looker measure the outcome. These product roles form the planned reference architecture, not the live demo.</p>
-      <p class="annotation">Select a layer to open it.</p>
+      <h2 id="pillars-title">Five capabilities the agent uses.</h2>
+      <p>The Gemini Migration Agent starts from the stack you already run. It reaches systems through the MCP Tool Shed, lets Jev filter routine decisions so Gemini can reason about the hard ones, and measures every outcome. These roles form the planned reference architecture, not the live demo.</p>
+      <p class="annotation">Select a capability to open it.</p>
     </div>
     <ol class="stack" aria-label="The five layers, starting from the existing stack">
       <li data-pillar="estate">
@@ -259,6 +334,18 @@
           <button type="button" class="scenario" data-scenario="copy" aria-pressed="false"><strong>Copy production customer records to the dev sandbox.</strong><span>A policy applies before any MCP server is called.</span></button>
         </fieldset>
         <p class="demo-status" id="exampleStatus" aria-live="polite" data-state="ready">Choose a request to see its lineage path.</p>
+        <section class="orch-view" id="orchView" aria-labelledby="orch-view-title">
+          <p class="orch-view-title"><span id="orch-view-title">Orchestrator view</span> <span class="state-label">Planned reference</span></p>
+          <dl>
+            <div data-field="phase"><dt>Phase</dt><dd id="orchPhase">Plan</dd></div>
+            <div data-field="source"><dt>Source</dt><dd id="orchSource">SAP column KNA1.REGION</dd></div>
+            <div data-field="target"><dt>Target</dt><dd id="orchTarget">BigQuery customers.region</dd></div>
+            <div data-field="tools"><dt>Tools</dt><dd id="orchTools">Lineage lookup through the MCP Tool Shed</dd></div>
+            <div data-field="gate"><dt>Jev gate</dt><dd id="orchGate">Proceed</dd></div>
+            <div data-field="person"><dt>Person</dt><dd id="orchPerson">Finance is told. The plan still needs approval</dd></div>
+          </dl>
+          <p class="annotation">In this demo a few in-browser rules decide. No model or Google Cloud service is called.</p>
+        </section>
         <div class="result" id="exampleResult" hidden>
           <p class="outcome" id="exampleOutcome"></p>
           <p class="answer" id="exampleAnswer"></p>
@@ -294,7 +381,7 @@
     <div class="section-head">
       <span class="eyebrow">Use cases</span>
       <h2 id="uses-title">One pattern, three demos.</h2>
-      <p>Each demo asks a question, reads a graph and lets the gate decide. The systems change; the pattern does not.</p>
+      <p>Each demo asks a question, reads a graph and lets the gate decide. The systems change; the pattern does not. The demos are deterministic; the Gemini Agent roles below are planned reference.</p>
     </div>
 
     <article class="feature" aria-labelledby="uc-ea">
@@ -302,10 +389,15 @@
       <div>
         <span class="label">Discover the estate before you migrate it</span>
         <h3 id="uc-ea">Environmental Agency catalogue discovery</h3>
+        <ul class="route" aria-label="What moves">
+          <li><b>Source</b>Catalogue records, documents and reference tables</li>
+          <li><b>What moves</b>Nothing yet: discovery comes first</li>
+          <li><b>Destination</b>Chosen per dataset after discovery</li>
+        </ul>
         <dl class="facts">
           <div><dt>Business question</dt><dd>Which datasets answer this air-quality request?</dd></div>
-          <div><dt>What the graph adds</dt><dd>Links pollutants, places and years to datasets.</dd></div>
-          <div><dt>What the gate controls</dt><dd>Answers only when a dataset fits; otherwise asks, refuses or reports no data.</dd></div>
+          <div><dt class="role">Gemini Agent role</dt><dd>Planned: reads the request and summarises which datasets fit.</dd></div>
+          <div><dt class="gate">Jev gate</dt><dd>Answers only when a dataset fits; otherwise asks, refuses or reports no data.</dd></div>
         </dl>
         <p class="annotation">The Environmental Agency and its catalogue are fictional.</p>
         <a class="btn" href="environmental-agency/">Open the Environmental Agency demo</a>
@@ -333,10 +425,15 @@
       <div>
         <span class="label">Change without breaking downstream</span>
         <h3 id="uc-lineage">Lineage-guarded migration</h3>
+        <ul class="route" aria-label="What moves">
+          <li><b>Source</b>SAP table KNA1 and the jobs and reports that depend on it</li>
+          <li><b>What moves</b>One migration step, such as a column rename</li>
+          <li><b>Destination</b>BigQuery</li>
+        </ul>
         <dl class="facts">
           <div><dt>Business question</dt><dd>Can this step run without breaking anything downstream?</dd></div>
-          <div><dt>What the graph adds</dt><dd>The blast radius: every table, job and report that depends on the change.</dd></div>
-          <div><dt>What the gate controls</dt><dd>Proceeds, asks, refuses or escalates at each step.</dd></div>
+          <div><dt class="role">Gemini Agent role</dt><dd>Planned: proposes the step, its blast radius and its rollback.</dd></div>
+          <div><dt class="gate">Jev gate</dt><dd>Proceeds, asks, refuses or escalates at each step.</dd></div>
         </dl>
         <a class="btn" href="lineage-migration/">Open the lineage demo</a>
       </div>
@@ -347,10 +444,15 @@
       <div>
         <span class="label">Experiment · Small-world context</span>
         <h3 id="uc-sw">Little Bunnies: two hops reach most of what matters</h3>
+        <ul class="route" aria-label="What moves">
+          <li><b>Source</b>A small-world sample graph</li>
+          <li><b>What moves</b>Nothing: it measures context, not data</li>
+          <li><b>Destination</b>Not applicable</li>
+        </ul>
         <dl class="facts">
-          <div><dt>Business question</dt><dd>How much of the graph must an agent load to act safely?</dd></div>
-          <div><dt>What the graph adds</dt><dd>In a small-world sample, two hops hold most of the context. Other graphs need their own measurement.</dd></div>
-          <div><dt>What the gate controls</dt><dd>Works within a fixed context budget.</dd></div>
+          <div><dt>Business question</dt><dd>How much of the graph must an agent load to act safely? In a small-world sample, two hops hold most of it.</dd></div>
+          <div><dt class="role">Gemini Agent role</dt><dd>Planned: loads only the neighbourhood its task needs.</dd></div>
+          <div><dt class="gate">Jev gate</dt><dd>Works within a fixed context budget.</dd></div>
         </dl>
         <a class="btn" href="little-bunnies/">Open Little Bunnies</a>
       </div>
@@ -364,21 +466,26 @@
       <span class="eyebrow">Where to start</span>
       <h2 id="start-title">Start with one pattern. Scale on evidence.</h2>
     </div>
-    <ol class="steps">
+    <ol class="steps steps--four">
       <li>
-        <h3>Map the estate</h3>
+        <h3>Assess</h3>
         <p class="q">What do we hold, and what depends on what?</p>
-        <p>Connect the first systems through the MCP Tool Shed and build the lineage graph for one domain. The estate stops being tribal knowledge.</p>
+        <p>Connect the first systems through the MCP Tool Shed and map one domain's lineage. The estate stops being tribal knowledge.</p>
       </li>
       <li>
-        <h3>Prove one pattern</h3>
-        <p class="q">Can agents do this safely, end to end?</p>
-        <p>Pick one migration pattern, such as SAP tables to BigQuery. Encode it as a skill with deterministic hooks, put a System 1 gate in front of every step and test it against the planned ADK with Gemini orchestration layer.</p>
+        <h3>Plan</h3>
+        <p class="q">Which path, in which order, with what rollback?</p>
+        <p>Pick one pattern, such as SAP tables to BigQuery. Encode it as a skill with deterministic hooks. A person approves the plan.</p>
       </li>
       <li>
-        <h3>Scale with evidence</h3>
+        <h3>Deploy</h3>
+        <p class="q">Did it arrive intact?</p>
+        <p>Deterministic jobs move and validate the data. Jev gates each step, and a failed validation rolls back.</p>
+      </li>
+      <li>
+        <h3>Optimise</h3>
         <p class="q">What worked, and what did it cost?</p>
-        <p>In the planned reference architecture, <a href="https://cloud.google.com/bigquery/docs">eval records in BigQuery</a> would show what proceeded, what was escalated and the cost per object. Add patterns and systems from there.</p>
+        <p>In the planned reference architecture, <a href="https://cloud.google.com/bigquery/docs">eval records in BigQuery</a> show what proceeded, what was escalated and the cost per object.</p>
       </li>
     </ol>
   </div>
@@ -394,6 +501,7 @@
       <ul class="proof">
         <li><strong>Least privilege</strong>Agents get only the servers and scopes their task needs.</li>
         <li><strong>Refusal before tool call</strong>Unsafe requests stop before any server is called.</li>
+        <li><strong>Approval before Deploy</strong>A person approves the plan before anything moves.</li>
         <li><strong>Bounded outcomes</strong>Proceed, ask, refuse, escalate or no data.</li>
         <li><strong>Traceable</strong>Every outcome returns its lineage path and evidence.</li>
         <li><strong>Measured</strong>Every step writes an eval record.</li>
@@ -465,6 +573,15 @@ const SCENARIOS={
     why:"The policy edge applies before any MCP server is called. Nothing was read or copied."}
 };
 const OUTCOME_LABEL={answer:"Proceed",clarify:"Ask",review:"Escalate",reject:"Refuse",no_data:"No data",error:"Service unavailable"};
+/* Where each request sits in the planned control plane. Text only: nothing here is called. */
+const ORCH={
+  region:{phase:"Plan",source:"SAP column KNA1.REGION",target:"BigQuery customers.region",tools:"Lineage lookup through the MCP Tool Shed",person:"Finance is told. The plan still needs approval"},
+  pricing:{phase:"Assess",source:"Two SharePoint pricing workbooks",target:"BigQuery",tools:"Lineage lookup through the MCP Tool Shed",person:"Decides which workbook is authoritative"},
+  crm:{phase:"Plan",source:"Legacy CRM sync job in ServiceNow",target:"Retire the job",tools:"Lineage lookup through the MCP Tool Shed",person:"An accountable owner decides"},
+  copy:{phase:"Deploy",source:"BigQuery customers, in production",target:"Dev sandbox",tools:"None: refused before any tool call",person:"Not needed: policy refuses it"}
+};
+function renderOrch(key,outcome){const o=ORCH[key];if(!o)return;
+  for(const [id,v] of [["orchPhase",o.phase],["orchSource",o.source],["orchTarget",o.target],["orchTools",o.tools],["orchGate",OUTCOME_LABEL[outcome]],["orchPerson",o.person]])document.getElementById(id).textContent=v}
 let heroSel="region",heroHop=2,active=null;
 const SVGNS="http://www.w3.org/2000/svg";
 function el(t,a,p){const e=document.createElementNS(SVGNS,t);for(const k in a)e.setAttribute(k,a[k]);if(p)p.appendChild(e);return e}
@@ -508,7 +625,7 @@ function renderScenario(s){
   document.getElementById("exampleWhy").textContent=s.why;
   box.getAnimations({subtree:true}).forEach(a=>{a.cancel();a.play()});
 }
-function choose(key,reveal){const s=SCENARIOS[key];active=s;heroSel=s.start;setHop(s.hops);markScenario(key);drawHero();renderScenario(s);
+function choose(key,reveal){const s=SCENARIOS[key];active=s;heroSel=s.start;setHop(s.hops);markScenario(key);drawHero();renderScenario(s);renderOrch(key,s.outcome);
   exampleStatus.dataset.state="done";
   exampleStatus.textContent=`${s.q} The path reaches ${reachText()}. Outcome: ${OUTCOME_LABEL[s.outcome]}.`;
   if(reveal)siteUi.reveal(document.getElementById("exampleResult"),{sticky:document.querySelector(".guided-graph")})}
