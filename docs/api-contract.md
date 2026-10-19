@@ -25,7 +25,7 @@ The Rust service also answers the retired page paths with `308 Permanent Redirec
 - Errors are non-2xx with a JSON body `{"detail": "string"}`. The page shows "Service unavailable" and the detail in its technical details.
 - Every response carries `x-request-id`. Structured logs record the request ID, route, status, latency and outcome, never the request or preference text.
 - `POST` routes share one process-local limit (`RATE_LIMIT_PER_MINUTE`, default 120 per instance). Over the limit they return 429 before the body is parsed. With at most two instances the effective ceiling is twice that; it is not a per-client quota.
-- The service makes no outbound network calls.
+- By default (`CATALOGUE_INTERPRETER=rules`), the service makes no outbound network calls. With the explicit `gemini` interpreter, it calls only the fixed Cloud Run metadata host for a runtime token/project ID and the location-derived Google Vertex AI endpoint.
 
 ## GET /api/health
 
@@ -80,10 +80,10 @@ These are read at start-up when `CATALOGUE_INTERPRETER=gemini` and never reach t
 |---|---|---|
 | `GEMINI_LOCATION` | `global` | Vertex AI location. `global` uses `aiplatform.googleapis.com`; any other uses `{location}-aiplatform.googleapis.com`. |
 | `GEMINI_TIMEOUT_MS` | `8000` | 1 to 60000. Keep it below `API_TIMEOUT_MS` so a slow reply falls back before the page gives up. |
-| `GEMINI_THINKING_LEVEL` | `low` | `minimal`, `low`, `medium`, `high`, or `model-default` to send no thinking setting. |
+| `GEMINI_THINKING_LEVEL` | `low` (sent as Vertex `LOW`) | `minimal`, `low`, `medium`, `high`, or `model-default` to send no thinking setting. |
 | `GOOGLE_CLOUD_PROJECT` | from the metadata server | Project id that owns the Vertex AI call. |
 | `GEMINI_ACCESS_TOKEN` | none | Local runs only. `deploy/deploy.sh` refuses it; Cloud Run uses the runtime service account through the metadata server. |
-| `GEMINI_ENDPOINT`, `GCE_METADATA_HOST` | Google endpoints | Tests only, to point at a fake Vertex AI and metadata server. Not in the deploy allowlist. |
+Production endpoint and metadata hosts are not configurable: `global` maps exactly to `https://aiplatform.googleapis.com`, a validated region maps to `https://{region}-aiplatform.googleapis.com`, and metadata uses `metadata.google.internal`. Redirects are refused. Loopback fake origins exist only through the Rust integration-test constructor, not environment variables.
 
 ## GET /api/catalogue
 

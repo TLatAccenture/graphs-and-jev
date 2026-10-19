@@ -414,6 +414,22 @@ for case in "iam.json|true|{\"graphs-and-jev-old\": 100}" "iam-public.json|true|
   if python3 -c "$validator" "$validator_dir/service-live.json" "$validator_dir/revision.json" "$validator_dir/$iam_file" \
     "${validator_args[@]}" '{}' "$public" "$serving" >/dev/null 2>&1; then fail "validator accepted changed access or traffic: $case"; fi
 done
+# Disabling the invoker IAM check makes a service public even without an allUsers binding.
+python3 - "$validator_dir/service.json" "$validator_dir/service-disabled.json" <<'PYDISABLED'
+import json, sys
+service=json.load(open(sys.argv[1]))
+service.setdefault("metadata", {}).setdefault("annotations", {})["run.googleapis.com/invoker-iam-disabled"]="true"
+json.dump(service, open(sys.argv[2], "w"))
+PYDISABLED
+if python3 -c "$validator" "$validator_dir/service-disabled.json" "$validator_dir/revision.json" "$validator_dir/iam.json" \
+  "${validator_args[@]}" '{}' false '{}' >/dev/null 2>&1; then fail 'validator treated disabled invoker IAM check as private'; fi
+
+private_promote="$root/deploy/promote-private.sh"
+[[ -x "$private_promote" ]] || fail "$private_promote must exist and be executable"
+bash -n "$private_promote"
+if rg -n 'add-iam-policy-binding|set-iam-policy' "$private_promote"; then fail 'private promotion can modify IAM'; fi
+contains 'GEMINI_VERIFY=1' "$private_promote"
+contains 'VERIFY_EXPECTED_MODEL' "$private_promote"
 if rg -n '\b(gjd_|GJ_)[A-Za-z_]*' <<<"$validator"; then fail 'shell namespace leaked into embedded Python'; fi
 trap - EXIT
 rm -rf "$validator_dir"
@@ -422,6 +438,77 @@ promote="$root/deploy/promote.sh"
 [[ -x "$promote" ]] || fail "$promote must exist and be executable"
 bash -n "$promote"
 python3 -c 'import ast, sys; ast.parse(open(sys.argv[1]).read())' "$root/deploy/verify.py"
+python3 - "$root/deploy/verify.py" <<'PYREDIRECT'
+import http.server, os, subprocess, sys, threading
+verify = sys.argv[1]
+seen = []
+class Target(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        seen.append(self.headers.get("Authorization"))
+        self.send_response(200); self.end_headers(); self.wfile.write(b'{"ok":true}')
+    def log_message(self, *_): pass
+class Redirect(http.server.BaseHTTPRequestHandler):
+    def do_GET(self):
+        self.send_response(302); self.send_header("Location", target); self.end_headers()
+    def log_message(self, *_): pass
+def server(handler):
+    value=http.server.ThreadingHTTPServer(("127.0.0.1",0),handler)
+    threading.Thread(target=value.serve_forever,daemon=True).start(); return value
+sink=server(Target); target=f"http://127.0.0.1:{sink.server_port}/stolen"
+source=server(Redirect)
+env={**os.environ,"VERIFY_BEARER":"secret-identity-token","VERIFY_ATTEMPTS":"1"}
+run=subprocess.run([sys.executable,verify,f"http://127.0.0.1:{source.server_port}"],env=env,text=True,capture_output=True,timeout=10)
+source.shutdown(); sink.shutdown()
+assert run.returncode != 0, run.stdout
+assert not seen, f"bearer reached redirect target: {seen}"
+assert "HTTP 302" in run.stderr and target in run.stderr, run.stderr
+PYREDIRECT
+python3 - "$root/deploy/verify.py" <<'PYRETIRED'
+import http.server, json, os, subprocess, sys, threading
+verify=sys.argv[1]; seen=[]
+locations={"/dcceew/":"/environmental-agency/","/parkinsons/":None}
+class App(http.server.BaseHTTPRequestHandler):
+    def send(self, code, body=b"", location=None, content="application/json"):
+        self.send_response(code)
+        if location: self.send_header("Location", location)
+        self.send_header("Content-Type", content); self.end_headers(); self.wfile.write(body)
+    def do_GET(self):
+        seen.append((self.path, self.headers.get("Authorization")))
+        if self.path == "/api/health": return self.send(200,b'{"ok":true}')
+        if self.path == "/api/ready": return self.send(200,b'{"ok":true}')
+        if self.path == "/api/catalogue": return self.send(200,b'{"sources":[1]}')
+        if self.path in ("/","/technical-guide/","/environmental-agency/","/lineage-migration/","/little-bunnies/"):
+            return self.send(200,b'<html data-brand="name">',content="text/html")
+        if self.path in locations: return self.send(308,location=locations[self.path] or f"http://127.0.0.1:{self.server.server_port}/lineage-migration/")
+        if self.path == "/config.js": return self.send(200,b'window.SITE_CONFIG = {};\n',content="text/javascript")
+        return self.send(404)
+    def do_POST(self):
+        size=int(self.headers.get("Content-Length","0")); body=json.loads(self.rfile.read(size))
+        if body.get("domain") == "lineage": return self.send(501,b'{}')
+        outcomes={"annual CO2 for Australia in 2024":"answer","emissions":"clarify","write me a poem about the sea":"reject"}
+        return self.send(200,json.dumps({"outcome":outcomes[body["request"]]}).encode())
+    def log_message(self,*_): pass
+server=http.server.ThreadingHTTPServer(("127.0.0.1",0),App)
+threading.Thread(target=server.serve_forever,daemon=True).start()
+base=f"http://127.0.0.1:{server.server_port}"
+env={**os.environ,"VERIFY_BEARER":"retired-route-token","VERIFY_ATTEMPTS":"1"}
+run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True,timeout=10)
+assert run.returncode == 0, run.stderr
+for old in ("/dcceew/","/parkinsons/"):
+    assert (old,"Bearer retired-route-token") in seen, (old,seen)
+assert "verify passed" in run.stdout
+for unsafe in (
+    "https://127.0.0.1/environmental-agency/",
+    "http://example.invalid/environmental-agency/",
+    "http://127.0.0.1:1/environmental-agency/",
+    "/wrong-path/",
+    "/environmental-agency/?query=unsafe",
+):
+    locations["/dcceew/"]=unsafe
+    run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True,timeout=10)
+    assert run.returncode != 0 and "expected HTTP 308 to same-origin /environmental-agency/" in run.stderr, (unsafe,run.stderr)
+server.shutdown(); server.server_close()
+PYRETIRED
 promote_dir="$(mktemp -d)"
 mkdir -p "$promote_dir/deploy" "$promote_dir/bin"
 cp "$promote" "$promote_dir/deploy/promote.sh"
@@ -476,5 +563,50 @@ log="$(cat "$promote_dir/log")"
 [[ "$log" != *update-traffic* && "$log" != *iam-policy-binding* && "$log" != *set-iam-policy* && "$log" != *'verify '* ]] || fail "Gemini revision still changed the service: $log"
 [[ "$(cat "$promote_dir/out")" == *'presenter-only and is never made public'* ]] || fail 'Gemini refusal was not reported'
 rm -rf "$promote_dir"
+
+private_dir="$(mktemp -d)"
+mkdir -p "$private_dir/deploy" "$private_dir/bin" "$private_dir/state"
+cp "$private_promote" "$private_dir/deploy/promote-private.sh"
+cat >"$private_dir/deploy/verify.py" <<'FAKE'
+import os, sys
+open(os.environ["MOCK_LOG"], "a").write(f"verify {sys.argv[1]} bearer={'yes' if os.environ.get('VERIFY_BEARER') else 'no'} gemini={os.environ.get('GEMINI_VERIFY')} model={os.environ.get('VERIFY_EXPECTED_MODEL')}\n")
+raise SystemExit(1 if sys.argv[1] == os.environ.get("FAIL_VERIFY_URL") else 0)
+FAKE
+cat >"$private_dir/bin/gcloud" <<'MOCK'
+#!/usr/bin/env bash
+printf 'gcloud %s\n' "$*" >>"$MOCK_LOG"
+case "$*" in
+  "auth list"*) printf '%s\n' anthony.lui@archegon.com ;;
+  "auth print-identity-token"*) printf '%s\n' private-token ;;
+  "config get-value project"*) printf '%s\n' ninth-airship-386815 ;;
+  "run services get-iam-policy"*) printf '%s\n' '{"bindings":[{"role":"roles/run.invoker","members":["user:presenter@example.com"]}]}' ;;
+  "run revisions describe"*) printf '%s\n' '{"spec":{"containers":[{"env":[{"name":"CATALOGUE_INTERPRETER","value":"gemini"},{"name":"GEMINI_MODEL","value":"gemini-3.8-flash"}]}]}}' ;;
+  "run services describe"*)
+    if [[ -e "$MOCK_STATE/promoted" ]]; then
+      printf '%s\n' '{"metadata":{"annotations":{}},"status":{"url":"https://private.example.run.app","traffic":[{"revisionName":"graphs-and-jev-presenter-new","percent":100}]}}'
+    else
+      printf '%s\n' '{"metadata":{"annotations":{}},"status":{"url":"https://private.example.run.app","traffic":[{"revisionName":"graphs-and-jev-presenter-old","percent":100},{"revisionName":"graphs-and-jev-presenter-new","percent":0,"tag":"candidate-new","url":"https://candidate-new---private.example.run.app"}]}}'
+    fi ;;
+  "run services update-traffic"*"graphs-and-jev-presenter-new=100"*) : >"$MOCK_STATE/promoted" ;;
+  "run services update-traffic"*"graphs-and-jev-presenter-old=100"*) rm -f "$MOCK_STATE/promoted" ;;
+  *) printf 'unexpected gcloud: %s\n' "$*" >&2; exit 72 ;;
+esac
+MOCK
+chmod +x "$private_dir/bin/gcloud" "$private_dir/deploy/promote-private.sh"
+run_private_promote() {
+  rm -f "$private_dir/state/promoted"; : >"$private_dir/log"
+  PATH="$private_dir/bin:$PATH" MOCK_LOG="$private_dir/log" MOCK_STATE="$private_dir/state" FAIL_VERIFY_URL="$1" \
+    "$private_dir/deploy/promote-private.sh" graphs-and-jev-presenter-new >"$private_dir/out" 2>&1
+}
+run_private_promote '' || fail "private promotion failed: $(cat "$private_dir/out")"
+log="$(cat "$private_dir/log")"
+[[ "$log" == *'auth print-identity-token --audiences=https://private.example.run.app'* && "$log" == *'verify https://candidate-new---private.example.run.app bearer=yes gemini=1 model=gemini-3.8-flash'* ]] || fail "private candidate was not Gemini-verified with auth: $log"
+[[ "$(rg -c -F 'auth print-identity-token --audiences=https://private.example.run.app' <<<"$log")" == 2 && "$log" == *'verify https://private.example.run.app bearer=yes gemini=1 model=gemini-3.8-flash'* ]] || fail "private canonical URL was not Gemini-verified with auth: $log"
+[[ "$log" != *'add-iam-policy-binding'* && "$log" != *'set-iam-policy'* ]] || fail "private promotion changed IAM: $log"
+if run_private_promote 'https://private.example.run.app'; then fail 'private promotion passed failed canonical verification'; fi
+log="$(cat "$private_dir/log")"
+[[ "$log" == *'--to-revisions=graphs-and-jev-presenter-old=100'* ]] || fail "private promotion did not roll back traffic: $log"
+[[ "$log" != *'add-iam-policy-binding'* && "$log" != *'set-iam-policy'* ]] || fail "private rollback changed IAM: $log"
+rm -rf "$private_dir"
 
 printf 'deploy static checks passed\n'

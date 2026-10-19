@@ -31,11 +31,11 @@ gcloud projects add-iam-policy-binding "$PROJECT_ID" \
   --member="serviceAccount:${PRESENTER_SA}" --role=roles/aiplatform.user
 ```
 
-`roles/aiplatform.user` includes `aiplatform.endpoints.predict`, which `generateContent` needs ([Vertex AI access control](https://cloud.google.com/vertex-ai/docs/general/access-control)). `deploy/deploy.sh` checks that permission for the runtime service account before it builds. Give it only to the presenter service account, not to `graphs-and-jev-runner`.
+`roles/aiplatform.user` is a broad, workable default and includes `aiplatform.endpoints.predict`, which `generateContent` needs ([Vertex AI access control](https://cloud.google.com/vertex-ai/docs/general/access-control)). `deploy/deploy.sh` checks that permission for the runtime service account before it builds. Give it only to the presenter service account, not to `graphs-and-jev-runner`. Where your organisation supports custom roles, prefer a reviewed minimal role containing only the required Vertex prediction permission(s).
 
 The deploying account also needs `iam.serviceAccounts.actAs` on the new service account; `deploy/deploy.sh` checks it.
 
-If you deploy as the day's service account rather than as `anthony.lui@archegon.com`, set `EXPECTED_ACCOUNT` to that account's email in the env file. Authenticate `gcloud` with the key file where it already is; do not move or copy it.
+If you deploy with another approved identity rather than `anthony.lui@archegon.com`, set `EXPECTED_ACCOUNT` to that identity in the env file. Authenticate interactively or use an approved workload identity; do not create or use a service-account key file for this workflow.
 
 ### Check the model before the day
 
@@ -49,7 +49,7 @@ curl -sS -X POST \
   -d '{"contents":[{"role":"user","parts":[{"text":"Reply with OK."}]}]}'
 ```
 
-A reply with `candidates` means the model id and location are right. A 404 means the model is not offered there: set `GEMINI_LOCATION` to a location that offers it (the service then calls `https://{location}-aiplatform.googleapis.com`), or set `GEMINI_MODEL` to the id that answers.
+A reply with `candidates` verifies the configured `gemini-3.8-flash` model at the `global` Vertex endpoint; the service sends thinking level `LOW` by default. Gemini Enterprise Agent Platform entitlement and the public Vertex AI model catalogue are distinct surfaces, so verify against the deployed project and endpoint rather than inferring availability from the other catalogue. A 404 means the model is not offered there: set `GEMINI_LOCATION` to a location that offers it (the service then calls `https://{location}-aiplatform.googleapis.com`), or set `GEMINI_MODEL` to the id that answers.
 
 ## Env file
 
@@ -76,13 +76,13 @@ deploy/deploy.sh ~/private/presenter.env
 ```
 
 - First deploy: the script creates `graphs-and-jev-presenter` private, with all traffic on the new revision.
-- Later deploys: the new revision gets a tag URL and no traffic. Move traffic yourself; do not use `deploy/promote.sh`, which makes services public and refuses Gemini revisions:
+- Later deploys: the new revision gets a tag URL and no traffic. Promote only with the private workflow, which verifies the tagged candidate with an identity token whose audience is the base Cloud Run service URL, requires a real Gemini interpretation and canonical request, preserves IAM/private settings, switches traffic, verifies the canonical URL with a newly minted token whose audience is the base Cloud Run service URL, and rolls back traffic on failure:
 
 ```bash
-gcloud run services update-traffic graphs-and-jev-presenter \
-  --project=ninth-airship-386815 --region=australia-southeast1 \
-  --to-revisions=REVISION=100
+deploy/promote-private.sh REVISION ~/private/presenter.env
 ```
+
+Never use raw `update-traffic` or the public `deploy/promote.sh` for this service.
 
 ## Open it
 
@@ -130,9 +130,8 @@ Cloud Run logs show the same per request in the `interpreter` field, for example
 
 ## After the day
 
-- Scale down or remove the presenter service: deploy again with `MIN_INSTANCES` removed, or `gcloud run services delete graphs-and-jev-presenter --region=australia-southeast1`.
-- Delete the day's service account key: `gcloud iam service-accounts keys list --iam-account=ACCOUNT`, then `gcloud iam service-accounts keys delete KEY_ID --iam-account=ACCOUNT`.
-- Remove `roles/aiplatform.user` from the presenter service account if nothing else uses it.
+- Scale down the presenter service by deploying again with `MIN_INSTANCES` removed. Deletion is a separate owner-approved operation.
+- Remove `roles/aiplatform.user` (or the custom minimal role) from the presenter service account if nothing else uses it.
 
 ## Local dry run (optional)
 

@@ -56,7 +56,7 @@ Open <http://127.0.0.1:8080/>. Readiness and liveness are at `/api/ready` and `/
 
 ## Deploy
 
-Deployment to Cloud Run uses two guarded scripts: `deploy/deploy.sh` builds and checks a zero-traffic candidate without changing live traffic or access, and `deploy/promote.sh` moves traffic to it, keeps the service public and verifies the canonical URL, rolling back on failure. See [docs/deployment/cloud-run.md](docs/deployment/cloud-run.md) for the procedure and the current deployment record. For a live presentation, the settings in the "Event build" block of `deploy/cloud-run.env.example` run the catalogue demo in the browser and keep one instance warm; [the presentation plan](docs/plans/2026-10-13-presentation-readiness.md) has the steps.
+Deployment to Cloud Run uses two guarded scripts: `deploy/deploy.sh` builds and checks a zero-traffic candidate without changing live traffic or access, and `deploy/promote.sh` moves public-service traffic; `deploy/promote-private.sh` preserves private IAM for Gemini presenter revisions. Both verify the candidate and canonical URL and roll traffic back on failure. See [docs/deployment/cloud-run.md](docs/deployment/cloud-run.md) for the procedure and the current deployment record. For a live presentation, the settings in the "Event build" block of `deploy/cloud-run.env.example` run the catalogue demo in the browser and keep one instance warm; [the presentation plan](docs/plans/2026-10-13-presentation-readiness.md) has the steps.
 
 ## About
 

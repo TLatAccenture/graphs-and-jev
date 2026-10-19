@@ -7,6 +7,7 @@ use std::sync::{Arc, Mutex};
 use std::time::Duration;
 
 use axum::body::{to_bytes, Body};
+use axum::http::header::{CONTENT_LENGTH, LOCATION};
 use axum::http::{Request, StatusCode};
 use axum::response::{IntoResponse, Response};
 use serde_json::{json, Value};
@@ -23,6 +24,13 @@ enum Reply {
     Reading(Value),
     Status(u16),
     Slow,
+    OversizedHeader,
+    OversizedStream,
+    ColdMetadata,
+    OversizedTokenHeader,
+    OversizedTokenStream,
+    OversizedProjectHeader,
+    OversizedProjectStream,
 }
 
 #[derive(Default)]
@@ -30,6 +38,8 @@ struct Seen {
     metadata_flavour: Vec<String>,
     authorisation: Vec<String>,
     bodies: Vec<Value>,
+    token_requests: usize,
+    project_requests: usize,
 }
 
 /// Serves the metadata token, the project id and generateContent on one local port.
@@ -56,12 +66,34 @@ async fn fake_google(reply: Reply) -> (String, Arc<Mutex<Seen>>) {
                 if flavour != "Google" {
                     return StatusCode::FORBIDDEN.into_response();
                 }
-                return match path.as_str() {
-                    "/computeMetadata/v1/instance/service-accounts/default/token" => axum::Json(
+                if path.ends_with("/token") {
+                    log.lock().unwrap().token_requests += 1;
+                }
+                if path.ends_with("project-id") {
+                    log.lock().unwrap().project_requests += 1;
+                }
+                if matches!(reply, Reply::ColdMetadata) {
+                    tokio::time::sleep(Duration::from_millis(250)).await;
+                }
+                let oversized = |header: bool, size: usize| {
+                    if header {
+                        ([(CONTENT_LENGTH, size.to_string())], vec![b'x'; size]).into_response()
+                    } else {
+                        Body::from_stream(futures_util::stream::iter(
+                            (0..300).map(|_| Ok::<_, std::io::Error>(vec![b'x'; 4096])),
+                        ))
+                        .into_response()
+                    }
+                };
+                return match (path.as_str(), &reply) {
+                    ("/computeMetadata/v1/instance/service-accounts/default/token", Reply::OversizedTokenHeader) => oversized(true, 20_000),
+                    ("/computeMetadata/v1/instance/service-accounts/default/token", Reply::OversizedTokenStream) => oversized(false, 0),
+                    ("/computeMetadata/v1/project/project-id", Reply::OversizedProjectHeader) => oversized(true, 2_000),
+                    ("/computeMetadata/v1/project/project-id", Reply::OversizedProjectStream) => oversized(false, 0),
+                    ("/computeMetadata/v1/instance/service-accounts/default/token", _) => axum::Json(
                         json!({"access_token": TOKEN, "expires_in": 3599, "token_type": "Bearer"}),
-                    )
-                    .into_response(),
-                    "/computeMetadata/v1/project/project-id" => PROJECT.into_response(),
+                    ).into_response(),
+                    ("/computeMetadata/v1/project/project-id", _) => PROJECT.into_response(),
                     _ => StatusCode::NOT_FOUND.into_response(),
                 };
             }
@@ -85,9 +117,22 @@ async fn fake_google(reply: Reply) -> (String, Arc<Mutex<Seen>>) {
                 )
                 .into_response(),
                 Reply::Status(code) => StatusCode::from_u16(code).unwrap().into_response(),
-                Reply::Slow => {
+                Reply::Slow | Reply::ColdMetadata => {
                     tokio::time::sleep(Duration::from_secs(5)).await;
                     StatusCode::OK.into_response()
+                }
+                Reply::OversizedHeader => {
+                    ([(CONTENT_LENGTH, "999999")], vec![b'x'; 999999]).into_response()
+                }
+                Reply::OversizedStream => Body::from_stream(futures_util::stream::iter(
+                    (0..300).map(|_| Ok::<_, std::io::Error>(vec![b'x'; 4096])),
+                ))
+                .into_response(),
+                Reply::OversizedTokenHeader
+                | Reply::OversizedTokenStream
+                | Reply::OversizedProjectHeader
+                | Reply::OversizedProjectStream => {
+                    StatusCode::INTERNAL_SERVER_ERROR.into_response()
                 }
             }
         }
@@ -100,6 +145,21 @@ async fn fake_google(reply: Reply) -> (String, Arc<Mutex<Seen>>) {
             .unwrap()
     });
     (origin, seen)
+}
+
+async fn redirect_origin(target: String) -> String {
+    let handler = move || {
+        let target = target.clone();
+        async move { (StatusCode::FOUND, [(LOCATION, target)]) }
+    };
+    let listener = tokio::net::TcpListener::bind("127.0.0.1:0").await.unwrap();
+    let origin = listener.local_addr().unwrap().to_string();
+    tokio::spawn(async move {
+        axum::serve(listener, axum::Router::new().fallback(handler))
+            .await
+            .unwrap()
+    });
+    origin
 }
 
 fn app(vars: &[(&str, &str)]) -> (axum::Router, Arc<Mutex<Vec<String>>>) {
@@ -130,14 +190,40 @@ fn app(vars: &[(&str, &str)]) -> (axum::Router, Arc<Mutex<Vec<String>>>) {
 }
 
 fn gemini_app(origin: &str, extra: &[(&str, &str)]) -> (axum::Router, Arc<Mutex<Vec<String>>>) {
-    let endpoint = format!("http://{origin}");
-    let mut vars = vec![
-        ("CATALOGUE_INTERPRETER", "gemini"),
-        ("GEMINI_ENDPOINT", endpoint.as_str()),
-        ("GCE_METADATA_HOST", origin),
-    ];
-    vars.extend_from_slice(extra);
-    app(&vars)
+    let vars: HashMap<String, String> =
+        std::iter::once(("CATALOGUE_INTERPRETER".to_string(), "gemini".to_string()))
+            .chain(
+                extra
+                    .iter()
+                    .map(|(k, v)| ((*k).to_string(), (*v).to_string())),
+            )
+            .collect();
+    let interpreter = Interpreter::from_test_lookup(
+        |key| vars.get(key).cloned(),
+        &format!("http://{origin}"),
+        &format!("http://{origin}"),
+    )
+    .unwrap();
+    let logs = Arc::new(Mutex::new(Vec::new()));
+    let sink = Arc::clone(&logs);
+    let state = Arc::new(
+        App::load(
+            &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("catalogue.json"),
+            0.8,
+            4_000,
+            60,
+        )
+        .unwrap()
+        .with_log_sink(move |line| sink.lock().unwrap().push(line))
+        .with_interpreter(interpreter),
+    );
+    (
+        router(
+            state,
+            &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("static"),
+        ),
+        logs,
+    )
 }
 
 async fn ask(app: axum::Router, request: &str) -> Value {
@@ -177,11 +263,8 @@ fn reading(fields: Value) -> Value {
 
 #[tokio::test]
 async fn rules_read_requests_by_default_and_nothing_is_called() {
-    let (origin, seen) = fake_google(Reply::Status(500)).await;
-    let (router, logs) = app(&[
-        ("GEMINI_ENDPOINT", &format!("http://{origin}")),
-        ("GCE_METADATA_HOST", &origin),
-    ]);
+    let (_origin, seen) = fake_google(Reply::Status(500)).await;
+    let (router, logs) = app(&[]);
     let value = ask(router, "Annual PM2.5 by country, 2019 to 2024").await;
     assert_eq!(value["outcome"], "answer");
     assert!(value.get("interpretation").is_none(), "{value}");
@@ -300,12 +383,24 @@ async fn a_slow_reply_falls_back_within_the_timeout() {
 #[tokio::test]
 async fn missing_credentials_fall_back_to_the_rules() {
     let (origin, seen) = fake_google(Reply::Status(500)).await;
-    let endpoint = format!("http://{origin}");
-    let (router, _) = app(&[
-        ("CATALOGUE_INTERPRETER", "gemini"),
-        ("GEMINI_ENDPOINT", &endpoint),
-        ("GCE_METADATA_HOST", "127.0.0.1:9"),
-    ]);
+    let vars = |key: &str| (key == "CATALOGUE_INTERPRETER").then(|| "gemini".to_string());
+    let interpreter =
+        Interpreter::from_test_lookup(vars, &format!("http://{origin}"), "http://127.0.0.1:9")
+            .unwrap();
+    let state = Arc::new(
+        App::load(
+            &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("catalogue.json"),
+            0.8,
+            4_000,
+            60,
+        )
+        .unwrap()
+        .with_interpreter(interpreter),
+    );
+    let router = router(
+        state,
+        &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("static"),
+    );
     let value = ask(router, "Emissions").await;
     assert_eq!(value["interpretation"]["by"], "rules");
     assert_eq!(
@@ -371,4 +466,153 @@ async fn a_set_project_and_access_token_skip_the_metadata_server() {
     let seen = seen.lock().unwrap();
     assert!(seen.metadata_flavour.is_empty());
     assert_eq!(seen.authorisation, vec!["Bearer local-token"]);
+}
+
+#[tokio::test]
+async fn production_ignores_arbitrary_endpoint_and_metadata_environment() {
+    let vars = |key: &str| match key {
+        "CATALOGUE_INTERPRETER" => Some("gemini".into()),
+        "GEMINI_ENDPOINT" | "GCE_METADATA_HOST" => Some("http://attacker.invalid".into()),
+        _ => None,
+    };
+    let Interpreter::Gemini(g) = Interpreter::from_lookup(vars).unwrap() else {
+        panic!()
+    };
+    assert_eq!(
+        g.test_endpoints(),
+        (
+            "https://aiplatform.googleapis.com",
+            "http://metadata.google.internal"
+        )
+    );
+}
+
+#[tokio::test]
+async fn oversized_gemini_bodies_fall_back_without_parsing() {
+    for reply in [Reply::OversizedHeader, Reply::OversizedStream] {
+        let (origin, _) = fake_google(reply).await;
+        let value = ask(gemini_app(&origin, &[]).0, "Emissions").await;
+        assert_eq!(value["interpretation"]["by"], "rules");
+        assert!(value["interpretation"]["note"]
+            .as_str()
+            .unwrap()
+            .contains("unreadable"));
+    }
+}
+
+#[tokio::test]
+async fn cold_metadata_and_model_share_one_end_to_end_deadline() {
+    let (origin, _) = fake_google(Reply::ColdMetadata).await;
+    let started = std::time::Instant::now();
+    let value = ask(
+        gemini_app(&origin, &[("GEMINI_TIMEOUT_MS", "300")]).0,
+        "Emissions",
+    )
+    .await;
+    assert!(started.elapsed() < Duration::from_secs(1));
+    assert!(value["interpretation"]["note"]
+        .as_str()
+        .unwrap()
+        .contains("did not respond in time"));
+}
+
+#[tokio::test]
+async fn concurrent_requests_single_flight_metadata_refresh() {
+    let (origin, seen) = fake_google(Reply::Reading(reading(json!({"pollutants": ["CO2"]})))).await;
+    let app = gemini_app(&origin, &[]).0;
+    let mut tasks = Vec::new();
+    for _ in 0..12 {
+        let app = app.clone();
+        tasks.push(tokio::spawn(
+            async move { ask(app, "carbon dioxide").await },
+        ));
+    }
+    for task in tasks {
+        task.await.unwrap();
+    }
+    let seen = seen.lock().unwrap();
+    assert_eq!((seen.token_requests, seen.project_requests), (1, 1));
+}
+
+#[tokio::test]
+async fn model_redirect_is_refused_without_forwarding_bearer() {
+    let (target, seen) = fake_google(Reply::Status(500)).await;
+    let source = redirect_origin(format!("http://{target}{GENERATE}")).await;
+    let value = ask(
+        gemini_app(
+            &source,
+            &[
+                ("GOOGLE_CLOUD_PROJECT", PROJECT),
+                ("GEMINI_ACCESS_TOKEN", "redirect-secret"),
+            ],
+        )
+        .0,
+        "Emissions",
+    )
+    .await;
+    assert_eq!(
+        value["interpretation"]["note"],
+        "Gemini unavailable: Vertex AI returned HTTP 302. The rules read your words."
+    );
+    assert!(seen.lock().unwrap().authorisation.is_empty());
+}
+
+#[tokio::test]
+async fn metadata_redirect_is_refused_without_forwarding_metadata_headers() {
+    let (target, seen) = fake_google(Reply::Status(500)).await;
+    let source = redirect_origin(format!(
+        "http://{target}/computeMetadata/v1/instance/service-accounts/default/token"
+    ))
+    .await;
+    let vars = |key: &str| (key == "CATALOGUE_INTERPRETER").then(|| "gemini".to_string());
+    let interpreter = Interpreter::from_test_lookup(
+        vars,
+        &format!("http://{target}"),
+        &format!("http://{source}"),
+    )
+    .unwrap();
+    let state = Arc::new(
+        App::load(
+            &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("catalogue.json"),
+            0.8,
+            4_000,
+            60,
+        )
+        .unwrap()
+        .with_interpreter(interpreter),
+    );
+    let value = ask(
+        router(
+            state,
+            &PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("static"),
+        ),
+        "Emissions",
+    )
+    .await;
+    assert_eq!(
+        value["interpretation"]["note"],
+        "Gemini unavailable: no Google Cloud access token. The rules read your words."
+    );
+    assert!(seen.lock().unwrap().metadata_flavour.is_empty());
+}
+
+#[tokio::test]
+async fn oversized_metadata_token_and_project_are_rejected() {
+    for reply in [Reply::OversizedTokenHeader, Reply::OversizedTokenStream] {
+        let (origin, seen) = fake_google(reply).await;
+        let value = ask(gemini_app(&origin, &[]).0, "Emissions").await;
+        assert!(value["interpretation"]["note"]
+            .as_str()
+            .unwrap()
+            .contains("no Google Cloud access token"));
+        assert_eq!(seen.lock().unwrap().project_requests, 0);
+    }
+    for reply in [Reply::OversizedProjectHeader, Reply::OversizedProjectStream] {
+        let (origin, _) = fake_google(reply).await;
+        let value = ask(gemini_app(&origin, &[]).0, "Emissions").await;
+        assert!(value["interpretation"]["note"]
+            .as_str()
+            .unwrap()
+            .contains("no Google Cloud project"));
+    }
 }

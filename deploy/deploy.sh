@@ -325,8 +325,12 @@ if failed:
   gjd_prior_serving='{}'
   if [[ "$gjd_service_exists" == true ]]; then
     gjd_deploy_traffic_args=(--no-traffic)
-    gjd_prior_public="$(gcloud run services get-iam-policy "$gjd_SERVICE" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json \
-      | python3 -c 'import json,sys; print(str(any(b.get("role") == "roles/run.invoker" and "allUsers" in b.get("members", []) for b in json.load(sys.stdin).get("bindings", []))).lower())')"
+    gjd_prior_public="$(python3 -c 'import json,sys
+service=json.load(open(sys.argv[1])); iam=json.load(sys.stdin)
+annotation=service.get("metadata", {}).get("annotations", {}).get("run.googleapis.com/invoker-iam-disabled")
+if annotation not in (None, "true", "false"): raise SystemExit("unknown invoker IAM annotation")
+public=annotation == "true" or any(b.get("role") == "roles/run.invoker" and "allUsers" in b.get("members", []) for b in iam.get("bindings", []))
+print(str(public).lower())' <(gcloud run services describe "$gjd_SERVICE" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json) < <(gcloud run services get-iam-policy "$gjd_SERVICE" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json))" || fail 'could not determine effective Cloud Run privacy state'
     gjd_prior_serving="$(gcloud run services describe "$gjd_SERVICE" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json \
       | python3 -c 'import json,sys; print(json.dumps({t.get("revisionName", "LATEST"): t["percent"] for t in json.load(sys.stdin)["status"].get("traffic", []) if t.get("percent")}, sort_keys=True))')"
   fi
@@ -397,7 +401,11 @@ container = spec["containers"][0]
 annotations = metadata.get("annotations", {})
 limits = container.get("resources", {}).get("limits", {})
 traffic = service.get("status", {}).get("traffic", [])
-public = any(
+invoker_iam_disabled = service.get("metadata", {}).get("annotations", {}).get("run.googleapis.com/invoker-iam-disabled")
+assert_effective_annotation = invoker_iam_disabled in (None, "true", "false")
+if not assert_effective_annotation:
+    raise SystemExit("effective deployment mismatch: unknown invoker IAM annotation")
+public = invoker_iam_disabled == "true" or any(
     binding.get("role") == "roles/run.invoker" and "allUsers" in binding.get("members", [])
     for binding in iam.get("bindings", [])
 )
@@ -419,6 +427,7 @@ actual = {
     "app_env": {item["name"]: item.get("value", "") for item in container.get("env", [])},
     "traffic": traffic,
     "public_invocation": public,
+    "invoker_iam_disabled": invoker_iam_disabled == "true",
     "service_private": not public,
     "serving": {item.get("revisionName", "LATEST"): item["percent"] for item in traffic if item.get("percent")},
     "candidate_zero_traffic": not expected_bootstrap,
@@ -482,7 +491,11 @@ PY
   else
     printf 'Validated revision %s at 0%% traffic; live traffic and access unchanged\n' "$gjd_revision"
   fi
-  printf 'Promote with: deploy/promote.sh %s\n' "$gjd_revision"
+  if [[ "$gjd_gemini" == true ]]; then
+    printf 'Promote with: deploy/promote-private.sh %s [environment-file]\n' "$gjd_revision"
+  else
+    printf 'Promote with: deploy/promote.sh %s\n' "$gjd_revision"
+  fi
   printf 'Captured verified effective settings in %s\n' "$gjd_DEPLOY_OUTPUT"
 )
 

@@ -8,8 +8,11 @@
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
+use reqwest::redirect::Policy;
+use serde::de::DeserializeOwned;
 use serde::Deserialize;
 use serde_json::{json, Value};
+use tokio::sync::Mutex as AsyncMutex;
 
 use crate::catalogue::Catalogue;
 
@@ -20,6 +23,9 @@ const DEFAULT_THINKING: &str = "low";
 const METADATA_HOST: &str = "metadata.google.internal";
 const MAX_UNSUPPORTED: usize = 5;
 const MAX_UNSUPPORTED_CHARS: usize = 60;
+const MAX_TOKEN_BYTES: usize = 16 * 1024;
+const MAX_PROJECT_BYTES: usize = 1024;
+const MAX_GEMINI_BYTES: usize = 1024 * 1024;
 
 /// Who reads typed requests before the rules decide: the rules alone, or Gemini first.
 pub enum Interpreter {
@@ -34,11 +40,14 @@ pub struct Gemini {
     project: Option<String>,
     thinking: Option<String>,
     access_token: Option<String>,
-    metadata_host: String,
+    metadata_origin: String,
+    timeout: Duration,
     http: reqwest::Client,
     metadata: reqwest::Client,
     cached_token: Mutex<Option<(String, Instant)>>,
     cached_project: Mutex<Option<String>>,
+    token_refresh: AsyncMutex<()>,
+    project_refresh: AsyncMutex<()>,
 }
 
 /// What the rules decided on, and who read the request.
@@ -61,6 +70,7 @@ impl Interpretation {
     }
 }
 
+#[derive(Clone, Copy)]
 enum Failure {
     Credentials,
     Project,
@@ -94,8 +104,36 @@ fn from_reqwest(error: reqwest::Error) -> Failure {
 }
 
 impl Interpreter {
-    /// Builds the interpreter from `lookup`; empty values count as unset.
+    /// Builds the production interpreter. Network destinations are derived only from validated
+    /// location and the fixed Google metadata origin; endpoint-like environment values are ignored.
     pub fn from_lookup(lookup: impl Fn(&str) -> Option<String>) -> Result<Self, String> {
+        Self::build(lookup, None)
+    }
+
+    #[doc(hidden)]
+    pub fn from_test_lookup(
+        lookup: impl Fn(&str) -> Option<String>,
+        endpoint: &str,
+        metadata_origin: &str,
+    ) -> Result<Self, String> {
+        fn loopback_origin(value: &str) -> bool {
+            value
+                .strip_prefix("http://127.0.0.1:")
+                .is_some_and(|port| port.parse::<u16>().is_ok())
+        }
+        if !loopback_origin(endpoint) || !loopback_origin(metadata_origin) {
+            return Err("test endpoints must be loopback HTTP origins".into());
+        }
+        Self::build(
+            lookup,
+            Some((endpoint.to_string(), metadata_origin.to_string())),
+        )
+    }
+
+    fn build(
+        lookup: impl Fn(&str) -> Option<String>,
+        test_origins: Option<(String, String)>,
+    ) -> Result<Self, String> {
         let var = |key: &str| lookup(key).filter(|value| !value.trim().is_empty());
         match var("CATALOGUE_INTERPRETER").as_deref().unwrap_or("rules") {
             "rules" => return Ok(Self::Rules),
@@ -113,8 +151,14 @@ impl Interpreter {
         if !name(&model) {
             return Err("GEMINI_MODEL must be a model id such as gemini-3.8-flash.".into());
         }
-        if !name(&location) {
-            return Err("GEMINI_LOCATION must be a location such as global.".into());
+        if location.is_empty()
+            || !location
+                .bytes()
+                .all(|b| b.is_ascii_lowercase() || b.is_ascii_digit() || b == b'-')
+        {
+            return Err(
+                "GEMINI_LOCATION must be global or a lower-case Google Cloud region.".into(),
+            );
         }
         let project = var("GOOGLE_CLOUD_PROJECT");
         if project.as_deref().is_some_and(|p| !name(p)) {
@@ -137,31 +181,20 @@ impl Interpreter {
                         .into(),
                 ),
             };
-        let endpoint = match var("GEMINI_ENDPOINT") {
-            Some(endpoint) => {
-                let origin = endpoint.trim_end_matches('/');
-                let rest = origin
-                    .strip_prefix("https://")
-                    .or_else(|| origin.strip_prefix("http://"));
-                if rest.is_none_or(|r| r.is_empty() || r.contains(['/', '?', '#', ' '])) {
-                    return Err("GEMINI_ENDPOINT must be an http(s) origin with no path.".into());
-                }
-                origin.to_string()
-            }
-            None if location == "global" => "https://aiplatform.googleapis.com".into(),
-            None => format!("https://{location}-aiplatform.googleapis.com"),
+        let production_endpoint = if location == "global" {
+            "https://aiplatform.googleapis.com".into()
+        } else {
+            format!("https://{location}-aiplatform.googleapis.com")
         };
-        let metadata_host = var("GCE_METADATA_HOST").unwrap_or_else(|| METADATA_HOST.into());
-        if metadata_host.contains(['/', '?', '#', ' ']) {
-            return Err("GCE_METADATA_HOST must be host[:port].".into());
-        }
+        let (endpoint, metadata_origin) =
+            test_origins.unwrap_or((production_endpoint, format!("http://{METADATA_HOST}")));
         let timeout = Duration::from_millis(timeout);
         let http = reqwest::Client::builder()
-            .timeout(timeout)
+            .redirect(Policy::none())
             .build()
             .map_err(|e| format!("Gemini client: {e}"))?;
-        // The metadata server is link-local, so it never goes through a proxy.
         let metadata = reqwest::Client::builder()
+            .redirect(Policy::none())
             .timeout(timeout.min(Duration::from_secs(2)))
             .no_proxy()
             .build()
@@ -173,20 +206,26 @@ impl Interpreter {
             project,
             thinking,
             access_token: var("GEMINI_ACCESS_TOKEN"),
-            metadata_host,
+            metadata_origin,
+            timeout,
             http,
             metadata,
             cached_token: Mutex::new(None),
             cached_project: Mutex::new(None),
+            token_refresh: AsyncMutex::new(()),
+            project_refresh: AsyncMutex::new(()),
         })))
     }
-
     /// Reads `request` with Gemini. Returns `None` when the rules read requests alone.
     pub async fn interpret(&self, cat: &Catalogue, request: &str) -> Option<Interpretation> {
         let Self::Gemini(gemini) = self else {
             return None;
         };
-        let reading = match gemini.read(cat, request).await {
+        let result = match tokio::time::timeout(gemini.timeout, gemini.read(cat, request)).await {
+            Err(_) => Err(Failure::Timeout),
+            Ok(result) => result,
+        };
+        let reading = match result {
             Ok(reading) => reading,
             Err(failure) => {
                 return Some(Interpretation {
@@ -501,6 +540,10 @@ struct Token {
 }
 
 impl Gemini {
+    #[doc(hidden)]
+    pub fn test_endpoints(&self) -> (&str, &str) {
+        (&self.endpoint, &self.metadata_origin)
+    }
     async fn read(&self, cat: &Catalogue, request: &str) -> Result<Reading, Failure> {
         let token = self.token().await?;
         let project = self.project().await?;
@@ -532,13 +575,7 @@ impl Gemini {
         if !response.status().is_success() {
             return Err(Failure::Status(response.status().as_u16()));
         }
-        let reply: Value = response.json().await.map_err(|e| {
-            if e.is_timeout() {
-                Failure::Timeout
-            } else {
-                Failure::Unreadable
-            }
-        })?;
+        let reply: Value = bounded_json(response, MAX_GEMINI_BYTES, Failure::Unreadable).await?;
         reading_from(&reply)?.check(cat)
     }
 
@@ -551,9 +588,15 @@ impl Gemini {
                 return Ok(token.clone());
             }
         }
+        let _refresh = self.token_refresh.lock().await;
+        if let Some((token, expires)) = self.cached_token.lock().expect("token cache").as_ref() {
+            if Instant::now() < *expires {
+                return Ok(token.clone());
+            }
+        }
         let url = format!(
-            "http://{}/computeMetadata/v1/instance/service-accounts/default/token",
-            self.metadata_host
+            "{}/computeMetadata/v1/instance/service-accounts/default/token",
+            self.metadata_origin
         );
         let response = self
             .metadata
@@ -565,7 +608,7 @@ impl Gemini {
         if !response.status().is_success() {
             return Err(Failure::Credentials);
         }
-        let token: Token = response.json().await.map_err(|_| Failure::Credentials)?;
+        let token: Token = bounded_json(response, MAX_TOKEN_BYTES, Failure::Credentials).await?;
         // Refresh a minute early so a token never expires mid-request.
         let expires = Instant::now() + Duration::from_secs(token.expires_in.saturating_sub(60));
         *self.cached_token.lock().expect("token cache") =
@@ -580,9 +623,13 @@ impl Gemini {
         if let Some(project) = self.cached_project.lock().expect("project cache").as_ref() {
             return Ok(project.clone());
         }
+        let _refresh = self.project_refresh.lock().await;
+        if let Some(project) = self.cached_project.lock().expect("project cache").as_ref() {
+            return Ok(project.clone());
+        }
         let url = format!(
-            "http://{}/computeMetadata/v1/project/project-id",
-            self.metadata_host
+            "{}/computeMetadata/v1/project/project-id",
+            self.metadata_origin
         );
         let response = self
             .metadata
@@ -591,14 +638,12 @@ impl Gemini {
             .send()
             .await
             .map_err(|_| Failure::Project)?;
-        let project = response
-            .error_for_status()
-            .map_err(|_| Failure::Project)?
-            .text()
-            .await
-            .map_err(|_| Failure::Project)?
-            .trim()
-            .to_string();
+        let response = response.error_for_status().map_err(|_| Failure::Project)?;
+        let project =
+            String::from_utf8(bounded_bytes(response, MAX_PROJECT_BYTES, Failure::Project).await?)
+                .map_err(|_| Failure::Project)?
+                .trim()
+                .to_string();
         let valid = !project.is_empty()
             && project
                 .bytes()
@@ -609,6 +654,37 @@ impl Gemini {
         *self.cached_project.lock().expect("project cache") = Some(project.clone());
         Ok(project)
     }
+}
+
+async fn bounded_bytes(
+    response: reqwest::Response,
+    limit: usize,
+    failure: Failure,
+) -> Result<Vec<u8>, Failure> {
+    if response
+        .content_length()
+        .is_some_and(|length| length > limit as u64)
+    {
+        return Err(failure);
+    }
+    let mut bytes = Vec::new();
+    let mut response = response;
+    while let Some(chunk) = response.chunk().await.map_err(|_| failure)? {
+        if bytes.len().saturating_add(chunk.len()) > limit {
+            return Err(failure);
+        }
+        bytes.extend_from_slice(&chunk);
+    }
+    Ok(bytes)
+}
+
+async fn bounded_json<T: DeserializeOwned>(
+    response: reqwest::Response,
+    limit: usize,
+    failure: Failure,
+) -> Result<T, Failure> {
+    let bytes = bounded_bytes(response, limit, failure).await?;
+    serde_json::from_slice(&bytes).map_err(|_| Failure::Unreadable)
 }
 
 /// Takes the JSON text from the first candidate, skipping any thought parts.
@@ -830,14 +906,6 @@ mod tests {
             &[
                 ("CATALOGUE_INTERPRETER", "gemini"),
                 ("GEMINI_THINKING_LEVEL", "max"),
-            ][..],
-            &[
-                ("CATALOGUE_INTERPRETER", "gemini"),
-                ("GEMINI_ENDPOINT", "ftp://x"),
-            ][..],
-            &[
-                ("CATALOGUE_INTERPRETER", "gemini"),
-                ("GEMINI_ENDPOINT", "https://x/v1"),
             ][..],
             &[
                 ("CATALOGUE_INTERPRETER", "gemini"),
