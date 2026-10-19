@@ -1,6 +1,6 @@
 # Cloud Run deployment record
 
-This record captures the verified production state on 19 October 2026, after PR [#7](https://github.com/TLatAccenture/graphs-and-jev/pull/7) and PR [#8](https://github.com/TLatAccenture/graphs-and-jev/pull/8) were merged and released with `deploy/deploy.sh` and `deploy/promote.sh`. The publication is now Migration Acceleration with Google Cloud. Re-run the commands below before relying on it after a deployment.
+This record captures the verified production state on 19 October 2026, after PR [#7](https://github.com/TLatAccenture/graphs-and-jev/pull/7), PR [#8](https://github.com/TLatAccenture/graphs-and-jev/pull/8), and PR [#11](https://github.com/TLatAccenture/graphs-and-jev/pull/11) were merged and released with `deploy/deploy.sh` and `deploy/promote.sh`. The publication is now Migration Acceleration with Google Cloud. Re-run the commands below before relying on it after a deployment.
 
 ## Published service
 
@@ -8,10 +8,10 @@ This record captures the verified production state on 19 October 2026, after PR 
 - Region: `australia-southeast1`
 - Service: `graphs-and-jev`
 - Canonical URL: <https://graphs-and-jev-956922431929.australia-southeast1.run.app>
-- Active revision: `graphs-and-jev-e6c6843d6af7` (100% of traffic)
-- Source commit: `e6c6843d6af7f4717b3b2d4a4408519dc5c77c31` (merge of PR #8 into `main`, including PR #7 merge `91573c47`)
-- Immutable image: `australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app@sha256:46a9a094751b9c5dfe783df650e0db766a8d6dff6a0889e5c4b1e367e41408ed`
-- Previous revision: `graphs-and-jev-4008223a049a` (0%), kept as the immediate rollback target
+- Active revision: `graphs-and-jev-0b1441610e5f` (100% of traffic)
+- Source commit: `0b1441610e5fc8e1c289433f3f01da33777b6b59` (merge of PR #11 into `main`)
+- Immutable image: `australia-southeast1-docker.pkg.dev/ninth-airship-386815/graphs-and-jev/app@sha256:eb458c1c98fe6545e4703fe56e1f6646f4876105e4979774af2f209d25e4845c`
+- Previous revision: `graphs-and-jev-e6c6843d6af7` (0%), kept as the immediate rollback target
 - Runtime identity: `graphs-and-jev-runner@ninth-airship-386815.iam.gserviceaccount.com`
 
 The single Rust process serves the static field guide and same-origin API. It runs from a `scratch` image as UID/GID 65532. Cloud Run ingress is `all`; `allUsers` has `roles/run.invoker`, so the publication is intentionally public. GitHub Pages was retired with PR [#1](https://github.com/TLatAccenture/graphs-and-jev/pull/1); the GitHub Pages API returns 404 for this repository.
@@ -21,7 +21,7 @@ The single Rust process serves the static field guide and same-origin API. It ru
 The active revision reports minimum instances 1, maximum instances 2, concurrency 20, 1 CPU, 512 MiB memory, and a 30-second request timeout. Startup and liveness probes use `/api/ready` and `/api/health`. Inspect the revision rather than relying on the service's historical top-level `run.googleapis.com/maxScale` annotation:
 
 ```bash
-gcloud run revisions describe graphs-and-jev-e6c6843d6af7 \
+gcloud run revisions describe graphs-and-jev-0b1441610e5f \
   --project=ninth-airship-386815 \
   --region=australia-southeast1 \
   --format=yaml
@@ -41,7 +41,8 @@ Successful Cloud Build IDs for the promoted runtime lineage were:
 - `336f2ec2-cae7-4095-8312-caa84e0931a5`: commit `6a52f35f2aa793b24f1aa952cb7ff01f48dde059`, first scratch candidate.
 - `9a059894-f911-4c7f-8471-a35dcc10fdf0`: commit `e7cead061975dcd120dc113d72e25f0cbc818f6d`, previous scratch image.
 - `3df1250d-a231-458a-862b-c46e25c5fe19`: commit `4008223a049a16a963a6d87c5b6a092a8ea09b66`, promoted scratch image (The MCP Tool Shed).
-- `f7efa10c-fbee-4bd9-baf0-7c65ff7c2ef5`: commit `e6c6843d6af7f4717b3b2d4a4408519dc5c77c31`, successful current scratch image (Migration Acceleration with Google Cloud), digest `sha256:46a9a094751b9c5dfe783df650e0db766a8d6dff6a0889e5c4b1e367e41408ed`.
+- `f7efa10c-fbee-4bd9-baf0-7c65ff7c2ef5`: commit `e6c6843d6af7f4717b3b2d4a4408519dc5c77c31`, successful scratch image (Migration Acceleration with Google Cloud), digest `sha256:46a9a094751b9c5dfe783df650e0db766a8d6dff6a0889e5c4b1e367e41408ed`.
+- `10851c9a-99b4-4b0e-9a58-71ffd08a8070`: commit `0b14416`, `SUCCESS`, corrected friendly release, digest `sha256:eb458c1c98fe6545e4703fe56e1f6646f4876105e4979774af2f209d25e4845c`.
 
 Cloud Build staged source in `gs://ninth-airship-386815-graphs-and-jev-build-source/source/` and wrote logs to `gs://956922431929-australia-southeast1-cloudbuild-logs/logs`. Both buckets are regional, use uniform bucket-level access, and enforce public-access prevention. The dedicated builder is `graphs-and-jev-builder@ninth-airship-386815.iam.gserviceaccount.com`; verified grants are Artifact Registry writer on the repository, project-level log writer and Service Usage consumer, source-object read access, and log-bucket object management required by Cloud Build. The runtime service account has no verified project-wide role.
 
@@ -76,7 +77,9 @@ Do not add raw request text, response evidence bodies, credentials, tokens, or p
 
 `tests/test-deploy.sh` covers both scripts with a mocked `gcloud`, including the rollback path.
 
-The 19 October 2026 release followed these steps. All four GitHub CI checks were green. The local combined release suite passed 80 Rust tests, deploy, static and audit checks, plus root and subpath Playwright runs with 140 passed and 18 skipped in each run. `deploy.sh` validated candidate `graphs-and-jev-e6c6843d6af7` at 0% through its candidate URL, with live traffic and IAM unchanged. `promote.sh` moved it to 100%, kept public `allUsers` invoker access and verified the canonical URL anonymously. Build `f7efa10c-fbee-4bd9-baf0-7c65ff7c2ef5` reported `SUCCESS` for commit `e6c6843` and the immutable image recorded above. Where a direct `gcloud describe` requery was unavailable, this provenance is captured from the successful guarded deploy output and is not presented as a later API observation.
+The 19 October 2026 release followed these steps. All four GitHub CI checks were green. The local combined release suite passed 80 Rust tests, deploy, static and audit checks, plus root and subpath Playwright runs with 140 passed and 18 skipped in each run. `deploy.sh` validated candidate `graphs-and-jev-e6c6843d6af7` at 0% through its candidate URL, with live traffic and IAM unchanged. `promote.sh` moved it to 100%, kept public `allUsers` invoker access and verified the canonical URL anonymously. Build `f7efa10c-fbee-4bd9-baf0-7c65ff7c2ef5` reported `SUCCESS` for commit `e6c6843` and its immutable image recorded above. Where a direct `gcloud describe` requery was unavailable, this provenance is captured from the successful guarded deploy output and is not presented as a later API observation.
+
+An incomplete intermediate `a426318` candidate was promoted briefly. Post-release behavioural probing did not pass, so traffic was immediately returned to `graphs-and-jev-e6c6843d6af7` before corrected PR [#11](https://github.com/TLatAccenture/graphs-and-jev/pull/11). The corrected `0b14416` release then passed the candidate and promotion guards. Direct candidate and anonymous canonical verification confirmed that `hi` clarifies with a message beginning `Hello`, `tell me a joke` rejects with a message beginning `Sorry`, and `Good morning team` followed by a valid CO2 request answers. Build `10851c9a-99b4-4b0e-9a58-71ffd08a8070` reported `SUCCESS` for commit `0b14416` and the current immutable image recorded above.
 
 ## Release verification gates
 
@@ -110,7 +113,7 @@ Route all traffic to a known healthy revision:
 gcloud run services update-traffic graphs-and-jev \
   --project=ninth-airship-386815 \
   --region=australia-southeast1 \
-  --to-revisions=graphs-and-jev-4008223a049a=100
+  --to-revisions=graphs-and-jev-e6c6843d6af7=100
 ```
 
 Verify `/api/health`, `/api/ready`, `/`, `/technical-guide/`, `/environmental-agency/`, `/lineage-migration/`, `/little-bunnies/`, `/config.js`, and representative API outcomes. Restore the current revision with:
@@ -119,7 +122,7 @@ Verify `/api/health`, `/api/ready`, `/`, `/technical-guide/`, `/environmental-ag
 gcloud run services update-traffic graphs-and-jev \
   --project=ninth-airship-386815 \
   --region=australia-southeast1 \
-  --to-revisions=graphs-and-jev-e6c6843d6af7=100
+  --to-revisions=graphs-and-jev-0b1441610e5f=100
 ```
 
-The immediate rollback target `graphs-and-jev-4008223a049a` restores the previously promoted MCP Tool Shed release. An earlier drill (9 October 2026) moved 100% traffic from `graphs-and-jev-e7cead061975` to `graphs-and-jev-6a52f35f2aa7`, verified the older revision, then restored and re-verified `graphs-and-jev-e7cead061975`.
+The immediate rollback target `graphs-and-jev-e6c6843d6af7` restores the previously verified Migration Acceleration release. An earlier drill (9 October 2026) moved 100% traffic from `graphs-and-jev-e7cead061975` to `graphs-and-jev-6a52f35f2aa7`, verified the older revision, then restored and re-verified `graphs-and-jev-e7cead061975`.
