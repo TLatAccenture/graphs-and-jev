@@ -232,6 +232,42 @@ fn unresolved_constraints(cat: &Catalogue, text: &str) -> Vec<String> {
     unknown
 }
 
+pub const CLARIFY_MESSAGE: &str = "The request needs more detail: name a pollutant (or ask for emissions in general) and a breakdown such as country and year.";
+pub const REJECT_MESSAGE: &str = "Sorry, I can't help with that one. This catalogue covers air pollutants and emissions for 2015-2025 at region, country or continent level, so hourly or city-level data, other years and other topics are out of scope. Try \"Annual PM2.5 by country, 2019 to 2024\".";
+const GREETING_REPLY: &str = "Hello! I can help you find air-pollution and emissions datasets. Name a pollutant (or ask for emissions in general) and a breakdown such as country and year, for example \"Annual PM2.5 by country, 2019 to 2024\".";
+const THANKS_REPLY: &str =
+    "You're welcome! Ask about another pollutant or breakdown whenever you like.";
+
+fn strip_leading_greeting(text: &str) -> &str {
+    let greeting = re(
+        r"^(?:(?:hi|hello|hey|hiya|howdy|yo|greetings)|good (?:morning|afternoon|evening))(?:\s+(?:there|jev|all|everyone|team))?(?:[\s,!.:;-]+|$)",
+    );
+    greeting
+        .find(text)
+        .ok()
+        .flatten()
+        .map_or(text, |matched| text[matched.end()..].trim())
+}
+
+/// A friendly reply when the whole request is a greeting, thanks or a "what can you do" question.
+fn small_talk(text: &str) -> Option<&'static str> {
+    let words = re(r"[^a-z0-9 ]+")
+        .replace_all(text, "")
+        .split_whitespace()
+        .collect::<Vec<_>>()
+        .join(" ");
+    let is = |pat: &str| re(pat).is_match(&words).unwrap_or(false);
+    if is(r"^(thanks|thank you|cheers|ta)( (very much|so much|a lot|jev))?$") {
+        Some(THANKS_REPLY)
+    } else if is(
+        r"^((hi|hello|hey|hiya|howdy|yo|greetings|good (morning|afternoon|evening))( (there|jev|all|everyone|team))?|help|help me|what can you do|what do you do|who are you|how does this work|how do i use this)$",
+    ) {
+        Some(GREETING_REPLY)
+    } else {
+        None
+    }
+}
+
 fn unresolved_request_terms(cat: &Catalogue, text: &str) -> Vec<String> {
     let allowed = [
         "i",
@@ -245,6 +281,11 @@ fn unresolved_request_terms(cat: &Catalogue, text: &str) -> Vec<String> {
         "can",
         "could",
         "please",
+        "hi",
+        "hello",
+        "hey",
+        "thanks",
+        "thank",
         "me",
         "gimme",
         "give",
@@ -362,6 +403,8 @@ fn unresolved_request_terms(cat: &Catalogue, text: &str) -> Vec<String> {
 }
 
 pub fn resolve(cat: &Catalogue, request: &str) -> Value {
+    let original = norm(request);
+    let request = strip_leading_greeting(&original);
     let text = norm(request);
     let mut levels: serde_json::Map<String, Value> = serde_json::Map::new();
     let mut filters: serde_json::Map<String, Value> = serde_json::Map::new();
@@ -561,13 +604,21 @@ pub fn resolve(cat: &Catalogue, request: &str) -> Value {
             filters.insert("TIME".into(), json!({"level": "year", "members": members}));
         }
     }
+    // Greetings, thanks and "what can you do" get a friendly nudge, not a rejection.
+    let chat = if pollutants.is_empty() && levels.is_empty() {
+        small_talk(&original)
+    } else {
+        None
+    };
     for qualifier in unresolved_constraints(cat, request) {
         issues.push(format!(
             "Unrecognised constraint '{qualifier}'; use catalogue members or clarify the request."
         ));
     }
     let unknown = unresolved_request_terms(cat, request);
-    if !unknown.is_empty() && issues.is_empty() {
+    if let Some(reply) = chat {
+        issues = vec![reply.to_string()];
+    } else if !unknown.is_empty() && issues.is_empty() {
         issues.push(format!(
             "Unrecognised request terms: {}. Use catalogue terms or clarify the request.",
             unknown.join(", ")
@@ -582,7 +633,8 @@ pub fn resolve(cat: &Catalogue, request: &str) -> Value {
         unsupported = true;
         pollutants.clear();
     }
-    let off_topic = pollutants.is_empty()
+    let off_topic = chat.is_none()
+        && pollutants.is_empty()
         && levels.is_empty()
         && !re(r"\b(pollution|emissions?|data|everything)\b")
             .is_match(&text)

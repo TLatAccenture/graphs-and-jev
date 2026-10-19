@@ -279,6 +279,39 @@ async fn pipeline_accepts_the_site_api_body_and_air_alias() {
 }
 
 #[tokio::test]
+async fn small_talk_and_catalogue_scope_matrix() {
+    for (request, outcome, needle) in [
+        ("hi", "clarify", "Hello!"),
+        ("Hello there!", "clarify", "Hello!"),
+        ("good evening team", "clarify", "Hello!"),
+        ("what can you do?", "clarify", "Hello!"),
+        ("thanks", "clarify", "welcome"),
+        (
+            "Greetings team, annual CO2 for Australia in 2024",
+            "answer",
+            "solutions",
+        ),
+        ("tell me a joke", "reject", "Sorry"),
+        ("write a haiku", "reject", "Sorry"),
+        ("hourly ozone by street", "reject", "Sorry"),
+        ("annual CO2 for Australia in 2024", "answer", "solutions"),
+    ] {
+        let response = post(app(10).0, "/api/pipeline", json!({"request": request})).await;
+        assert_eq!(response.status(), StatusCode::OK, "{request}");
+        let value = json_body(response).await;
+        assert_eq!(value["outcome"], outcome, "{request}: {value}");
+        if outcome == "answer" {
+            assert!(value[needle].is_array(), "{request}: {value}");
+        } else {
+            assert!(
+                value["message"].as_str().unwrap().contains(needle),
+                "{request}: {value}"
+            );
+        }
+    }
+}
+
+#[tokio::test]
 async fn lineage_domain_is_not_implemented_and_logged_as_such() {
     let (router, logs) = app(10);
     let response = post(

@@ -110,16 +110,20 @@ json.loads(text[len(prefix) : -len(suffix)])
 for text_request, outcome in (
     ("annual CO2 for Australia in 2024", "answer"),
     ("emissions", "clarify"),
+    ("hi", "clarify"),
     ("write me a poem about the sea", "reject"),
 ):
     status, body, _ = request(
         "/api/pipeline",
         {"domain": "catalogue", "request": text_request, "preference": None},
     )
-    check(
-        status == 200 and json.loads(body).get("outcome") == outcome,
-        f"catalogue {outcome}",
-    )
+    result = json.loads(body) if status == 200 else {}
+    check(status == 200 and result.get("outcome") == outcome, f"catalogue {outcome}")
+    if text_request == "hi":
+        check(
+            "Hello!" in result.get("message", ""),
+            "catalogue hi clarify missing friendly Hello marker",
+        )
 status, _, _ = request(
     "/api/pipeline",
     {
@@ -131,11 +135,21 @@ status, _, _ = request(
 check(status == 501, "lineage should return 501")
 if os.environ.get("GEMINI_VERIFY") == "1":
     expected_model = os.environ.get("VERIFY_EXPECTED_MODEL", "")
-    status, body, _ = request("/api/pipeline", {"domain":"catalogue","request":"could I see fine particles for each nation, yearly, 2019 through 2024?","preference":None})
+    status, body, _ = request(
+        "/api/pipeline",
+        {
+            "domain": "catalogue",
+            "request": "could I see fine particles for each nation, yearly, 2019 through 2024?",
+            "preference": None,
+        },
+    )
     result = json.loads(body) if status == 200 else {}
     interpretation = result.get("interpretation", {})
     check(interpretation.get("by") == "gemini", "Gemini smoke did not use Gemini")
     check(interpretation.get("model") == expected_model, "Gemini smoke model")
-    check(interpretation.get("request") == "PM2.5 by country and year from 2019 to 2024", "Gemini smoke canonical request")
+    check(
+        interpretation.get("request") == "PM2.5 by country and year from 2019 to 2024",
+        "Gemini smoke canonical request",
+    )
 
 print(f"verify passed at {base_url}")
