@@ -23,6 +23,18 @@ s=json.load(open(sys.argv[1])); iam=json.load(open(sys.argv[2])); a=s.get("metad
 if a not in (None,"false") or any(b.get("role")=="roles/run.invoker" and "allUsers" in b.get("members",[]) for b in iam.get("bindings",[])): raise SystemExit("service is not verifiably private")
 PY
   rollback_args="$(python3 -c 'import json,sys; t=[x for x in json.load(open(sys.argv[1]))["status"]["traffic"] if x.get("percent")]; print("--to-revisions="+",".join("%s=%s" % (x["revisionName"], x["percent"]) for x in t))' "$state/before.json")" || fail 'cannot record traffic'
+  identity_token() {
+    local error token
+    error="$state/token-error"
+    if token="$(gcloud auth print-identity-token --audiences="$service_url" 2>"$error")"; then
+      printf '%s\n' "$token"
+    elif grep -q 'Invalid account type' "$error"; then
+      gcloud auth print-identity-token
+    else
+      cat "$error" >&2
+      return 1
+    fi
+  }
   candidate_url="$(python3 -c 'import json,sys; x=[t for t in json.load(open(sys.argv[1]))["status"]["traffic"] if t.get("revisionName")==sys.argv[2] and t.get("tag")]; print(x[0].get("url","") if len(x)==1 else "")' "$state/before.json" "$revision")"
   service_url="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["status"]["url"])' "$state/before.json")"
   gcloud run revisions describe "$revision" --project="$project" --region="$region" --format=json >"$state/revision.json"
@@ -53,7 +65,7 @@ PY
     verify_env+=(JEV_VERIFY=1 JEV_VERIFY_EXPECTED_MODEL="$jev_model")
   fi
   [[ "$candidate_url" == https://* ]] || fail 'candidate tag URL missing'
-  token="$(gcloud auth print-identity-token --audiences="$service_url")"
+  token="$(identity_token)"
   env VERIFY_BEARER="$token" "${verify_env[@]}" python3 "$root/deploy/verify.py" "$candidate_url" || fail 'candidate private-model checks failed'
   rollback() { printf 'private promote: rolling back traffic\n' >&2; gcloud run services update-traffic "$service" --project="$project" --region="$region" "$rollback_args" --quiet || printf 'private promote: TRAFFIC ROLLBACK FAILED\n' >&2; }
   trap 'rc=$?; [[ $rc == 0 ]] || rollback; rm -rf "$state"; exit $rc' EXIT
@@ -67,7 +79,7 @@ s=json.load(open(sys.argv[1])); a=s.get("metadata",{}).get("annotations",{}).get
 t={x["revisionName"]:x["percent"] for x in s["status"]["traffic"] if x.get("percent")}
 if a not in (None,"false") or t != {sys.argv[2]:100}: raise SystemExit("privacy or traffic mismatch")
 PY
-  token="$(gcloud auth print-identity-token --audiences="$service_url")"
+  token="$(identity_token)"
   env VERIFY_BEARER="$token" "${verify_env[@]}" python3 "$root/deploy/verify.py" "$service_url" || fail 'canonical private-model checks failed'
   printf 'Privately promoted %s; IAM unchanged; authenticated canonical checks passed\n' "$revision"
 )
