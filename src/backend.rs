@@ -3,7 +3,7 @@ use std::future::Future;
 use std::pin::Pin;
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-use std::time::Duration;
+use std::time::{Duration, Instant};
 
 use futures_util::StreamExt;
 use reqwest::{redirect::Policy, StatusCode};
@@ -305,6 +305,7 @@ impl HostedJevBackend {
         questions: &Map<String, Value>,
     ) -> Result<Value, DecisionError> {
         let nonce = RETRY_NONCE.fetch_add(1, Ordering::Relaxed);
+        let started = Instant::now();
         let operation = async {
             let _permit =
                 tokio::time::timeout(ACQUIRE_TIMEOUT.min(self.timeout), self.semaphore.acquire())
@@ -360,9 +361,11 @@ impl HostedJevBackend {
             }
             Err(DecisionError::unavailable())
         };
-        tokio::time::timeout(self.timeout, operation)
+        let mut value = tokio::time::timeout(self.timeout, operation)
             .await
-            .map_err(|_| DecisionError::unavailable())?
+            .map_err(|_| DecisionError::unavailable())??;
+        value["latency_ms"] = json!(started.elapsed().as_secs_f64() * 1_000.0);
+        Ok(value)
     }
 }
 
@@ -519,7 +522,6 @@ fn validate_response(
     value["backend"] = json!("jev");
     value["residency"] = json!("hosted");
     value["cost_usd"] = json!(cost);
-    value["latency_ms"] = Value::Null;
     value["input_tokens"] = json!(input_tokens);
     value["detail"] = json!({
         "served_by": "TypeSafe hosted Jev",

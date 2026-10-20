@@ -101,7 +101,8 @@ async fn sends_exact_wire_and_returns_hosted_provenance() {
     assert_eq!(result["residency"], "hosted");
     assert_eq!(result["input_tokens"], 100);
     assert_eq!(result["cost_usd"], 0.001);
-    assert!(result["latency_ms"].is_null());
+    let latency_ms = result["latency_ms"].as_f64().unwrap();
+    assert!(latency_ms.is_finite() && latency_ms >= 0.0);
     assert_eq!(result["detail"]["served_by"], "TypeSafe hosted Jev");
     assert_eq!(result["detail"]["usage"]["output_tokens"], 17);
     assert_eq!(
@@ -126,6 +127,60 @@ async fn choice_confidence_is_concentration_not_max_probability() {
     let result = backend.decide(&json!({}), &questions).await.unwrap();
     assert_eq!(result["answers"]["gate"]["top"], "review");
     assert_eq!(result["answers"]["gate"]["confidence"], 0.46);
+}
+
+#[tokio::test]
+async fn observed_jev_1_13_choice_fixtures_use_official_concentration() {
+    let cases = [
+        (
+            "clarify",
+            0.64,
+            json!({"answer":0.06,"clarify":0.76,"reject":0.18}),
+            329,
+            40,
+        ),
+        (
+            "answer",
+            0.28,
+            json!({"answer":0.52,"clarify":0.42,"reject":0.06}),
+            335,
+            0,
+        ),
+    ];
+    let replies = cases
+        .iter()
+        .map(|(choice, confidence, probabilities, input_tokens, output_tokens)| {
+            (
+                StatusCode::OK,
+                json!({"model":"jev-1.13.0","answers":{"gate":{"type":"choice","probabilities":probabilities,"choice":choice,"confidence":confidence}},"usage":{"input_tokens":input_tokens,"output_tokens":output_tokens}}),
+            )
+        })
+        .collect();
+    let (base, _) = server(replies).await;
+    let backend = HostedJevBackend::for_test(
+        "key".into(),
+        "jev-1.13.0".into(),
+        base,
+        Duration::from_secs(1),
+        Some(10.0),
+    )
+    .unwrap();
+    let questions = json!({"gate":{"type":"choice","instructions":"choose","criteria":{"answer":"ok","clarify":"ask","reject":"no"}}})
+        .as_object()
+        .unwrap()
+        .clone();
+
+    for (choice, confidence, probabilities, input_tokens, output_tokens) in cases {
+        let result = backend.decide(&json!({}), &questions).await.unwrap();
+        assert_eq!(
+            result["answers"]["gate"],
+            json!({"type":"choice","probabilities":probabilities,"top":choice,"choice":choice,"confidence":confidence})
+        );
+        assert_eq!(result["input_tokens"], input_tokens);
+        assert_eq!(result["detail"]["usage"]["output_tokens"], output_tokens);
+        let latency_ms = result["latency_ms"].as_f64().unwrap();
+        assert!(latency_ms.is_finite() && latency_ms >= 0.0);
+    }
 }
 
 #[tokio::test]
@@ -505,7 +560,8 @@ async fn exact_noul_and_score_wires_and_semantics() {
         json!({"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"top":"2","score":1.6,"confidence":0.4,"legend":{"0":"poor","1":"good","2":"best"}})
     );
     assert!(score["cost_usd"].is_null());
-    assert!(score["latency_ms"].is_null());
+    let latency_ms = score["latency_ms"].as_f64().unwrap();
+    assert!(latency_ms.is_finite() && latency_ms >= 0.0);
 }
 
 #[tokio::test]
@@ -1265,6 +1321,10 @@ async fn successful_multistage_pipeline_uses_jev_including_fit() {
     assert!(calls.len() >= 4);
     assert!(calls.iter().any(|names| names == &vec!["fit".to_string()]));
     assert_eq!(value["backend"], "jev");
+    assert_eq!(value["totals"]["usage_complete"], true);
+    assert!(value["totals"]["input_tokens"].as_u64().is_some());
+    assert!(value["totals"]["cost_usd"].as_f64().is_some());
+    assert!(value["totals"]["latency_ms"].as_f64().is_some());
 }
 
 #[tokio::test]
