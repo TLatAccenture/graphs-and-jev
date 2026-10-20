@@ -42,7 +42,7 @@ const PILLARS = [
   { name: "Existing Stack", detail: "Nothing is ripped out on day one" },
   { name: "MCP Tool Shed", detail: "scoped, short-lived credentials" },
   { name: "System 1 (Jev)", detail: "it stops an unsure output becoming an action" },
-  { name: "ADK with Gemini", detail: "planned System 2 orchestration layer" },
+  { name: "ADK with Gemini", detail: "System 2 orchestration layer in the reference architecture" },
   { name: "Modernisation Springboard", detail: "cost per migrated object" },
 ];
 
@@ -85,13 +85,14 @@ test('each "Go deeper" link lands on an existing technical-guide anchor', async 
   }
 });
 
-test("status ribbon separates the live service from the planned reference architecture", async ({ page }) => {
+test("status ribbon separates the live service from the reference architecture", async ({ page }) => {
   await page.goto("./");
   const status = page.locator("#implementation-status");
   await expect(status).toBeVisible();
   await expect(status.locator('[data-state="live"]')).toContainText("Live today");
   await expect(status.locator('[data-state="reference"]')).toContainText("Google Cloud reference architecture");
-  await expect(status).toContainText("The Google Cloud reference architecture is planned and not live in this demo.");
+  await expect(status.locator('[data-state="live"]')).toContainText("On Cloud Run now: the decision layer that gates each migration step");
+  await expect(status.locator('[data-state="reference"]')).toContainText("The full agent is not part of this public demo.");
 });
 
 test("there are exactly five accessible pillar controls in the published order", async ({ page }) => {
@@ -124,8 +125,8 @@ const LANES = [
 test("one Gemini Migration Agent orchestrates four gated phases, with approval between Plan and Deploy", async ({ page }) => {
   await page.goto("./#google-cloud-architecture");
   const plane = page.locator("#google-cloud-architecture");
-  await expect(plane).toContainText("Planned reference architecture");
-  await expect(plane).toContainText("not live in this demo");
+  await expect(plane).toContainText("Google Cloud reference architecture");
+  await expect(plane).toContainText("not part of this public demo");
   const orchestrator = plane.locator("[data-orchestrator]");
   await expect(orchestrator).toHaveCount(1);
   await expect(orchestrator).toBeVisible();
@@ -144,7 +145,7 @@ test("one Gemini Migration Agent orchestrates four gated phases, with approval b
     for (const field of ["Inputs", "Agent action", "Jev gate", "Output", "State"]) {
       await expect(card.locator("dt", { hasText: field }).first()).toBeVisible();
     }
-    await expect(card).toContainText("Planned reference");
+    await expect(card).toContainText("Reference design");
   }
   await expect(plane.locator("[data-checkpoint='human-approval']")).toContainText("Person approves the plan");
   await expect(plane.locator("[data-phase='deploy']")).toContainText("It does not move bytes.");

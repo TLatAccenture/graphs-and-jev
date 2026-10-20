@@ -256,7 +256,7 @@ fn publication_brand_defaults_match_the_google_cloud_acceleration_story() {
     );
     let plane = between(&hero, "<figure class=\"hero-plane\"", "</figure>");
     for text in [
-        "Planned reference",
+        "Reference design",
         "Gemini Migration Agent",
         "Built with ADK",
         "Assess",
@@ -283,7 +283,7 @@ fn publication_brand_defaults_match_the_google_cloud_acceleration_story() {
 }
 
 #[test]
-fn landing_distinguishes_live_today_from_the_planned_reference_architecture() {
+fn landing_distinguishes_live_today_from_the_reference_architecture() {
     let html = page("index.html");
     assert!(
         html.contains("id=\"implementation-status\""),
@@ -292,12 +292,12 @@ fn landing_distinguishes_live_today_from_the_planned_reference_architecture() {
     for label in ["Live today", "Google Cloud reference architecture"] {
         assert!(html.contains(label), "status label: {label}");
     }
-    assert!(
-        html.contains(
-            "The Google Cloud reference architecture is planned and not live in this demo."
-        ),
-        "exact live/reference disclaimer"
-    );
+    for text in [
+        "On Cloud Run now: the decision layer that gates each migration step, shown in three working demonstrations.",
+        "The blueprint for a Gemini Migration Agent that runs Assess, Plan, Deploy and Optimise end to end, built on that same decision layer. The full agent is not part of this public demo.",
+    ] {
+        assert!(html.contains(text), "exact live/reference wording: {text}");
+    }
 }
 
 #[test]
@@ -1128,7 +1128,7 @@ fn landing_control_plane_has_one_orchestrator_four_gated_phases_and_an_approval(
             "<dt>Agent action</dt>",
             "<dt>Jev gate</dt>",
             "<dt>Output</dt>",
-            "<dt>State</dt><dd>Planned reference</dd>",
+            "<dt>State</dt><dd>Reference design</dd>",
         ] {
             assert!(card.contains(field), "{phase}: {field}");
         }
@@ -1138,7 +1138,7 @@ fn landing_control_plane_has_one_orchestrator_four_gated_phases_and_an_approval(
         "Code and SQL count rows and validate schemas.",
         "Validate before cutover.",
         "Roll back if validation fails.",
-        "This planned Google Cloud reference architecture is not live in this demo.",
+        "The full agent is a blueprint and is not part of this public demo.",
         "href=\"https://docs.cloud.google.com/architecture/migration-to-gcp-getting-started\"",
         "href=\"https://docs.cloud.google.com/docs/migration\"",
         "href=\"https://cloud.google.com/migration-center/docs/migration-center-overview\"",
