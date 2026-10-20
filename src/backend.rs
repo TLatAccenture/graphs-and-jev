@@ -470,9 +470,7 @@ fn labels(question: &Value) -> Result<Vec<String>, DecisionError> {
 }
 
 fn exact_fields(object: &Map<String, Value>, allowed: &[&str]) -> Result<(), DecisionError> {
-    object
-        .keys()
-        .all(|key| allowed.contains(&key.as_str()))
+    (object.len() == allowed.len() && object.keys().all(|key| allowed.contains(&key.as_str())))
         .then_some(())
         .ok_or_else(DecisionError::malformed)
 }
@@ -495,9 +493,13 @@ fn validate_response(
     if answers.len() != questions.len() || !questions.keys().all(|key| answers.contains_key(key)) {
         return Err(DecisionError::malformed());
     }
-    for (name, question) in questions {
-        validate_answer(answers.get(name).unwrap(), question)?;
-    }
+    let normalized_answers: Map<String, Value> = questions
+        .iter()
+        .map(|(name, question)| {
+            normalize_answer(answers.get(name).unwrap(), question)
+                .map(|answer| (name.clone(), answer))
+        })
+        .collect::<Result<_, _>>()?;
     let usage = object
         .get("usage")
         .and_then(Value::as_object)
@@ -512,18 +514,7 @@ fn validate_response(
         .and_then(Value::as_u64)
         .ok_or_else(DecisionError::malformed)?;
     let cost = price_per_mtok.map(|price| input_tokens as f64 * price / 1_000_000.0);
-    for (name, question) in questions {
-        if question.get("type").and_then(Value::as_str) == Some("score") {
-            let legend: Map<String, Value> = question["criteria"]
-                .as_array()
-                .unwrap()
-                .iter()
-                .enumerate()
-                .map(|(index, label)| (index.to_string(), label.clone()))
-                .collect();
-            value["answers"][name]["legend"] = Value::Object(legend);
-        }
-    }
+    value["answers"] = Value::Object(normalized_answers);
     value.as_object_mut().unwrap().remove("usage");
     value["backend"] = json!("jev");
     value["residency"] = json!("hosted");
@@ -537,22 +528,40 @@ fn validate_response(
     Ok(value)
 }
 
-fn validate_answer(answer: &Value, question: &Value) -> Result<(), DecisionError> {
+fn normalize_answer(answer: &Value, question: &Value) -> Result<Value, DecisionError> {
     let object = answer.as_object().ok_or_else(DecisionError::malformed)?;
     let qtype = question
         .get("type")
         .and_then(Value::as_str)
         .ok_or_else(DecisionError::malformed)?;
     let allowed: &[&str] = match qtype {
-        "choice" => &["type", "probabilities", "top", "choice", "confidence"],
-        "noul" => &["type", "probabilities", "top", "noul", "confidence"],
-        "score" => &["type", "probabilities", "top", "score", "confidence"],
+        "choice" => &["type", "probabilities", "choice", "confidence"],
+        "noul" => &["type", "noul"],
+        "score" => &["type", "probabilities", "score", "confidence", "legend"],
         _ => return Err(DecisionError::malformed()),
     };
     exact_fields(object, allowed)?;
     if object.get("type").and_then(Value::as_str) != Some(qtype) {
         return Err(DecisionError::malformed());
     }
+
+    if qtype == "noul" {
+        let noul = object
+            .get("noul")
+            .and_then(Value::as_f64)
+            .filter(|value| value.is_finite() && (0.0..=1.0).contains(value))
+            .ok_or_else(DecisionError::malformed)?;
+        let no = ((1.0 - noul) * 100_000.0).round() / 100_000.0;
+        let (top, confidence) = if noul > no { ("yes", noul) } else { ("no", no) };
+        return Ok(json!({
+            "type": "noul",
+            "probabilities": {"yes": noul, "no": no},
+            "top": top,
+            "noul": noul,
+            "confidence": confidence,
+        }));
+    }
+
     let labels = labels(question)?;
     let probabilities = object
         .get("probabilities")
@@ -567,51 +576,75 @@ fn validate_answer(answer: &Value, question: &Value) -> Result<(), DecisionError
     let mut top = None;
     let mut high = -1.0;
     for label in &labels {
-        let p = probabilities[label]
+        let probability = probabilities[label]
             .as_f64()
-            .filter(|p| p.is_finite() && (0.0..=1.0).contains(p))
+            .filter(|value| value.is_finite() && (0.0..=1.0).contains(value))
             .ok_or_else(DecisionError::malformed)?;
-        sum += p;
-        if p > high {
-            high = p;
+        sum += probability;
+        if probability >= high {
+            high = probability;
             top = Some(label.as_str());
         }
     }
-    if (sum - 1.0).abs() > 0.001 || object.get("top").and_then(Value::as_str) != top {
+    if (sum - 1.0).abs() > 0.001 {
         return Err(DecisionError::malformed());
     }
+    let top = top.ok_or_else(DecisionError::malformed)?;
     let confidence = object
         .get("confidence")
         .and_then(Value::as_f64)
-        .filter(|v| v.is_finite() && (0.0..=1.0).contains(v))
+        .filter(|value| value.is_finite() && (0.0..=1.0).contains(value))
         .ok_or_else(DecisionError::malformed)?;
     if (confidence - high).abs() > 0.001 {
         return Err(DecisionError::malformed());
     }
-    if qtype == "choice" && object.get("choice").and_then(Value::as_str) != top {
-        return Err(DecisionError::malformed());
+
+    if qtype == "choice" {
+        if object.get("choice").and_then(Value::as_str) != Some(top) {
+            return Err(DecisionError::malformed());
+        }
+        return Ok(json!({
+            "type": "choice",
+            "probabilities": probabilities,
+            "top": top,
+            "choice": top,
+            "confidence": confidence,
+        }));
     }
-    if qtype == "noul"
-        && object.get("noul").and_then(Value::as_f64).is_none_or(|v| {
-            !v.is_finite() || (v - probabilities["yes"].as_f64().unwrap()).abs() > 0.001
-        })
+
+    let expected = (labels
+        .iter()
+        .zip(0..)
+        .map(|(label, index)| index as f64 * probabilities[label].as_f64().unwrap())
+        .sum::<f64>()
+        * 10_000.0)
+        .round()
+        / 10_000.0;
+    if object
+        .get("score")
+        .and_then(Value::as_f64)
+        .is_none_or(|value| !value.is_finite() || (value - expected).abs() > 0.001)
     {
         return Err(DecisionError::malformed());
     }
-    if qtype == "score" {
-        let expected: f64 = probabilities
-            .iter()
-            .map(|(key, value)| key.parse::<f64>().unwrap_or(0.0) * value.as_f64().unwrap())
-            .sum();
-        if object
-            .get("score")
-            .and_then(Value::as_f64)
-            .is_none_or(|v| !v.is_finite() || (v - expected).abs() > 0.001)
-        {
-            return Err(DecisionError::malformed());
-        }
+    let expected_legend: Map<String, Value> = question["criteria"]
+        .as_array()
+        .ok_or_else(DecisionError::malformed)?
+        .iter()
+        .enumerate()
+        .map(|(index, criterion)| (index.to_string(), criterion.clone()))
+        .collect();
+    if object.get("legend") != Some(&Value::Object(expected_legend.clone())) {
+        return Err(DecisionError::malformed());
     }
-    Ok(())
+    Ok(json!({
+        "type": "score",
+        "probabilities": probabilities,
+        "top": top,
+        "score": expected,
+        "confidence": confidence,
+        "legend": expected_legend,
+    }))
 }
 
 #[cfg(test)]

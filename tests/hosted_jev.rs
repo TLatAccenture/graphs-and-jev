@@ -73,7 +73,7 @@ fn choice_question() -> serde_json::Map<String, Value> {
 }
 
 fn success() -> Value {
-    json!({"model":"jev-1.2.3","answers":{"gate":{"type":"choice","probabilities":{"answer":0.9,"review":0.1},"top":"answer","choice":"answer","confidence":0.9}},"usage":{"input_tokens":100,"output_tokens":17}})
+    json!({"model":"jev-1.2.3","answers":{"gate":{"type":"choice","probabilities":{"answer":0.9,"review":0.1},"choice":"answer","confidence":0.9}},"usage":{"input_tokens":100,"output_tokens":17}})
 }
 
 #[tokio::test]
@@ -104,6 +104,10 @@ async fn sends_exact_wire_and_returns_hosted_provenance() {
     assert!(result["latency_ms"].is_null());
     assert_eq!(result["detail"]["served_by"], "TypeSafe hosted Jev");
     assert_eq!(result["detail"]["usage"]["output_tokens"], 17);
+    assert_eq!(
+        result["answers"]["gate"],
+        json!({"type":"choice","probabilities":{"answer":0.9,"review":0.1},"top":"answer","choice":"answer","confidence":0.9})
+    );
 }
 
 #[tokio::test]
@@ -148,11 +152,11 @@ async fn retries_only_retryable_statuses_with_bounds() {
 async fn malformed_answers_are_rejected() {
     let cases = [
         json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{}}),
-        json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"gate":{"type":"noul","probabilities":{"yes":0.9,"no":0.1},"top":"yes","confidence":0.9,"noul":0.9}}}),
-        json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"gate":{"type":"choice","probabilities":{"answer":0.8,"review":0.1},"top":"answer","choice":"answer","confidence":0.8}}}),
-        json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"gate":{"type":"choice","probabilities":{"answer":0.8,"review":0.2,"extra":0.0},"top":"answer","choice":"answer","confidence":0.8}}}),
-        json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"gate":{"type":"choice","probabilities":{"answer":0.8,"review":0.2},"top":"review","choice":"review","confidence":0.8}}}),
-        json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"gate":{"type":"choice","probabilities":{"answer":0.8,"review":0.2},"top":"answer","confidence":1.2}}}),
+        json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"gate":{"type":"noul","noul":0.9}}}),
+        json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"gate":{"type":"choice","probabilities":{"answer":0.8,"review":0.1},"choice":"answer","confidence":0.8}}}),
+        json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"gate":{"type":"choice","probabilities":{"answer":0.8,"review":0.2,"extra":0.0},"choice":"answer","confidence":0.8}}}),
+        json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"gate":{"type":"choice","probabilities":{"answer":0.8,"review":0.2},"choice":"review","confidence":0.8}}}),
+        json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"gate":{"type":"choice","probabilities":{"answer":0.8,"review":0.2},"choice":"answer","confidence":1.2}}}),
     ];
     for reply in cases {
         let (base, _) = server(vec![(StatusCode::OK, reply)]).await;
@@ -335,11 +339,11 @@ async fn exact_noul_and_score_wires_and_semantics() {
     let replies = vec![
         (
             StatusCode::OK,
-            json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"relevant":{"type":"noul","probabilities":{"yes":0.7,"no":0.3},"top":"yes","noul":0.7,"confidence":0.7}}}),
+            json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"relevant":{"type":"noul","noul":0.7}}}),
         ),
         (
             StatusCode::OK,
-            json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"fit":{"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"top":"2","score":1.6,"confidence":0.7}}}),
+            json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"fit":{"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"score":1.6,"confidence":0.7,"legend":{"0":"poor","1":"good","2":"best"}}}}),
         ),
     ];
     let (base, fake) = server(replies).await;
@@ -351,7 +355,7 @@ async fn exact_noul_and_score_wires_and_semantics() {
         None,
     )
     .unwrap();
-    backend
+    let noul = backend
         .decide(&json!({"one":1}), &noul_questions())
         .await
         .unwrap();
@@ -369,16 +373,85 @@ async fn exact_noul_and_score_wires_and_semantics() {
         json!({"model":"jev-1.2.3","state":{"two":2},"questions":score_questions()})
     );
     assert_eq!(
-        score["answers"]["fit"]["legend"],
-        json!({"0":"poor","1":"good","2":"best"})
+        noul["answers"]["relevant"],
+        json!({"type":"noul","probabilities":{"yes":0.7,"no":0.3},"top":"yes","noul":0.7,"confidence":0.7})
+    );
+    assert_eq!(
+        score["answers"]["fit"],
+        json!({"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"top":"2","score":1.6,"confidence":0.7,"legend":{"0":"poor","1":"good","2":"best"}})
     );
     assert!(score["cost_usd"].is_null());
     assert!(score["latency_ms"].is_null());
 }
 
 #[tokio::test]
+async fn provider_native_ties_are_deterministic() {
+    let replies = vec![
+        (
+            StatusCode::OK,
+            json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"gate":{"type":"choice","probabilities":{"answer":0.5,"review":0.5},"choice":"review","confidence":0.5}}}),
+        ),
+        (
+            StatusCode::OK,
+            json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"relevant":{"type":"noul","noul":0.5}}}),
+        ),
+        (
+            StatusCode::OK,
+            json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"fit":{"type":"score","probabilities":{"0":0.5,"1":0.5,"2":0.0},"score":0.5,"confidence":0.5,"legend":{"0":"poor","1":"good","2":"best"}}}}),
+        ),
+    ];
+    let (base, _) = server(replies).await;
+    let backend = HostedJevBackend::for_test(
+        "key".into(),
+        "jev-1.2.3".into(),
+        base,
+        Duration::from_secs(1),
+        None,
+    )
+    .unwrap();
+    let choice = backend
+        .decide(&json!({}), &choice_question())
+        .await
+        .unwrap();
+    let noul = backend.decide(&json!({}), &noul_questions()).await.unwrap();
+    let score = backend
+        .decide(&json!({}), &score_questions())
+        .await
+        .unwrap();
+    assert_eq!(choice["answers"]["gate"]["top"], "review");
+    assert_eq!(noul["answers"]["relevant"]["top"], "no");
+    assert_eq!(score["answers"]["fit"]["top"], "1");
+}
+
+#[tokio::test]
+async fn score_rejects_missing_extra_and_wrong_provider_legend() {
+    let answers = [
+        json!({"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"score":1.6,"confidence":0.7}),
+        json!({"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"score":1.6,"confidence":0.7,"legend":{"0":"poor","1":"good","2":"best"},"top":"2"}),
+        json!({"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"score":1.6,"confidence":0.7,"legend":{"0":"poor","1":"best","2":"good"}}),
+        json!({"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"score":1.6,"confidence":0.7,"legend":{"0":"poor","1":"good"}}),
+    ];
+    for answer in answers {
+        let reply = json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"fit":answer}});
+        let (base, _) = server(vec![(StatusCode::OK, reply)]).await;
+        let backend = HostedJevBackend::for_test(
+            "key".into(),
+            "jev-1.2.3".into(),
+            base,
+            Duration::from_secs(1),
+            None,
+        )
+        .unwrap();
+        assert!(backend
+            .decide(&json!({}), &score_questions())
+            .await
+            .is_err());
+    }
+}
+
+#[tokio::test]
 async fn rejects_wrong_model_usage_latency_and_unknown_fields() {
-    let answer = json!({"gate":{"type":"choice","probabilities":{"answer":0.9,"review":0.1},"top":"answer","choice":"answer","confidence":0.9}});
+    let answer = json!({"gate":{"type":"choice","probabilities":{"answer":0.9,"review":0.1},"choice":"answer","confidence":0.9}});
     let cases = [
         json!({"model":"other","answers":answer,"usage":{"input_tokens":1,"output_tokens":1}}),
         json!({"model":"jev-1.2.3","answers":answer}),
@@ -387,7 +460,7 @@ async fn rejects_wrong_model_usage_latency_and_unknown_fields() {
         json!({"model":"jev-1.2.3","answers":answer,"usage":{"input_tokens":1,"output_tokens":-1}}),
         json!({"model":"jev-1.2.3","answers":answer,"usage":{"input_tokens":1,"output_tokens":1,"unknown":true}}),
         json!({"model":"jev-1.2.3","answers":answer,"usage":{"input_tokens":1,"output_tokens":1},"unknown":true}),
-        json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"gate":{"type":"choice","probabilities":{"answer":0.9,"review":0.1},"top":"answer","choice":"answer","confidence":0.9,"unknown":true}}}),
+        json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"gate":{"type":"choice","probabilities":{"answer":0.9,"review":0.1},"choice":"answer","confidence":0.9,"unknown":true}}}),
     ];
     for reply in cases {
         let (base, _) = server(vec![(StatusCode::OK, reply)]).await;
@@ -1074,11 +1147,11 @@ async fn bad_noul_and_score_semantics_are_rejected() {
     let cases = [
         (
             noul_questions(),
-            json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"relevant":{"type":"noul","probabilities":{"yes":0.7,"no":0.3},"top":"yes","noul":0.6,"confidence":0.7}}}),
+            json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"relevant":{"type":"noul","noul":1.1}}}),
         ),
         (
             score_questions(),
-            json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"fit":{"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"top":"2","score":1.5,"confidence":0.7}}}),
+            json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"fit":{"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"score":1.5,"confidence":0.7,"legend":{"0":"poor","1":"good","2":"best"}}}}),
         ),
     ];
     for (questions, reply) in cases {
