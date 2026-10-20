@@ -1397,3 +1397,41 @@ async fn bad_noul_and_score_semantics_are_rejected() {
         );
     }
 }
+
+#[tokio::test]
+async fn small_talk_is_answered_by_the_catalogue_rules_without_a_hosted_call() {
+    for (request, needle) in [
+        ("hi", "Hello!"),
+        ("Thanks!", "welcome"),
+        ("Hi Jev, what can you do?", "Hello!"),
+    ] {
+        // Whatever the hosted gate would say, small talk never reaches it.
+        let backend = ScriptBackend {
+            replies: Arc::new(Mutex::new(vec![Ok(gate("reject", 1.0))])),
+            max_calls: 5,
+            deadline: Duration::from_secs(1),
+        };
+        let replies = Arc::clone(&backend.replies);
+        let value = pipeline_request(pipeline_app(Arc::new(backend)), request).await;
+        assert_eq!(value["outcome"], "clarify", "{request}: {value}");
+        assert!(
+            value["message"].as_str().unwrap().contains(needle),
+            "{request}: {value}"
+        );
+        assert_eq!(
+            replies.lock().unwrap().len(),
+            1,
+            "{request} spent a hosted call"
+        );
+        // The response names the rules that answered, not the configured hosted backend.
+        for (field, expected) in [
+            ("backend", "catalogue"),
+            ("model", "catalogue-rules-v1"),
+            ("residency", "local"),
+        ] {
+            assert_eq!(value[field], expected, "{request}: {value}");
+            assert_eq!(value["policy"][field], expected, "{request}: {value}");
+        }
+        assert_eq!(value["stages"][0]["stage"], "gate", "{request}: {value}");
+    }
+}

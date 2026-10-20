@@ -121,13 +121,17 @@ for text_request, outcome in (
         {"domain": "catalogue", "request": text_request, "preference": None},
     )
     result = json.loads(body) if status == 200 else {}
-    valid_outcome = result.get("outcome") in bounded_outcomes if jev_verify else result.get("outcome") == outcome
+    # A hosted decision may differ from the rules, except small talk, which the rules always answer.
+    hosted = jev_verify and text_request != "hi"
+    valid_outcome = result.get("outcome") in bounded_outcomes if hosted else result.get("outcome") == outcome
     check(status == 200 and valid_outcome, f"catalogue {outcome}")
-    if text_request == "hi" and not jev_verify:
+    if text_request == "hi":
         check(
             "Hello!" in result.get("message", ""),
             "catalogue hi clarify missing friendly Hello marker",
         )
+        if jev_verify:
+            check(result.get("backend") == "catalogue", "hi spent a hosted decision call")
 status, _, _ = request(
     "/api/pipeline",
     {

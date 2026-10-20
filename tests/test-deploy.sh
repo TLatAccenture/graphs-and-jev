@@ -586,6 +586,7 @@ class App(http.server.BaseHTTPRequestHandler):
   size=int(self.headers.get("Content-Length","0")); body=json.loads(self.rfile.read(size))
   if body.get("domain")=="lineage":return self.send(501,b'{}')
   if body["request"]=="could I see fine particles for each nation, yearly, 2019 through 2024?": response=pipeline()
+  elif body["request"]=="hi" and mode!="hosted-hi": response={"outcome":"clarify","message":"Hello!","backend":"catalogue"}
   else:
    response=pipeline()
    if mode=="public":
@@ -596,7 +597,7 @@ class App(http.server.BaseHTTPRequestHandler):
 server=http.server.ThreadingHTTPServer(("127.0.0.1",0),App);threading.Thread(target=server.serve_forever,daemon=True).start();base=f"http://127.0.0.1:{server.server_port}"
 env={**os.environ,"VERIFY_ATTEMPTS":"1","JEV_VERIFY":"1","JEV_VERIFY_EXPECTED_MODEL":"jev-1.2.3"}
 run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True);assert run.returncode==0,run.stderr
-for mode in ("catalogue","bad-contract","backend-error","no-policy"):
+for mode in ("catalogue","bad-contract","backend-error","no-policy","hosted-hi"):
  run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True);assert run.returncode!=0,(mode,run.stdout,run.stderr)
 mode="tie"
 run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True);assert run.returncode==0,run.stderr
