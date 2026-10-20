@@ -530,6 +530,10 @@ fn validate_response(
     Ok(value)
 }
 
+fn confidence_matches(actual: f64, expected: f64) -> bool {
+    actual.is_finite() && (actual - expected).abs() <= 0.005 + f64::EPSILON
+}
+
 fn normalize_answer(answer: &Value, question: &Value) -> Result<Value, DecisionError> {
     let object = answer.as_object().ok_or_else(DecisionError::malformed)?;
     let qtype = question
@@ -610,7 +614,7 @@ fn normalize_answer(answer: &Value, question: &Value) -> Result<Value, DecisionE
         }
         let uniform = 1.0 / labels.len() as f64;
         let expected_confidence = (high - uniform) / (1.0 - uniform);
-        if (confidence - expected_confidence).abs() > 0.001 {
+        if !confidence_matches(confidence, expected_confidence) {
             return Err(DecisionError::malformed());
         }
         return Ok(json!({
@@ -639,7 +643,7 @@ fn normalize_answer(answer: &Value, question: &Value) -> Result<Value, DecisionE
         .sum::<f64>()
         / labels.len() as f64;
     let expected_confidence = (1.0 - spread / uniform_mad).max(0.0);
-    if (confidence - expected_confidence).abs() > 0.001 {
+    if !confidence_matches(confidence, expected_confidence) {
         return Err(DecisionError::malformed());
     }
     let top = labels[modal_index].as_str();

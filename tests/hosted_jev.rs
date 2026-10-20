@@ -146,6 +146,13 @@ async fn observed_jev_1_13_choice_fixtures_use_official_concentration() {
             335,
             0,
         ),
+        (
+            "clarify",
+            0.62,
+            json!({"answer":0.07,"clarify":0.75,"reject":0.18}),
+            329,
+            40,
+        ),
     ];
     let replies = cases
         .iter()
@@ -180,6 +187,37 @@ async fn observed_jev_1_13_choice_fixtures_use_official_concentration() {
         assert_eq!(result["detail"]["usage"]["output_tokens"], output_tokens);
         let latency_ms = result["latency_ms"].as_f64().unwrap();
         assert!(latency_ms.is_finite() && latency_ms >= 0.0);
+    }
+}
+
+#[tokio::test]
+async fn confidence_rounding_tolerance_is_bounded_for_choice_and_score() {
+    let cases = [
+        (
+            json!({"gate":{"type":"choice","probabilities":{"answer":0.07,"clarify":0.75,"reject":0.18},"choice":"clarify","confidence":0.619}}),
+            json!({"gate":{"type":"choice","criteria":{"answer":"answer","clarify":"clarify","reject":"reject"}}}),
+        ),
+        (
+            json!({"fit":{"type":"score","probabilities":{"0":0.0,"1":0.57,"2":0.43},"score":1.43,"confidence":0.349,"legend":{"0":"poor","1":"good","2":"best"}}}),
+            json!({"fit":{"type":"score","criteria":["poor","good","best"]}}),
+        ),
+    ];
+    for (answers, questions) in cases {
+        let (base, _) = server(vec![(
+            StatusCode::OK,
+            json!({"model":"jev-1.13.0","usage":{"input_tokens":1,"output_tokens":1},"answers":answers}),
+        )])
+        .await;
+        let backend = HostedJevBackend::for_test(
+            "key".into(),
+            "jev-1.13.0".into(),
+            base,
+            Duration::from_secs(1),
+            None,
+        )
+        .unwrap();
+        let questions = questions.as_object().unwrap().clone();
+        assert!(backend.decide(&json!({}), &questions).await.is_err());
     }
 }
 
