@@ -1,4 +1,12 @@
 import { test, expect, PAGES, scrollThrough } from "./helpers";
+import type { Page } from "@playwright/test";
+
+/** Whether the brand name and the "Try the demo" button overlap in the header. */
+const headerClash = (page: Page) => page.evaluate(() => {
+  const name = document.querySelector(".site-header [data-brand=name]")!.getBoundingClientRect();
+  const cta = document.querySelector(".site-nav .cta")!.getBoundingClientRect();
+  return name.right > cta.left && name.left < cta.right && name.bottom > cta.top && name.top < cta.bottom;
+});
 
 // Section 10 item 1: every page returns 200, no console errors, no failed requests, no horizontal scroll at 390px.
 for (const path of PAGES) {
@@ -23,6 +31,13 @@ for (const path of PAGES) {
 
     const overflow = await page.evaluate(() => document.documentElement.scrollWidth - document.documentElement.clientWidth);
     expect(overflow, "horizontal scroll (px)").toBeLessThanOrEqual(0);
+    expect(await headerClash(page), "brand name overlaps Try the demo").toBe(false);
+
+    if (test.info().project.name === "mobile") {
+      // The narrowest phones in common use: the header must still fit without overlap.
+      await page.setViewportSize({ width: 320, height: 640 });
+      expect(await headerClash(page), "brand name overlaps Try the demo at 320px").toBe(false);
+    }
 
     expect(problems).toEqual([]);
   });
