@@ -414,6 +414,7 @@ const reader = siteApi.interpreter("catalogue");
 const configuredBackend = window.SITE_CONFIG && window.SITE_CONFIG.api && window.SITE_CONFIG.api.decisionBackend;
 const decisionBackend = configuredBackend || {by: "catalogue", label: "Catalogue rules", model: "catalogue-rules-v1", residency: "local"};
 const geminiName = "Gemini" + (reader.model ? " (" + reader.model + ")" : "");
+const skipped = [reader.by === "gemini" && "Gemini", decisionBackend.by === "jev" && decisionBackend.label].filter(Boolean).join(" or ");
 if (reader.by === "gemini") {
   $("#request-hint").textContent = "Write it in your own words. " + geminiName + " maps it to catalogue terms; the selected decision backend decides.";
 }
@@ -423,19 +424,23 @@ if (reader.by === "gemini" || decisionBackend.by === "jev") {
   else parts.push("Catalogue rules read the request; Gemini is not enabled.");
   if (decisionBackend.by === "jev") parts.push(decisionBackend.label + " (" + decisionBackend.model + ") makes the bounded decisions through its hosted API; decision inputs leave Google Cloud.");
   else parts.push("Deterministic catalogue rules make the bounded decisions locally; no hosted Jev call is made.");
+  parts.push("Greetings, thanks and other small talk are answered by the catalogue rules without calling " + skipped + ".");
   parts.push("This service does not log request text.");
   $("#scope-note").replaceChildren(el("strong", "Scope"), document.createTextNode(parts.join(" ")));
 }
 
 /* Who read the request, in one line above the answer. Returns a sentence for the status line. */
-function readBy(interpretation) {
+function readBy(interpretation, local) {
   $("#read-by")?.remove();
-  if (!interpretation) return "";
+  if (!interpretation && !local) return "";
   const line = el("p", null, "read-by");
   line.id = "read-by";
-  const name = "Gemini" + (interpretation.model ? " (" + interpretation.model + ")" : "");
+  const name = "Gemini" + (interpretation && interpretation.model ? " (" + interpretation.model + ")" : "");
   let text, status;
-  if (interpretation.by === "gemini" && !interpretation.note) {
+  if (!interpretation) {
+    text = "Catalogue rules. Small talk is answered without calling " + skipped + ".";
+    status = " The catalogue rules answered without calling " + skipped + ".";
+  } else if (interpretation.by === "gemini" && !interpretation.note) {
     text = name + ": " + interpretation.request;
     status = " " + name + " read the request.";
   } else if (interpretation.by === "gemini") {
@@ -525,7 +530,8 @@ function render(body) {
     }
   }
   $("#raw").textContent = JSON.stringify(body, null, 2);
-  const read = readBy(outcome === "error" ? null : body.interpretation);
+  const local = outcome !== "error" && !body.interpretation && body.backend === "catalogue" && skipped !== "" && siteApi.mode("catalogue") === "live";
+  const read = readBy(outcome === "error" ? null : body.interpretation, local);
   result.hidden = false;
   result.getAnimations({ subtree: true }).forEach(a => { a.cancel(); a.play(); });
   siteUi.reveal(result);

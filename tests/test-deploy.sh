@@ -586,19 +586,22 @@ class App(http.server.BaseHTTPRequestHandler):
   size=int(self.headers.get("Content-Length","0")); body=json.loads(self.rfile.read(size))
   if body.get("domain")=="lineage":return self.send(501,b'{}')
   if body["request"]=="could I see fine particles for each nation, yearly, 2019 through 2024?": response=pipeline()
-  elif body["request"]=="hi" and mode!="hosted-hi": response={"outcome":"clarify","message":"Hello!","backend":"catalogue"}
+  elif body["request"]=="hi": response={**pipeline(),"outcome":"clarify","message":"Hello!"} if mode=="hosted-hi" else {"outcome":"clarify","message":"Hello!","backend":"catalogue",**({"interpretation":{"by":"gemini","model":"gemini-3.8-flash","request":"hi","note":None}} if mode=="gemini-hi" else {})}
   else:
    response=pipeline()
    if mode=="public":
-    outcomes={"annual CO2 for Australia in 2024":"answer","emissions":"clarify","hi":"clarify","write me a poem about the sea":"reject"};response={"outcome":outcomes[body["request"]]}
-    if body["request"]=="hi":response["message"]="Hello!"
+    outcomes={"annual CO2 for Australia in 2024":"answer","emissions":"clarify","write me a poem about the sea":"reject"};response={"outcome":outcomes[body["request"]]}
   return self.send(200,json.dumps(response).encode())
  def log_message(self,*_):pass
 server=http.server.ThreadingHTTPServer(("127.0.0.1",0),App);threading.Thread(target=server.serve_forever,daemon=True).start();base=f"http://127.0.0.1:{server.server_port}"
 env={**os.environ,"VERIFY_ATTEMPTS":"1","JEV_VERIFY":"1","JEV_VERIFY_EXPECTED_MODEL":"jev-1.2.3"}
 run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True);assert run.returncode==0,run.stderr
-for mode in ("catalogue","bad-contract","backend-error","no-policy","hosted-hi"):
+for mode in ("catalogue","bad-contract","backend-error","no-policy"):
  run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True);assert run.returncode!=0,(mode,run.stdout,run.stderr)
+mode="hosted-hi"
+run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True);assert run.returncode!=0 and "hi spent a hosted decision call" in run.stderr,(mode,run.stdout,run.stderr)
+mode="gemini-hi"
+run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True);assert run.returncode!=0 and "hi spent a Gemini call" in run.stderr,(mode,run.stdout,run.stderr)
 mode="tie"
 run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True);assert run.returncode==0,run.stderr
 mode="rounded"

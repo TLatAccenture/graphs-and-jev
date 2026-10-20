@@ -38,14 +38,14 @@
   const greeting = /^(?:(?:hi|hello|hey|hiya|howdy|yo|greetings)|good (?:morning|afternoon|evening|day))(?:\s+(?:there|jev|all|everyone|team))?(?:[\s,!.:;-]+|$)/i;
   const stripGreeting = text => text.replace(greeting, "").trim();
   // Mirrors SMALL_TALK in src/request.rs: each pattern must cover the whole request.
-  const OPENERS = "(?:(?:hi|hello|hey|hiya|howdy|yo|greetings|good (?:morning|afternoon|evening|day)|ok|okay|oh|so|well|great|cool|nice|perfect|awesome|alright|right|sure)(?: (?:there|jev|all|everyone|team))? )*";
-  const CLOSERS = "(?: (?:jev|please|then|again|mate|there|everyone|team))*";
+  const OPENERS = "(?:(?:hi|hello|hey|hiya|howdy|yo|greetings|good (?:morning|afternoon|evening|day)|ok|okay|oh|so|well|great|cool|nice|perfect|awesome|brilliant|lovely|excellent|alright|right|sure)(?: (?:there|jev|all|everyone|team))* )*";
+  const CLOSERS = "(?: (?:jev|please|then|again|mate|there|all|everyone|team))*";
   const SMALL_TALK = [
-    ["(?:(?:thanks|thank you|cheers) )?(?:bye|bye bye|goodbye|good bye|see you|see ya|cya|see you later|thats all|that is all|thats it|im done|i am done|all done)(?: (?:thanks|thank you|cheers))?", GOODBYE],
-    ["thanks|thank you|thankyou|thx|ty|cheers|ta|many thanks|much appreciated|appreciate it|(?:thanks|thank you) (?:very much|so much|a lot|heaps|again|for that|for your help)", THANKS],
-    ["hi|hello|hey|hiya|howdy|yo|greetings|good (?:morning|afternoon|evening|day)|morning|afternoon|evening|test|testing|anyone there|is anyone there|are you there", GREETING],
-    ["help|help me|help please|i need help|can you help|can you help me|could you help me|what can you do|what do you do|what are you|who are you|what is this|whats this|what is jev|who is jev|how does this work|how does it work|how do i use this|how do i use it|how do i start|where do i start|what can i ask|what should i ask|what do i type|what data do you have|what data is there|what data is available|what do you have|what is available|whats available|how are you|how are you doing|hows it going|how is it going", GREETING],
-    ["ok|okay|cool|great|nice|perfect|awesome|alright|all right|sure|got it|sounds good|right|yes|yep|yeah", READY],
+    ["(?:(?:thanks|thank you|cheers) )?(?:bye|bye bye|goodbye|good bye|see you|see ya|cya|see you later|thats all|that is all|thats it|im done|i am done|all done|bye for now|(?:thats all|thats it) for now|no thanks|no thank you|take care|have a (?:good|nice|great) (?:day|one|weekend)|good night|goodnight|see you soon|catch you later)(?: (?:thanks|thank you|cheers))?", GOODBYE],
+    ["thanks|thank you|thankyou|thx|ty|cheers|ta|many thanks|much appreciated|appreciate it|(?:thanks|thank you|cheers|ta) (?:very much|so much|a lot|heaps|again|for that|for your help)|nice one|(?:(?:thanks|thank you|cheers) )?(?:thats|that is) (?:great|perfect|helpful|brilliant|lovely)(?: (?:thanks|thank you|cheers))?", THANKS],
+    ["hi|hello|hey|hiya|howdy|yo|greetings|good (?:morning|afternoon|evening|day)|morning|afternoon|evening|test|testing|anyone there|is anyone there|anybody there|is anybody there|are you there", GREETING],
+    ["help|help me|help please|i need help|can you help|can you help me|could you help me|what can you do|what do you do|what are you|who are you|what is this|whats this|what is jev|who is jev|how does this work|how does it work|how do i use this|how do i use it|how do i start|where do i start|what can i ask|what should i ask|what do i type|what data do you have|what data is there|what data is available|what do you have|what is available|whats available|how are you|how are you doing|hows it going|how is it going|whats jev|whos jev|how can you help(?: me)?|what can you help(?: me)? with|what can i ask you|what does (?:this|it) do|(?:show|give) me an example|(?:what|which) pollutants (?:do you have|are there|are available)", GREETING],
+    ["ok|okay|cool|great|nice|perfect|awesome|alright|all right|sure|got it|sounds good|right|yes|yep|yeah|brilliant|lovely|excellent|no worries|all good", READY],
   ].map(([talk, reply]) => [new RegExp("^" + OPENERS + "(?:" + talk + ")" + CLOSERS + "$"), reply]);
   const smallTalk = text => {
     const words = text.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().replace(/['\u2019]/g, "").replace(/[^a-z0-9]+/g, " ").trim();

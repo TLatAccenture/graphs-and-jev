@@ -30,6 +30,22 @@ const cases = [
   ["that's all", "clarify", "Goodbye"],
   ["ok", "clarify", "Ready when you are"],
   ["got it", "clarify", "Ready when you are"],
+  ["hi all", "clarify", "Hello!"],
+  ["good morning all", "clarify", "Hello!"],
+  ["thanks all", "clarify", "welcome"],
+  ["ta very much", "clarify", "welcome"],
+  ["cheers a lot", "clarify", "welcome"],
+  ["hello there jev, what can you do?", "clarify", "Hello!"],
+  ["hi there jev thanks", "clarify", "welcome"],
+  ["what's jev?", "clarify", "Hello!"],
+  ["how can you help?", "clarify", "Hello!"],
+  ["is anybody there?", "clarify", "Hello!"],
+  ["what pollutants do you have?", "clarify", "Hello!"],
+  ["no thanks", "clarify", "Goodbye"],
+  ["take care", "clarify", "Goodbye"],
+  ["thanks, that's great", "clarify", "welcome"],
+  ["lovely, thanks", "clarify", "welcome"],
+  ["no worries", "clarify", "Ready when you are"],
   ["Greetings team, annual CO2 for Australia in 2024", "answer"],
   ["Good day, annual CO2 for Australia in 2024", "answer"],
   ["tell me a joke", "reject", "Sorry"],
@@ -42,6 +58,20 @@ const cases = [
   ["data", "clarify"],
   ["everything", "clarify"],
 ];
+
+// The Rust rules and this fixture must classify small talk with the same patterns and replies.
+const rust = fs.readFileSync("src/request.rs", "utf8");
+const fixture = fs.readFileSync("static/fixtures/catalogue.js", "utf8");
+const grab = (text, re) => [...text.matchAll(re)].map(m => m.slice(1).join(" -> "));
+for (const [what, count, rustRe, fixtureRe] of [
+  ["openers and closers", 2, /const SMALL_TALK_(OPENERS|CLOSERS): &str = r"([^"]*)";/g, /const (OPENERS|CLOSERS) = "([^"]*)";/g],
+  ["patterns", 5, /r"([^"]*)",\s*(GOODBYE|THANKS|GREETING|READY)_REPLY/g, /\["([^"]*)", (GOODBYE|THANKS|GREETING|READY)\]/g],
+  ["replies", 4, /const (GOODBYE|THANKS|GREETING|READY)_REPLY: &str =\s*"((?:[^"\\]|\\.)*)";/g, /const (GOODBYE|THANKS|GREETING|READY) = "((?:[^"\\]|\\.)*)";/g],
+]) {
+  const fromRust = grab(rust, rustRe);
+  assert.equal(fromRust.length, count, `small-talk ${what} not found in src/request.rs`);
+  assert.deepEqual(grab(fixture, fixtureRe), fromRust, `small-talk ${what} differ between src/request.rs and the fixture`);
+}
 
 (async () => {
   for (const [request, outcome, marker] of cases) {

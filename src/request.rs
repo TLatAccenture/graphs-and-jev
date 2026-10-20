@@ -241,30 +241,30 @@ const GOODBYE_REPLY: &str = "Goodbye! Come back any time you need air-pollution 
 const READY_REPLY: &str = "Ready when you are. Name a pollutant (or ask for emissions in general) and a breakdown such as country and year, for example \"Annual PM2.5 by country, 2019 to 2024\".";
 
 // Small talk may open with greetings or "ok"-style words and close with "Jev" or "please".
-const SMALL_TALK_OPENERS: &str = r"(?:(?:hi|hello|hey|hiya|howdy|yo|greetings|good (?:morning|afternoon|evening|day)|ok|okay|oh|so|well|great|cool|nice|perfect|awesome|alright|right|sure)(?: (?:there|jev|all|everyone|team))? )*";
-const SMALL_TALK_CLOSERS: &str = r"(?: (?:jev|please|then|again|mate|there|everyone|team))*";
+const SMALL_TALK_OPENERS: &str = r"(?:(?:hi|hello|hey|hiya|howdy|yo|greetings|good (?:morning|afternoon|evening|day)|ok|okay|oh|so|well|great|cool|nice|perfect|awesome|brilliant|lovely|excellent|alright|right|sure)(?: (?:there|jev|all|everyone|team))* )*";
+const SMALL_TALK_CLOSERS: &str = r"(?: (?:jev|please|then|again|mate|there|all|everyone|team))*";
 
 /// Small talk and its reply, checked in order. Each pattern must cover the whole request, so a
 /// request with any real content is never small talk.
 const SMALL_TALK: [(&str, &str); 5] = [
     (
-        r"(?:(?:thanks|thank you|cheers) )?(?:bye|bye bye|goodbye|good bye|see you|see ya|cya|see you later|thats all|that is all|thats it|im done|i am done|all done)(?: (?:thanks|thank you|cheers))?",
+        r"(?:(?:thanks|thank you|cheers) )?(?:bye|bye bye|goodbye|good bye|see you|see ya|cya|see you later|thats all|that is all|thats it|im done|i am done|all done|bye for now|(?:thats all|thats it) for now|no thanks|no thank you|take care|have a (?:good|nice|great) (?:day|one|weekend)|good night|goodnight|see you soon|catch you later)(?: (?:thanks|thank you|cheers))?",
         GOODBYE_REPLY,
     ),
     (
-        r"thanks|thank you|thankyou|thx|ty|cheers|ta|many thanks|much appreciated|appreciate it|(?:thanks|thank you) (?:very much|so much|a lot|heaps|again|for that|for your help)",
+        r"thanks|thank you|thankyou|thx|ty|cheers|ta|many thanks|much appreciated|appreciate it|(?:thanks|thank you|cheers|ta) (?:very much|so much|a lot|heaps|again|for that|for your help)|nice one|(?:(?:thanks|thank you|cheers) )?(?:thats|that is) (?:great|perfect|helpful|brilliant|lovely)(?: (?:thanks|thank you|cheers))?",
         THANKS_REPLY,
     ),
     (
-        r"hi|hello|hey|hiya|howdy|yo|greetings|good (?:morning|afternoon|evening|day)|morning|afternoon|evening|test|testing|anyone there|is anyone there|are you there",
+        r"hi|hello|hey|hiya|howdy|yo|greetings|good (?:morning|afternoon|evening|day)|morning|afternoon|evening|test|testing|anyone there|is anyone there|anybody there|is anybody there|are you there",
         GREETING_REPLY,
     ),
     (
-        r"help|help me|help please|i need help|can you help|can you help me|could you help me|what can you do|what do you do|what are you|who are you|what is this|whats this|what is jev|who is jev|how does this work|how does it work|how do i use this|how do i use it|how do i start|where do i start|what can i ask|what should i ask|what do i type|what data do you have|what data is there|what data is available|what do you have|what is available|whats available|how are you|how are you doing|hows it going|how is it going",
+        r"help|help me|help please|i need help|can you help|can you help me|could you help me|what can you do|what do you do|what are you|who are you|what is this|whats this|what is jev|who is jev|how does this work|how does it work|how do i use this|how do i use it|how do i start|where do i start|what can i ask|what should i ask|what do i type|what data do you have|what data is there|what data is available|what do you have|what is available|whats available|how are you|how are you doing|hows it going|how is it going|whats jev|whos jev|how can you help(?: me)?|what can you help(?: me)? with|what can i ask you|what does (?:this|it) do|(?:show|give) me an example|(?:what|which) pollutants (?:do you have|are there|are available)",
         GREETING_REPLY,
     ),
     (
-        r"ok|okay|cool|great|nice|perfect|awesome|alright|all right|sure|got it|sounds good|right|yes|yep|yeah",
+        r"ok|okay|cool|great|nice|perfect|awesome|alright|all right|sure|got it|sounds good|right|yes|yep|yeah|brilliant|lovely|excellent|no worries|all good",
         READY_REPLY,
     ),
 ];

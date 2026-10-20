@@ -132,6 +132,7 @@ for text_request, outcome in (
         )
         if jev_verify:
             check(result.get("backend") == "catalogue", "hi spent a hosted decision call")
+        check("interpretation" not in result, "hi spent a Gemini call")
 status, _, _ = request(
     "/api/pipeline",
     {

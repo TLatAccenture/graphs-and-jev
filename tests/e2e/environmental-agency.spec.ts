@@ -139,6 +139,28 @@ test("combined private config tells the complete provenance story", async ({ pag
   await expect(page.locator("#tech")).toContainText("Usage incomplete");
 });
 
+// The Rust service answers small talk with the local catalogue rules, whatever the build.
+const SMALL_TALK_REPLY = {
+  request: "hi", preference: "", backend: "catalogue", backend_label: "Catalogue rules", model: "catalogue-rules-v1", residency: "local",
+  stages: [{ stage: "gate", title: "Answer, clarify or reject", answer: { type: "choice", probabilities: { answer: 0, clarify: 1, reject: 0 }, top: "clarify", confidence: 1 } }],
+  outcome: "clarify", message: "Hello! I can help you find air-pollution and emissions datasets.",
+  totals: { decisions: 1, calls: 1, wall_ms: 1 },
+};
+
+test("small talk on the combined build credits the catalogue rules, not Gemini or hosted Jev", async ({ page }) => {
+  await useConfig(page, combinedBuild);
+  await page.route("**/api/catalogue", r => r.fulfill({ json: { summary: "Mock live catalogue.", sources: [{ id: 1 }] } }));
+  await page.route("**/api/pipeline", r => r.fulfill({ json: SMALL_TALK_REPLY }));
+  await page.goto(PAGE);
+  await expect(page.locator("#scope-note")).toContainText("Greetings, thanks and other small talk are answered by the catalogue rules without calling Gemini or TypeSafe hosted Jev.");
+  await page.locator("#request").fill("hi");
+  await expectOutcome(page, CATALOGUE_LABELS, "Ask", () => page.locator("#submit").click());
+  await expect(page.locator("#read-by")).toHaveText("Read by Catalogue rules. Small talk is answered without calling Gemini or TypeSafe hosted Jev.");
+  await expect(page.locator("#status")).toContainText("The catalogue rules answered without calling Gemini or TypeSafe hosted Jev.");
+  await expect(page.locator("#tech")).toContainText("Catalogue rules (catalogue)");
+  await expect(page.locator("#tech")).not.toContainText("TypeSafe hosted Jev");
+});
+
 test("legacy config and response omit new provenance without inventing values", async ({ page }) => {
   await useConfig(page, c => {
     liveCatalogue(c);
