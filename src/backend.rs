@@ -484,20 +484,8 @@ fn validate_response(
     price_per_mtok: Option<f64>,
 ) -> Result<Value, DecisionError> {
     let object = value.as_object().ok_or_else(DecisionError::malformed)?;
-    exact_fields(
-        object,
-        &[
-            "backend",
-            "model",
-            "answers",
-            "input_tokens",
-            "cost_usd",
-            "latency_ms",
-        ],
-    )?;
-    if object.get("backend").and_then(Value::as_str) != Some("jev")
-        || object.get("model").and_then(Value::as_str) != Some(configured_model)
-    {
+    exact_fields(object, &["model", "answers", "usage"])?;
+    if object.get("model").and_then(Value::as_str) != Some(configured_model) {
         return Err(DecisionError::malformed());
     }
     let answers = object
@@ -510,30 +498,20 @@ fn validate_response(
     for (name, question) in questions {
         validate_answer(answers.get(name).unwrap(), question)?;
     }
-    let tokens = match object.get("input_tokens") {
-        Some(value) => Some(value.as_u64().ok_or_else(DecisionError::malformed)?),
-        None => None,
-    };
-    let cost = match object.get("cost_usd") {
-        Some(value) => Some(
-            value
-                .as_f64()
-                .filter(|v| v.is_finite() && *v >= 0.0)
-                .ok_or_else(DecisionError::malformed)?,
-        ),
-        None => tokens
-            .zip(price_per_mtok)
-            .map(|(tokens, price)| tokens as f64 * price / 1_000_000.0),
-    };
-    let latency = match object.get("latency_ms") {
-        Some(value) => Some(
-            value
-                .as_f64()
-                .filter(|v| v.is_finite() && *v >= 0.0)
-                .ok_or_else(DecisionError::malformed)?,
-        ),
-        None => None,
-    };
+    let usage = object
+        .get("usage")
+        .and_then(Value::as_object)
+        .ok_or_else(DecisionError::malformed)?;
+    exact_fields(usage, &["input_tokens", "output_tokens"])?;
+    let input_tokens = usage
+        .get("input_tokens")
+        .and_then(Value::as_u64)
+        .ok_or_else(DecisionError::malformed)?;
+    let output_tokens = usage
+        .get("output_tokens")
+        .and_then(Value::as_u64)
+        .ok_or_else(DecisionError::malformed)?;
+    let cost = price_per_mtok.map(|price| input_tokens as f64 * price / 1_000_000.0);
     for (name, question) in questions {
         if question.get("type").and_then(Value::as_str) == Some("score") {
             let legend: Map<String, Value> = question["criteria"]
@@ -546,11 +524,16 @@ fn validate_response(
             value["answers"][name]["legend"] = Value::Object(legend);
         }
     }
+    value.as_object_mut().unwrap().remove("usage");
+    value["backend"] = json!("jev");
     value["residency"] = json!("hosted");
     value["cost_usd"] = json!(cost);
-    value["latency_ms"] = json!(latency);
-    value["input_tokens"] = json!(tokens);
-    value["detail"] = json!({"served_by":"TypeSafe hosted Jev"});
+    value["latency_ms"] = Value::Null;
+    value["input_tokens"] = json!(input_tokens);
+    value["detail"] = json!({
+        "served_by": "TypeSafe hosted Jev",
+        "usage": {"output_tokens": output_tokens},
+    });
     Ok(value)
 }
 
