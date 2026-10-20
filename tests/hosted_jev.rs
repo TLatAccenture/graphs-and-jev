@@ -73,7 +73,7 @@ fn choice_question() -> serde_json::Map<String, Value> {
 }
 
 fn success() -> Value {
-    json!({"model":"jev-1.2.3","answers":{"gate":{"type":"choice","probabilities":{"answer":0.9,"review":0.1},"choice":"answer","confidence":0.9}},"usage":{"input_tokens":100,"output_tokens":17}})
+    json!({"model":"jev-1.2.3","answers":{"gate":{"type":"choice","probabilities":{"answer":0.9,"review":0.1},"choice":"answer","confidence":0.8}},"usage":{"input_tokens":100,"output_tokens":17}})
 }
 
 #[tokio::test]
@@ -106,8 +106,132 @@ async fn sends_exact_wire_and_returns_hosted_provenance() {
     assert_eq!(result["detail"]["usage"]["output_tokens"], 17);
     assert_eq!(
         result["answers"]["gate"],
-        json!({"type":"choice","probabilities":{"answer":0.9,"review":0.1},"top":"answer","choice":"answer","confidence":0.9})
+        json!({"type":"choice","probabilities":{"answer":0.9,"review":0.1},"top":"answer","choice":"answer","confidence":0.8})
     );
+}
+
+#[tokio::test]
+async fn choice_confidence_is_concentration_not_max_probability() {
+    let answer = json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"gate":{"type":"choice","probabilities":{"answer":0.32,"review":0.64,"reject":0.04},"choice":"review","confidence":0.46}}});
+    let questions = json!({"gate":{"type":"choice","instructions":"choose","criteria":{"answer":"ok","review":"check","reject":"no"}}}).as_object().unwrap().clone();
+    let (base, _) = server(vec![(StatusCode::OK, answer)]).await;
+    let backend = HostedJevBackend::for_test(
+        "key".into(),
+        "jev-1.2.3".into(),
+        base,
+        Duration::from_secs(1),
+        None,
+    )
+    .unwrap();
+    let result = backend.decide(&json!({}), &questions).await.unwrap();
+    assert_eq!(result["answers"]["gate"]["top"], "review");
+    assert_eq!(result["answers"]["gate"]["confidence"], 0.46);
+}
+
+#[tokio::test]
+async fn official_score_confidence_examples_use_first_modal_index() {
+    let examples = [
+        (json!({"0":0.0,"1":0.5,"2":0.5}), 1.5, 0.25, "1"),
+        (json!({"0":0.5,"1":0.0,"2":0.5}), 1.0, 0.0, "0"),
+        (json!({"0":0.1,"1":0.2,"2":0.7}), 1.6, 0.4, "2"),
+        (json!({"0":0.0,"1":0.57,"2":0.43}), 1.43, 0.355, "1"),
+    ];
+    let replies = examples.iter().map(|(probabilities, score, confidence, _)| (
+        StatusCode::OK,
+        json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"fit":{"type":"score","probabilities":probabilities,"score":score,"confidence":confidence,"legend":{"0":"poor","1":"good","2":"best"}}}}),
+    )).collect();
+    let (base, _) = server(replies).await;
+    let backend = HostedJevBackend::for_test(
+        "key".into(),
+        "jev-1.2.3".into(),
+        base,
+        Duration::from_secs(1),
+        None,
+    )
+    .unwrap();
+    for (_, _, confidence, top) in examples {
+        let answer = backend
+            .decide(&json!({}), &score_questions())
+            .await
+            .unwrap();
+        assert_eq!(answer["answers"]["fit"]["top"], top);
+        assert_eq!(answer["answers"]["fit"]["confidence"], confidence);
+    }
+}
+
+#[tokio::test]
+async fn noul_concentration_covers_flat_and_peaked() {
+    let replies = [0.5, 0.9].into_iter().map(|noul| (
+        StatusCode::OK,
+        json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"relevant":{"type":"noul","noul":noul}}}),
+    )).collect();
+    let (base, _) = server(replies).await;
+    let backend = HostedJevBackend::for_test(
+        "key".into(),
+        "jev-1.2.3".into(),
+        base,
+        Duration::from_secs(1),
+        None,
+    )
+    .unwrap();
+    assert_eq!(
+        backend.decide(&json!({}), &noul_questions()).await.unwrap()["answers"]["relevant"]
+            ["confidence"],
+        0.0
+    );
+    assert_eq!(
+        backend.decide(&json!({}), &noul_questions()).await.unwrap()["answers"]["relevant"]
+            ["confidence"],
+        0.8
+    );
+}
+
+#[tokio::test]
+async fn single_label_choice_and_score_are_rejected_by_provider_normalization() {
+    let cases = [
+        (
+            json!({"gate":{"type":"choice","instructions":"choose","criteria":{"answer":"only"}}}),
+            json!({"gate":{"type":"choice","probabilities":{"answer":1.0},"choice":"answer","confidence":1.0}}),
+        ),
+        (
+            json!({"fit":{"type":"score","instructions":"score","criteria":["only"]}}),
+            json!({"fit":{"type":"score","probabilities":{"0":1.0},"score":0.0,"confidence":1.0,"legend":{"0":"only"}}}),
+        ),
+    ];
+    for (questions, answers) in cases {
+        let reply = json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":answers});
+        let (base, _) = server(vec![(StatusCode::OK, reply)]).await;
+        let backend = HostedJevBackend::for_test(
+            "key".into(),
+            "jev-1.2.3".into(),
+            base,
+            Duration::from_secs(1),
+            None,
+        )
+        .unwrap();
+        assert!(backend
+            .decide(&json!({}), questions.as_object().unwrap())
+            .await
+            .is_err());
+    }
+}
+
+#[tokio::test]
+async fn rejects_provider_confidence_that_is_not_concentration() {
+    let reply = json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"gate":{"type":"choice","probabilities":{"answer":0.9,"review":0.1},"choice":"answer","confidence":0.9}}});
+    let (base, _) = server(vec![(StatusCode::OK, reply)]).await;
+    let backend = HostedJevBackend::for_test(
+        "key".into(),
+        "jev-1.2.3".into(),
+        base,
+        Duration::from_secs(1),
+        None,
+    )
+    .unwrap();
+    assert!(backend
+        .decide(&json!({}), &choice_question())
+        .await
+        .is_err());
 }
 
 #[tokio::test]
@@ -343,7 +467,7 @@ async fn exact_noul_and_score_wires_and_semantics() {
         ),
         (
             StatusCode::OK,
-            json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"fit":{"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"score":1.6,"confidence":0.7,"legend":{"0":"poor","1":"good","2":"best"}}}}),
+            json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"fit":{"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"score":1.6,"confidence":0.4,"legend":{"0":"poor","1":"good","2":"best"}}}}),
         ),
     ];
     let (base, fake) = server(replies).await;
@@ -374,11 +498,11 @@ async fn exact_noul_and_score_wires_and_semantics() {
     );
     assert_eq!(
         noul["answers"]["relevant"],
-        json!({"type":"noul","probabilities":{"yes":0.7,"no":0.3},"top":"yes","noul":0.7,"confidence":0.7})
+        json!({"type":"noul","probabilities":{"yes":0.7,"no":0.3},"top":"yes","noul":0.7,"confidence":0.4})
     );
     assert_eq!(
         score["answers"]["fit"],
-        json!({"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"top":"2","score":1.6,"confidence":0.7,"legend":{"0":"poor","1":"good","2":"best"}})
+        json!({"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"top":"2","score":1.6,"confidence":0.4,"legend":{"0":"poor","1":"good","2":"best"}})
     );
     assert!(score["cost_usd"].is_null());
     assert!(score["latency_ms"].is_null());
@@ -389,7 +513,7 @@ async fn provider_native_ties_are_deterministic() {
     let replies = vec![
         (
             StatusCode::OK,
-            json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"gate":{"type":"choice","probabilities":{"answer":0.5,"review":0.5},"choice":"review","confidence":0.5}}}),
+            json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"gate":{"type":"choice","probabilities":{"answer":0.5,"review":0.5},"choice":"review","confidence":0.0}}}),
         ),
         (
             StatusCode::OK,
@@ -397,7 +521,7 @@ async fn provider_native_ties_are_deterministic() {
         ),
         (
             StatusCode::OK,
-            json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"fit":{"type":"score","probabilities":{"0":0.5,"1":0.5,"2":0.0},"score":0.5,"confidence":0.5,"legend":{"0":"poor","1":"good","2":"best"}}}}),
+            json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"fit":{"type":"score","probabilities":{"0":0.5,"1":0.5,"2":0.0},"score":0.5,"confidence":0.25,"legend":{"0":"poor","1":"good","2":"best"}}}}),
         ),
     ];
     let (base, _) = server(replies).await;
@@ -420,16 +544,16 @@ async fn provider_native_ties_are_deterministic() {
         .unwrap();
     assert_eq!(choice["answers"]["gate"]["top"], "review");
     assert_eq!(noul["answers"]["relevant"]["top"], "no");
-    assert_eq!(score["answers"]["fit"]["top"], "1");
+    assert_eq!(score["answers"]["fit"]["top"], "0");
 }
 
 #[tokio::test]
 async fn score_rejects_missing_extra_and_wrong_provider_legend() {
     let answers = [
-        json!({"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"score":1.6,"confidence":0.7}),
-        json!({"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"score":1.6,"confidence":0.7,"legend":{"0":"poor","1":"good","2":"best"},"top":"2"}),
-        json!({"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"score":1.6,"confidence":0.7,"legend":{"0":"poor","1":"best","2":"good"}}),
-        json!({"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"score":1.6,"confidence":0.7,"legend":{"0":"poor","1":"good"}}),
+        json!({"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"score":1.6,"confidence":0.4}),
+        json!({"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"score":1.6,"confidence":0.4,"legend":{"0":"poor","1":"good","2":"best"},"top":"2"}),
+        json!({"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"score":1.6,"confidence":0.4,"legend":{"0":"poor","1":"best","2":"good"}}),
+        json!({"type":"score","probabilities":{"0":0.1,"1":0.2,"2":0.7},"score":1.6,"confidence":0.4,"legend":{"0":"poor","1":"good"}}),
     ];
     for answer in answers {
         let reply = json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"fit":answer}});
@@ -451,7 +575,7 @@ async fn score_rejects_missing_extra_and_wrong_provider_legend() {
 
 #[tokio::test]
 async fn rejects_wrong_model_usage_latency_and_unknown_fields() {
-    let answer = json!({"gate":{"type":"choice","probabilities":{"answer":0.9,"review":0.1},"choice":"answer","confidence":0.9}});
+    let answer = json!({"gate":{"type":"choice","probabilities":{"answer":0.9,"review":0.1},"choice":"answer","confidence":0.8}});
     let cases = [
         json!({"model":"other","answers":answer,"usage":{"input_tokens":1,"output_tokens":1}}),
         json!({"model":"jev-1.2.3","answers":answer}),
@@ -460,7 +584,7 @@ async fn rejects_wrong_model_usage_latency_and_unknown_fields() {
         json!({"model":"jev-1.2.3","answers":answer,"usage":{"input_tokens":1,"output_tokens":-1}}),
         json!({"model":"jev-1.2.3","answers":answer,"usage":{"input_tokens":1,"output_tokens":1,"unknown":true}}),
         json!({"model":"jev-1.2.3","answers":answer,"usage":{"input_tokens":1,"output_tokens":1},"unknown":true}),
-        json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"gate":{"type":"choice","probabilities":{"answer":0.9,"review":0.1},"choice":"answer","confidence":0.9,"unknown":true}}}),
+        json!({"model":"jev-1.2.3","usage":{"input_tokens":1,"output_tokens":1},"answers":{"gate":{"type":"choice","probabilities":{"answer":0.9,"review":0.1},"choice":"answer","confidence":0.8,"unknown":true}}}),
     ];
     for reply in cases {
         let (base, _) = server(vec![(StatusCode::OK, reply)]).await;
@@ -675,6 +799,7 @@ async fn later_failure_preserves_stages_and_totals() {
     assert_eq!(value["totals"]["calls"], 1);
     assert_eq!(value["totals"]["input_tokens"], 10);
     assert_eq!(value["totals"]["cost_usd"], 0.01);
+    assert_eq!(value["totals"]["backend_errors"], 1);
 }
 
 #[tokio::test]

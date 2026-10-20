@@ -309,7 +309,7 @@ pub async fn run(
     let started = Instant::now();
     let mut stages = Vec::new();
     let mut totals =
-        json!({"decisions": 0, "calls": 0, "latency_ms": 0.0, "input_tokens": 0, "cost_usd": 0.0, "usage_complete": true})
+        json!({"decisions": 0, "calls": 0, "backend_errors": 0, "latency_ms": 0.0, "input_tokens": 0, "cost_usd": 0.0, "usage_complete": true})
             .as_object()
             .unwrap()
             .clone();
@@ -386,6 +386,10 @@ pub async fn run(
             match ask(backend, &mut totals, $state, $questions, started).await {
                 Ok(response) => response,
                 Err(error) => {
+                    totals.insert(
+                        "backend_errors".into(),
+                        json!(totals["backend_errors"].as_u64().unwrap_or(0) + 1),
+                    );
                     out["stages"] = json!(stages);
                     return Ok(finish(
                         out,

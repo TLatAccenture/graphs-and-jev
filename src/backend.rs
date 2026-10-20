@@ -552,7 +552,8 @@ fn normalize_answer(answer: &Value, question: &Value) -> Result<Value, DecisionE
             .filter(|value| value.is_finite() && (0.0..=1.0).contains(value))
             .ok_or_else(DecisionError::malformed)?;
         let no = ((1.0 - noul) * 100_000.0).round() / 100_000.0;
-        let (top, confidence) = if noul > no { ("yes", noul) } else { ("no", no) };
+        let top = if noul > no { "yes" } else { "no" };
+        let confidence = ((2.0 * noul - 1.0).abs() * 100_000.0).round() / 100_000.0;
         return Ok(json!({
             "type": "noul",
             "probabilities": {"yes": noul, "no": no},
@@ -563,6 +564,9 @@ fn normalize_answer(answer: &Value, question: &Value) -> Result<Value, DecisionE
     }
 
     let labels = labels(question)?;
+    if labels.len() < 2 {
+        return Err(DecisionError::malformed());
+    }
     let probabilities = object
         .get("probabilities")
         .and_then(Value::as_object)
@@ -573,7 +577,6 @@ fn normalize_answer(answer: &Value, question: &Value) -> Result<Value, DecisionE
         return Err(DecisionError::malformed());
     }
     let mut sum = 0.0;
-    let mut top = None;
     let mut high = -1.0;
     for label in &labels {
         let probability = probabilities[label]
@@ -581,36 +584,63 @@ fn normalize_answer(answer: &Value, question: &Value) -> Result<Value, DecisionE
             .filter(|value| value.is_finite() && (0.0..=1.0).contains(value))
             .ok_or_else(DecisionError::malformed)?;
         sum += probability;
-        if probability >= high {
+        if probability > high {
             high = probability;
-            top = Some(label.as_str());
         }
     }
     if (sum - 1.0).abs() > 0.001 {
         return Err(DecisionError::malformed());
     }
-    let top = top.ok_or_else(DecisionError::malformed)?;
     let confidence = object
         .get("confidence")
         .and_then(Value::as_f64)
         .filter(|value| value.is_finite() && (0.0..=1.0).contains(value))
         .ok_or_else(DecisionError::malformed)?;
-    if (confidence - high).abs() > 0.001 {
-        return Err(DecisionError::malformed());
-    }
 
     if qtype == "choice" {
-        if object.get("choice").and_then(Value::as_str) != Some(top) {
+        let provider_choice = object
+            .get("choice")
+            .and_then(Value::as_str)
+            .filter(|choice| labels.iter().any(|label| label == choice))
+            .ok_or_else(DecisionError::malformed)?;
+        if (probabilities[provider_choice].as_f64().unwrap() - high).abs() > f64::EPSILON {
+            return Err(DecisionError::malformed());
+        }
+        let uniform = 1.0 / labels.len() as f64;
+        let expected_confidence = (high - uniform) / (1.0 - uniform);
+        if (confidence - expected_confidence).abs() > 0.001 {
             return Err(DecisionError::malformed());
         }
         return Ok(json!({
             "type": "choice",
             "probabilities": probabilities,
-            "top": top,
-            "choice": top,
+            "top": provider_choice,
+            "choice": provider_choice,
             "confidence": confidence,
         }));
     }
+
+    let modal_index = labels
+        .iter()
+        .position(|label| probabilities[label].as_f64().unwrap() == high)
+        .ok_or_else(DecisionError::malformed)?;
+    let spread: f64 = labels
+        .iter()
+        .enumerate()
+        .map(|(index, label)| {
+            probabilities[label].as_f64().unwrap() * index.abs_diff(modal_index) as f64
+        })
+        .sum();
+    let midpoint = (labels.len() - 1) as f64 / 2.0;
+    let uniform_mad = (0..labels.len())
+        .map(|index| (index as f64 - midpoint).abs())
+        .sum::<f64>()
+        / labels.len() as f64;
+    let expected_confidence = (1.0 - spread / uniform_mad).max(0.0);
+    if (confidence - expected_confidence).abs() > 0.001 {
+        return Err(DecisionError::malformed());
+    }
+    let top = labels[modal_index].as_str();
 
     let expected = (labels
         .iter()

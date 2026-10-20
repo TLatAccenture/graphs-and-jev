@@ -141,7 +141,7 @@ Status codes:
   "model": "string",
   "residency": "local | hosted",
   "policy": {"backend": "catalogue | jev", "model": "string", "residency": "local | hosted"},
-  "totals": {"decisions": 0, "calls": 0, "wall_ms": 0, "input_tokens": null, "cost_usd": null, "usage_complete": false}
+  "totals": {"decisions": 0, "calls": 0, "backend_errors": 0, "wall_ms": 0, "input_tokens": null, "cost_usd": null, "usage_complete": false}
 }
 ```
 
@@ -194,6 +194,7 @@ A lower-level route that sends typed questions about one request directly to the
 
 - The request `backend` is optional and legacy. When present, it must exactly equal the configured backend name (`catalogue` or `jev`); a mismatch returns 404. It never overrides `DECISION_BACKEND`.
 - Responses report the configured `backend`, `model` and `residency`. Validation failures return 422, malformed upstream responses return 502, and unavailable or timed-out backends return 503.
+- Hosted Jev confidence is a concentration statistic, not the largest probability. For `choice`, confidence is `(p_max - 1/n) / (1 - 1/n)`; probabilities `0.32 / 0.64 / 0.04` have confidence `0.46`, and a tied provider choice may be any argmax. For ordered `score` probabilities, `m` is the first maximum index, `spread = sum(p_i * abs(i-m))`, `MAD_uniform = sum(abs(i-(n-1)/2))/n`, and confidence is `max(0, 1-spread/MAD_uniform)`; for example `0 / 0.57 / 0.43` gives approximately `0.355`. Choice and score require at least two labels. Hosted `noul` supplies only its yes probability, so the service derives yes/no probabilities and confidence `abs(2p - 1)` (`0.5` is `0`, `0.9` is `0.8`). Provider-supplied `choice`/`score` confidence, score expected value, and score legend must match these semantics or the response is rejected. The local catalogue backend retains its deterministic confidence values.
 - At most 100 questions; names at most 100 characters; `state.request` at most 500 characters; `state.preference` at most 300; any string inside a question at most 500; serialised `state` at most `MAX_STATE_CHARS` (default 4,000, 413 above it).
 - Question `type` is `choice` (labels are the `criteria` keys), `noul` (yes or no) or `score` (labels are the indices of a `criteria` array). Supported question names: `gate`, a dimension name (`GEO`, `TIME`, `SECTOR`), `group:{id}`, `pollutant:{id}`, `relevant`, and `fit` when `state.solution` is present. Anything else returns 422.
 
@@ -228,6 +229,6 @@ The site's own CSP already adds the `API_BASE_URL` origin to `connect-src`.
 
 ## Private hosted Jev presenter
 
-The private Archegon presenter sets `DECISION_BACKEND=jev`, `SERVICE_AUTH_MODE=cloud-run-iam`, and an exact `JEV_MODEL`. It returns `backend: "jev"`, the pinned model, `residency: "hosted"`, matching policy provenance, finite confidence/probabilities on decision-stage answers, and explicit aggregate `usage_complete`. Release smoke checks reject catalogue fallback. `TYPESAFE_API_KEY` is runtime-only and must be supplied through a Cloud Run Secret Manager reference; it is never part of `/config.js`, deployment app environment, logs, or verification output.
+The private Archegon presenter sets `DECISION_BACKEND=jev`, `SERVICE_AUTH_MODE=cloud-run-iam`, and an exact `JEV_MODEL`. It returns `backend: "jev"`, the pinned model, `residency: "hosted"`, matching policy provenance, an actual typed gate with finite concentration confidence/probabilities, at least one completed stage and backend call, zero backend errors, and complete aggregate usage. Private release smoke accepts any HTTP 200 bounded outcome (`answer`, `clarify`, `reject`, or `review`) because a real low-confidence model response may correctly review; it still rejects empty-stage backend-error reviews and catalogue fallback. Combined Gemini plus Jev smoke additionally requires `interpretation.by: "gemini"`. Public/default smoke continues to require the exact deterministic catalogue outcomes. `TYPESAFE_API_KEY` is runtime-only and must be supplied through a Cloud Run Secret Manager reference; it is never part of `/config.js`, deployment app environment, logs, or verification output.
 
 On `/api/decide`, selected-backend request validation failures return 422, malformed upstream responses return 502, and unavailable or timed-out calls return 503. In `/api/pipeline`, an ordinary decision-stage backend failure or timeout returns HTTP 200 with `outcome: "review"`, a screened message, completed stages and preserved usage totals. A pipeline 503 is reserved for unexpected outer service/backend unavailability before that normal review response can be formed. Service-level rate limiting returns 429. Gemini is separate: it may interpret typed catalogue text before the selected decision backend runs. Enabling Gemini does not select Jev, and selecting Jev does not enable Gemini. `/config.js` exposes only safe `decisionBackend` provenance (`by`, `label`, `model`, `residency`), never secret names, versions, keys, or endpoints.
