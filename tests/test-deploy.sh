@@ -680,6 +680,10 @@ cat >"$private_dir/bin/gcloud" <<'MOCK'
 printf 'gcloud %s\n' "$*" >>"$MOCK_LOG"
 case "$*" in
   "auth list"*) printf '%s\n' anthony.lui@archegon.com ;;
+  "auth print-identity-token --audiences="*)
+    [[ "${MOCK_AUDIENCE_FAILURE:-}" == other ]] && { printf '%s\n' 'network unavailable' >&2; exit 1; }
+    [[ "${MOCK_AUDIENCE_FAILURE:-}" == account ]] && { printf '%s\n' 'Invalid account type for --audiences' >&2; exit 1; }
+    printf '%s\n' private-token ;;
   "auth print-identity-token"*) printf '%s\n' private-token ;;
   "config get-value project"*) printf '%s\n' ninth-airship-386815 ;;
   "run services get-iam-policy"*) printf '%s\n' '{"bindings":[{"role":"roles/run.invoker","members":["user:presenter@example.com"]}]}' ;;
@@ -717,6 +721,12 @@ run_private_promote '' || fail "private promotion failed: $(cat "$private_dir/ou
 log="$(cat "$private_dir/log")"
 [[ "$log" == *'auth print-identity-token --audiences=https://private.example.run.app'* && "$log" == *'verify https://candidate-new---private.example.run.app bearer=yes gemini=1 model=gemini-3.8-flash jev=1 jev_model=jev-1.2.3'* ]] || fail "private candidate was not Gemini-verified with auth: $log"
 [[ "$(rg -c -F 'auth print-identity-token --audiences=https://private.example.run.app' <<<"$log")" == 2 && "$log" == *'verify https://private.example.run.app bearer=yes gemini=1 model=gemini-3.8-flash jev=1 jev_model=jev-1.2.3'* ]] || fail "private canonical URL was not Gemini-verified with auth: $log"
+MOCK_AUDIENCE_FAILURE=account run_private_promote '' || fail "human-account private promotion failed: $(cat "$private_dir/out")"
+log="$(cat "$private_dir/log")"
+[[ "$(rg -c -F 'auth print-identity-token --audiences=https://private.example.run.app' <<<"$log")" == 2 && "$(rg -c -x -F 'gcloud auth print-identity-token' <<<"$log")" == 2 ]] || fail "human-account token fallback missing: $log"
+if MOCK_AUDIENCE_FAILURE=other run_private_promote ''; then fail 'private promotion masked unrelated audience-token failure'; fi
+log="$(cat "$private_dir/log")"
+[[ "$log" != *$'gcloud auth print-identity-token\n'* ]] || fail "unrelated token failure used fallback: $log"
 [[ "$log" != *'add-iam-policy-binding'* && "$log" != *'set-iam-policy'* ]] || fail "private promotion changed IAM: $log"
 run_private_promote '' gemini || fail "Gemini-only private promotion failed: $(cat "$private_dir/out")"
 log="$(cat "$private_dir/log")"; [[ "$log" == *'gemini=1 model=gemini-3.8-flash jev=None jev_model=None'* ]] || fail "Gemini-only verification modes wrong: $log"
