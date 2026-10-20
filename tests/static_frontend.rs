@@ -1219,8 +1219,10 @@ fn sticky_header_offsets_and_touch_targets_hold() {
         "mobile header offset token"
     );
     assert!(
-        css.contains("scroll-padding-top:var(--header-offset)"),
-        "document anchor offset"
+        css.contains(
+            "scroll-padding-top:max(var(--header-offset),calc(var(--header-h,0px) + 18px))"
+        ),
+        "document anchor offset follows the header height"
     );
     assert!(
         css.contains("min-width:44px") && css.contains("min-height:44px"),
