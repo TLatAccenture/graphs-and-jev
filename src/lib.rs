@@ -1,4 +1,5 @@
 mod auth;
+mod backend;
 mod catalogue;
 mod decide;
 mod graph;
@@ -23,7 +24,11 @@ use serde_json::{json, Value};
 use tower_http::services::ServeDir;
 
 use crate::auth::{error, guard, Limiter};
+pub use crate::backend::{
+    DecisionBackend, DecisionBackendConfig, HostedJevBackend, HostedJevLimits, HostedJevSettings,
+};
 use crate::catalogue::Catalogue;
+pub use crate::decide::{DecisionError, DecisionErrorKind};
 pub use crate::interpret::Interpreter;
 pub use crate::site::Site;
 
@@ -34,7 +39,8 @@ const MAX_PREFERENCE_CHARS: usize = 300;
 static REQUEST_SEQUENCE: AtomicU64 = AtomicU64::new(1);
 
 pub struct App {
-    cat: Catalogue,
+    cat: Arc<Catalogue>,
+    backend: Arc<dyn DecisionBackend>,
     min_confidence: f64,
     max_state: usize,
     limiter: Limiter,
@@ -53,8 +59,12 @@ impl App {
         if !(0.0..=1.0).contains(&min_confidence) {
             return Err("MIN_CONFIDENCE must be in [0, 1].".into());
         }
+        let cat = Arc::new(Catalogue::load(catalogue_path)?);
+        let backend =
+            crate::backend::build_backend(DecisionBackendConfig::Catalogue, Arc::clone(&cat))?;
         Ok(Self {
-            cat: Catalogue::load(catalogue_path)?,
+            cat,
+            backend,
             min_confidence,
             max_state,
             limiter: Limiter::new(rate),
@@ -62,6 +72,17 @@ impl App {
             site: Site::default(),
             interpreter: Interpreter::Rules,
         })
+    }
+
+    pub fn with_backend_config(mut self, config: DecisionBackendConfig) -> Result<Self, String> {
+        self.backend = crate::backend::build_backend(config, Arc::clone(&self.cat))?;
+        Ok(self)
+    }
+
+    #[doc(hidden)]
+    pub fn with_backend(mut self, backend: Arc<dyn DecisionBackend>) -> Self {
+        self.backend = backend;
+        self
     }
 
     pub fn with_log_sink(mut self, log: impl Fn(String) + Send + Sync + 'static) -> Self {
@@ -79,13 +100,17 @@ impl App {
         self
     }
 
-    pub fn warm(&self) {
-        let _ = pipeline::run(
-            &self.cat,
-            "Annual CO2 for Australia in 2024",
-            None,
-            self.min_confidence,
-        );
+    pub async fn warm(&self) {
+        if self.backend.name() == "catalogue" {
+            let _ = pipeline::run(
+                &self.cat,
+                self.backend.as_ref(),
+                "Annual CO2 for Australia in 2024",
+                None,
+                self.min_confidence,
+            )
+            .await;
+        }
     }
 }
 
@@ -105,19 +130,16 @@ fn with_log_metadata(mut response: Response, outcome: &'static str) -> Response 
 
 #[derive(Deserialize)]
 struct DecideIn {
-    backend: String,
+    #[serde(default)]
+    backend: Option<String>,
     state: Value,
     questions: serde_json::Map<String, Value>,
 }
 
-fn default_backend() -> String {
-    "catalogue".into()
-}
-
 #[derive(Deserialize)]
 struct PipelineIn {
-    #[serde(default = "default_backend")]
-    backend: String,
+    #[serde(default)]
+    backend: Option<String>,
     request: String,
     #[serde(default)]
     preference: Option<String>,
@@ -249,15 +271,18 @@ async fn health(State(app): State<Arc<App>>) -> Json<Value> {
         "status": "ok",
         "ok": true,
         "version": VERSION,
-        "auth_required": false,
-        "backend": "catalogue",
+        "auth_required": app.backend.auth_required(),
+        "backend": app.backend.name(),
+        "backend_detail": {"label": app.backend.label(), "model": app.backend.model(), "residency": app.backend.residency(), "dependency_check": app.backend.dependency_status()},
         "sources": app.cat.sources.len(),
         "pollutants": app.cat.pollutants.len(),
     }))
 }
 
 async fn ready(State(app): State<Arc<App>>) -> Json<Value> {
-    Json(json!({"ok": !app.cat.sources.is_empty() && !app.cat.pollutants.is_empty()}))
+    Json(
+        json!({"ok": !app.cat.sources.is_empty() && !app.cat.pollutants.is_empty(), "backend": app.backend.name(), "configured": true, "dependency_check": app.backend.dependency_status()}),
+    )
 }
 
 async fn catalogue(State(app): State<Arc<App>>) -> Json<Value> {
@@ -280,26 +305,41 @@ async fn catalogue(State(app): State<Arc<App>>) -> Json<Value> {
 }
 
 async fn decide(State(app): State<Arc<App>>, Json(body): Json<DecideIn>) -> Response {
-    if body.backend != "catalogue" {
+    if body
+        .backend
+        .as_deref()
+        .is_some_and(|name| name != app.backend.name())
+    {
         return error(
             StatusCode::NOT_FOUND,
-            "Unknown backend. Available: catalogue",
+            "Requested backend is not configured.",
         );
     }
     if let Err(failure) = body.validate(app.max_state) {
         return failure.into_response();
     }
-    match crate::decide::decide(&app.cat, &body.state, &body.questions) {
+    match app.backend.decide(&body.state, &body.questions).await {
         Ok(value) => with_log_metadata((StatusCode::OK, Json(value)).into_response(), "decided"),
-        Err(e) => error(StatusCode::UNPROCESSABLE_ENTITY, &e.0),
+        Err(e) => error(
+            match e.kind {
+                DecisionErrorKind::InvalidRequest => StatusCode::UNPROCESSABLE_ENTITY,
+                DecisionErrorKind::BadGateway => StatusCode::BAD_GATEWAY,
+                DecisionErrorKind::Unavailable => StatusCode::SERVICE_UNAVAILABLE,
+            },
+            &e.message,
+        ),
     }
 }
 
 async fn run_pipeline(State(app): State<Arc<App>>, Json(body): Json<PipelineIn>) -> Response {
-    if body.backend != "catalogue" {
+    if body
+        .backend
+        .as_deref()
+        .is_some_and(|name| name != app.backend.name())
+    {
         return error(
             StatusCode::NOT_FOUND,
-            "Unknown backend. Available: catalogue",
+            "Requested backend is not configured.",
         );
     }
     let (request, preference) = match body.validate() {
@@ -334,7 +374,15 @@ async fn run_pipeline(State(app): State<Arc<App>>, Json(body): Json<PipelineIn>)
     let decided = interpretation
         .as_ref()
         .map_or(request, |reading| reading.request.as_str());
-    let mut response = match pipeline::run(&app.cat, decided, preference, app.min_confidence) {
+    let mut response = match pipeline::run(
+        &app.cat,
+        app.backend.as_ref(),
+        decided,
+        preference,
+        app.min_confidence,
+    )
+    .await
+    {
         Ok(mut v) => {
             if let Some(reading) = &interpretation {
                 v["request"] = json!(request);
@@ -342,7 +390,10 @@ async fn run_pipeline(State(app): State<Arc<App>>, Json(body): Json<PipelineIn>)
             }
             decision_response(v)
         }
-        Err(e) => error(StatusCode::UNPROCESSABLE_ENTITY, &e.0),
+        Err(_) => error(
+            StatusCode::SERVICE_UNAVAILABLE,
+            "Decision pipeline unavailable. Review is required.",
+        ),
     };
     if let (Some(reading), Some(metadata)) = (
         &interpretation,

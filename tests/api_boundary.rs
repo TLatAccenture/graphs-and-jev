@@ -395,7 +395,8 @@ async fn config_js_renders_rust_defaults_over_the_static_file() {
                 "timeoutMs": 15000,
                 "routes": {"health": "/api/health", "catalogue": "/api/catalogue", "pipeline": "/api/pipeline"},
                 "domains": {"catalogue": "live", "lineage": "fixtures"},
-                "interpreter": {"by": "rules", "model": null}
+                "interpreter": {"by": "rules", "model": null},
+                "decisionBackend": {"by": "catalogue", "label": "Catalogue rules", "model": "catalogue-rules-v1", "residency": "local"}
             }
         })
     );
@@ -431,6 +432,23 @@ async fn config_js_applies_overrides_and_escapes_hostile_values() {
     assert_eq!(value["api"]["routes"]["pipeline"], "/v1/pipeline");
     assert_eq!(value["api"]["domains"]["catalogue"], "fixtures");
     assert_eq!(value["api"]["domains"]["lineage"], "live");
+}
+
+#[tokio::test]
+async fn config_js_exposes_safe_decision_backend_provenance() {
+    let (_, text, value) = config(
+        app_with_site(
+            10,
+            site(&[("DECISION_BACKEND", "jev"), ("JEV_MODEL", "jev-1.2.3")]).unwrap(),
+        )
+        .0,
+    )
+    .await;
+    assert_eq!(
+        value["api"]["decisionBackend"],
+        json!({"by": "jev", "label": "TypeSafe hosted Jev", "model": "jev-1.2.3", "residency": "hosted"})
+    );
+    assert!(!text.contains("TYPESAFE"));
 }
 
 #[tokio::test]
@@ -479,6 +497,8 @@ fn invalid_site_settings_fail_at_startup() {
         vec![("API_ROUTE_PIPELINE", "/api/pipe line")],
         vec![("API_ROUTE_PIPELINE", "/\\evil.example")],
         vec![("CATALOGUE_INTERPRETER", "Gemini")],
+        vec![("DECISION_BACKEND", "rules")],
+        vec![("DECISION_BACKEND", "jev")],
     ] {
         assert!(site(&vars).is_err(), "{vars:?}");
     }

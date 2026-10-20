@@ -4,8 +4,8 @@ This runbook is for the agent or person who deploys the presenter service. It tu
 
 ## What it does
 
-- Gemini on Vertex AI reads each typed Environmental Agency request and maps it to catalogue terms through a response schema that lists only the catalogue's values. The service writes those terms back as a plain request, and the catalogue rules decide on it. Gemini never picks an outcome, a dataset or a number.
-- If Gemini fails, or finds something the catalogue does not hold, the rules decide on the reader's own words and the result says so, for example "Read by Catalogue rules. Gemini unavailable: Vertex AI returned HTTP 404. The rules read your words."
+- Gemini on Vertex AI reads each typed Environmental Agency request and maps it to catalogue terms through a response schema that lists only the catalogue's values. The service writes those terms back as a plain request, and the configured decision backend decides on it. Gemini never picks an outcome, a dataset or a number.
+- On a Gemini-only presenter, the default `DECISION_BACKEND=catalogue` means deterministic catalogue rules decide. On a combined presenter, `DECISION_BACKEND=jev` means hosted Jev decides. If Gemini fails or finds something outside the catalogue, deterministic interpretation passes the reader's own words to that configured backend and the result says Gemini was unavailable.
 - The page says on load that Gemini reads requests and that request text is sent to Vertex AI. The service does not log request text; each log line has an `interpreter` field instead.
 - Settings and response shape: [docs/api-contract.md](../api-contract.md), sections "Gemini interpreter settings" and "Domain `catalogue`".
 
@@ -145,3 +145,12 @@ cargo run
 ```
 
 Open <http://127.0.0.1:8080/environmental-agency/>. The token expires; rerun the command to refresh it.
+
+
+## Combined Gemini and hosted Jev presenter
+
+This is a separate private Archegon service. Set `CATALOGUE_INTERPRETER=gemini`, the exact GA `GEMINI_MODEL`, `DECISION_BACKEND=jev`, `SERVICE_AUTH_MODE=cloud-run-iam`, and exact `JEV_MODEL`. Use a dedicated runtime service account with only Vertex prediction, Secret Manager secret-version access for the one TypeSafe secret, and normal logging permissions. Keep ingress private as configured, invoker IAM enabled, and grant `roles/run.invoker` only to approved presenters or IAP identities.
+
+Set `TYPESAFE_SECRET_RESOURCE` to `projects/PROJECT/secrets/SECRET/versions/VERSION`. The project must match `PROJECT_ID`; the version must be an enabled positive integer. `latest` is refused so the release remains immutable. Set `TYPESAFE_EGRESS_ACKNOWLEDGED=yes` to record that requests leave Google Cloud for TypeSafe's hosted API. Never set `TYPESAFE_API_KEY` in the environment file. The deploy preflight reads only secret metadata and IAM policy; it never accesses the payload.
+
+Do not bind the secret before consuming code exists. The hosted Jev backend now consumes it, so deployment may bind it as `TYPESAFE_API_KEY` through Cloud Run `secretKeyRef`. Deploy with `deploy/deploy.sh PRIVATE_ENV`, then promote only with `deploy/promote-private.sh REVISION PRIVATE_ENV`. Private promotion authenticates both candidate and canonical smoke tests, verifies whichever private model modes the revision enables (Gemini, Jev or both), preserves IAM, and restores prior traffic on failure. Public promotion refuses either hosted Jev or Cloud Run IAM service mode.

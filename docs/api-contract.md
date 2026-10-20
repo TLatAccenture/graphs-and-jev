@@ -113,7 +113,7 @@ Request, exactly as `siteApi.pipeline` sends it:
 | `domain` | string | `catalogue` (alias `air` for older clients) or `lineage`. Defaults to `catalogue` when omitted or empty. |
 | `request` | string | Required. 1 to 500 characters after trimming. |
 | `preference` | string or null | Optional. At most 300 characters. |
-| `backend` | string | Optional, legacy. Defaults to `catalogue`; any other value returns 404. |
+| `backend` | string | Optional, legacy. When present it must exactly match the configured `DECISION_BACKEND` (`catalogue` or `jev`); a mismatch returns 404. It does not select or override the backend. |
 
 Status codes:
 
@@ -122,8 +122,10 @@ Status codes:
 | 200 | A bounded outcome (see below) |
 | 404 | Unknown domain (`{"detail": "Unknown domain. Available: catalogue, lineage"}`) or unknown backend |
 | 413 | Body larger than 64 KiB |
-| 422 | Missing, empty or over-long `request`, over-long `preference`, or malformed JSON |
-| 429 | Rate limit reached |
+| 422 | Missing, empty or over-long input, malformed JSON, or a request the selected backend rejects as invalid |
+| 429 | Service rate limit reached |
+| 502 | `/api/decide`: the selected backend returned a malformed or otherwise invalid upstream response |
+| 503 | `/api/decide`: the selected backend was unavailable or timed out; `/api/pipeline`: only unexpected outer service/backend unavailability before a normal review response can be formed |
 | 501 | `domain: "lineage"` on the Rust service: `{"detail": "Lineage domain not implemented on this service."}` |
 
 ### Common response fields
@@ -134,18 +136,20 @@ Status codes:
   "message": "string or null, shown for non-answer outcomes",
   "explanation": {"by": "template", "text": "first line is the answer; later lines are reasons"},
   "stages": [{"stage": "gate", "title": "string"}],
+  "backend": "catalogue | jev",
   "backend_label": "string",
   "model": "string",
-  "residency": "string",
-  "totals": {"decisions": 0, "calls": 0, "wall_ms": 0}
+  "residency": "local | hosted",
+  "policy": {"backend": "catalogue | jev", "model": "string", "residency": "local | hosted"},
+  "totals": {"decisions": 0, "calls": 0, "wall_ms": 0, "input_tokens": null, "cost_usd": null, "usage_complete": false}
 }
 ```
 
-The page labels outcomes as described in handover Section 5.3. `error` is never returned by a backend; the page uses it for failed calls.
+`DECISION_BACKEND` selects `catalogue` (default deterministic rules) or `jev` (TypeSafe hosted Jev) for both `/api/decide` and every decision stage in `/api/pipeline`; clients do not select it per request. Pipeline and policy provenance report the selected backend, model and residency. Gemini interpretation, when enabled, runs first; the configured decision backend then decides on Gemini's catalogue-form request or on the reader's words after an interpretation fallback. Aggregate `input_tokens` and `cost_usd` are nullable; `usage_complete` is false whenever any backend call omits usage and true only when every decision call reported usage. The page labels outcomes as described in handover Section 5.3. `error` is never returned by a backend; the page uses it for failed calls.
 
 ### Domain `catalogue`
 
-Adds `query` (the resolved pollutants, levels and filters), `solutions[]` (each with `id`, `summary`, `sources`, `profiles`, `cells` and `notes`), `subgraph` and `policy`. The Rust service sets `backend_label` to "Catalogue rules", `model` to `catalogue-rules-v1` and `residency` to `local`. `static/fixtures/catalogue.js` returns the same shape with `residency: "browser"`.
+Adds `query` (the resolved pollutants, levels and filters), `solutions[]` (each with `id`, `summary`, `sources`, `profiles`, `cells` and `notes`), `subgraph` and `policy`. With the default `DECISION_BACKEND=catalogue`, the Rust service reports `backend: "catalogue"`, `backend_label: "Catalogue rules"`, `model: "catalogue-rules-v1"` and `residency: "local"`. With `DECISION_BACKEND=jev`, it reports `backend: "jev"`, the pinned Jev model and `residency: "hosted"`. The top-level and `policy` backend/model/residency fields agree. `static/fixtures/catalogue.js` uses deterministic browser rules and `residency: "browser"`.
 
 When the service runs with `CATALOGUE_INTERPRETER=gemini`, the response also carries `interpretation`, and `request` stays the reader's own text:
 
@@ -153,10 +157,10 @@ When the service runs with `CATALOGUE_INTERPRETER=gemini`, the response also car
 {"interpretation": {"by": "gemini | rules", "model": "gemini-3.8-flash", "request": "PM2.5 by country and year from 2019 to 2024", "note": "string or null"}}
 ```
 
-- Gemini only maps the reader's words to catalogue terms, through a response schema whose values are the catalogue's own pollutants, groups, levels, places and sectors. The service writes those terms back as `interpretation.request`, and the catalogue rules decide on that text. Gemini never chooses the outcome, a dataset or a number.
-- `by: "gemini"` with `note: null`: the rules decided on Gemini's reading.
-- `by: "gemini"` with a note such as "Outside the catalogue: ozone. The rules decided on your words.": Gemini found something the catalogue does not hold, so the rules decided on the reader's text.
-- `by: "rules"`: Gemini failed (no token, HTTP error, timeout, unreadable reply or a term outside the catalogue) and the note says which. The rules decided on the reader's text. The outcome is never an error because of Gemini.
+- Gemini only maps the reader's words to catalogue terms, through a response schema whose values are the catalogue's own pollutants, groups, levels, places and sectors. The service writes those terms back as `interpretation.request`, and the configured `catalogue` or `jev` decision backend decides on that text. Gemini never chooses the outcome, a dataset or a number.
+- `by: "gemini"` with `note: null`: the configured decision backend decided on Gemini's reading.
+- `by: "gemini"` with an outside-catalogue note: Gemini found something the catalogue does not hold, so the configured backend decided on the reader's text.
+- `by: "rules"`: Gemini failed (no token, HTTP error, timeout, unreadable reply or a term outside the catalogue), so deterministic interpretation passed the reader's words to the configured decision backend. The outcome is never an error merely because Gemini failed.
 - The request log gains an `interpreter` field (`gemini`, `gemini_outside_catalogue`, `gemini_no_terms` or `rules_fallback: <reason>`). It never holds request text.
 - Without the setting there is no `interpretation` field and no outbound call.
 
@@ -176,7 +180,7 @@ Stage ids are `gate`, `lineage`, `playbook`, `hook` and `eval`. To switch the pa
 
 ## POST /api/decide
 
-A lower-level route that answers typed questions about one request with the same catalogue rules. The pages do not call it.
+A lower-level route that sends typed questions about one request directly to the configured `catalogue` or `jev` decision backend. It does not run Gemini interpretation. The pages do not call it.
 
 ```json
 {
@@ -188,11 +192,12 @@ A lower-level route that answers typed questions about one request with the same
 }
 ```
 
-- `backend` is required and must be `catalogue` (404 otherwise).
+- The request `backend` is optional and legacy. When present, it must exactly equal the configured backend name (`catalogue` or `jev`); a mismatch returns 404. It never overrides `DECISION_BACKEND`.
+- Responses report the configured `backend`, `model` and `residency`. Validation failures return 422, malformed upstream responses return 502, and unavailable or timed-out backends return 503.
 - At most 100 questions; names at most 100 characters; `state.request` at most 500 characters; `state.preference` at most 300; any string inside a question at most 500; serialised `state` at most `MAX_STATE_CHARS` (default 4,000, 413 above it).
 - Question `type` is `choice` (labels are the `criteria` keys), `noul` (yes or no) or `score` (labels are the indices of a `criteria` array). Supported question names: `gate`, a dimension name (`GEO`, `TIME`, `SECTOR`), `group:{id}`, `pollutant:{id}`, `relevant`, and `fit` when `state.solution` is present. Anything else returns 422.
 
-Response:
+Response (default catalogue backend shown; hosted Jev reports `backend: "jev"`, its pinned model and `residency: "hosted"`):
 
 ```json
 {
@@ -219,3 +224,10 @@ If `API_BASE_URL` points at a different origin, that API must:
 - allow `POST` with `Content-Type: application/json` for pipeline, which means answering the `OPTIONS` preflight with `Access-Control-Allow-Methods: GET, POST` and `Access-Control-Allow-Headers: Content-Type`.
 
 The site's own CSP already adds the `API_BASE_URL` origin to `connect-src`.
+
+
+## Private hosted Jev presenter
+
+The private Archegon presenter sets `DECISION_BACKEND=jev`, `SERVICE_AUTH_MODE=cloud-run-iam`, and an exact `JEV_MODEL`. It returns `backend: "jev"`, the pinned model, `residency: "hosted"`, matching policy provenance, finite confidence/probabilities on decision-stage answers, and explicit aggregate `usage_complete`. Release smoke checks reject catalogue fallback. `TYPESAFE_API_KEY` is runtime-only and must be supplied through a Cloud Run Secret Manager reference; it is never part of `/config.js`, deployment app environment, logs, or verification output.
+
+On `/api/decide`, selected-backend request validation failures return 422, malformed upstream responses return 502, and unavailable or timed-out calls return 503. In `/api/pipeline`, an ordinary decision-stage backend failure or timeout returns HTTP 200 with `outcome: "review"`, a screened message, completed stages and preserved usage totals. A pipeline 503 is reserved for unexpected outer service/backend unavailability before that normal review response can be formed. Service-level rate limiting returns 429. Gemini is separate: it may interpret typed catalogue text before the selected decision backend runs. Enabling Gemini does not select Jev, and selecting Jev does not enable Gemini. `/config.js` exposes only safe `decisionBackend` provenance (`by`, `label`, `model`, `residency`), never secret names, versions, keys, or endpoints.

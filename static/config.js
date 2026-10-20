@@ -23,6 +23,12 @@ window.SITE_CONFIG = {
     interpreter: {               // who reads typed catalogue requests on the live API: "rules" | "gemini"
       by: "rules",
       model: null
+    },
+    decisionBackend: {            // safe provenance only; never secret identifiers
+      by: "catalogue",
+      label: "Catalogue rules",
+      model: "catalogue-rules-v1",
+      residency: "local"
     }
   }
 };

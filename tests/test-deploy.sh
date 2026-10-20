@@ -58,6 +58,9 @@ case "$*" in
   "config get-value project"*) printf '%s\n' ninth-airship-386815 ;;
   "beta billing projects describe"*) printf '%s\n' True ;;
   "services list"*) printf '%s\n' artifactregistry.googleapis.com cloudbuild.googleapis.com iam.googleapis.com logging.googleapis.com policytroubleshooter.googleapis.com run.googleapis.com serviceusage.googleapis.com storage.googleapis.com ${MOCK_EXTRA_APIS:-} ;;
+  "secrets describe"*) printf '%s\n' projects/ninth-airship-386815/secrets/typesafe-api-key ;;
+  "secrets versions describe"*) printf '%s\n' ENABLED ;;
+  "policy-intelligence troubleshoot-policy iam"*"--permission=secretmanager.versions.access"*) printf '%s\n' "${MOCK_SECRET_ACCESS_STATE:-ALLOW_ACCESS_STATE_GRANTED}" ;;
   "policy-intelligence troubleshoot-policy iam"*"--permission=aiplatform.endpoints.predict"*) printf '%s\n' "${MOCK_PREDICT_STATE:-ALLOW_ACCESS_STATE_GRANTED}" ;;
   *"artifacts repositories describe"*"value(name)"*) printf '%s\n' projects/ninth-airship-386815/locations/australia-southeast1/repositories/graphs-and-jev ;;
   *"artifacts repositories describe"*"value(format)"*) printf '%s\n' DOCKER ;;
@@ -146,6 +149,22 @@ gemini_deploy env MOCK_EXTRA_APIS=aiplatform.googleapis.com
 gemini_deploy env MOCK_EXTRA_APIS=aiplatform.googleapis.com GEMINI_ACCESS_TOKEN=ya29.local
 [[ "$mock_status" == 1 && "$mock_output" == *'GEMINI_ACCESS_TOKEN is for local runs only'* && ! -e "$mock_log" ]] || fail "deploy accepted a Gemini access token: $mock_status $mock_output"
 [[ "$mock_output" != *ya29.local* ]] || fail 'access token echoed by deploy'
+printf '%s\n' TYPESAFE_API_KEY=plaintext >"$mock_dir/plaintext.env"
+set +e; mock_output="$(PATH="$mock_dir/bin:$PATH" MOCK_BUILD_LOG="$mock_log" "$script" "$mock_dir/plaintext.env" 2>&1)"; mock_status=$?; set -e
+[[ "$mock_status" == 1 && "$mock_output" == *'TYPESAFE_API_KEY plaintext is forbidden'* ]] || fail "plaintext TypeSafe key was not safely rejected: $mock_output"
+printf '%s\n' DECISION_BACKEND=jev SERVICE_AUTH_MODE=cloud-run-iam JEV_MODEL=jev-1.2.3 TYPESAFE_SECRET_RESOURCE=bad TYPESAFE_EGRESS_ACKNOWLEDGED=yes >"$mock_dir/jev.env"
+set +e; mock_output="$(PATH="$mock_dir/bin:$PATH" MOCK_BUILD_LOG="$mock_log" "$script" "$mock_dir/jev.env" 2>&1)"; mock_status=$?; set -e
+[[ "$mock_status" == 1 && "$mock_output" == *'must be projects/PROJECT/secrets/SECRET/versions/VERSION'* ]] || fail "malformed secret resource accepted: $mock_output"
+sed -i.bak 's#TYPESAFE_SECRET_RESOURCE=bad#TYPESAFE_SECRET_RESOURCE=projects/other-project/secrets/typesafe-api-key/versions/1#' "$mock_dir/jev.env"
+set +e; mock_output="$(PATH="$mock_dir/bin:$PATH" MOCK_BUILD_LOG="$mock_log" "$script" "$mock_dir/jev.env" 2>&1)"; mock_status=$?; set -e
+[[ "$mock_status" == 1 && "$mock_output" == *'must be in the deployment project'* ]] || fail "cross-project secret accepted: $mock_output"
+sed -i.bak 's#projects/other-project/secrets/typesafe-api-key/versions/1#projects/ninth-airship-386815/secrets/typesafe-api-key/versions/latest#' "$mock_dir/jev.env"
+set +e; mock_output="$(PATH="$mock_dir/bin:$PATH" MOCK_BUILD_LOG="$mock_log" "$script" "$mock_dir/jev.env" 2>&1)"; mock_status=$?; set -e
+[[ "$mock_status" == 1 && "$mock_output" == *'latest is forbidden'* ]] || fail "latest secret version accepted: $mock_output"
+sed -i.bak 's#versions/latest#versions/1#' "$mock_dir/jev.env"
+sed -i.bak 's#projects/other-project#projects/ninth-airship-386815#' "$mock_dir/jev.env"
+set +e; mock_output="$(PATH="$mock_dir/bin:$PATH" MOCK_BUILD_LOG="$mock_log" MOCK_EXTRA_APIS=secretmanager.googleapis.com MOCK_SECRET_ACCESS_STATE=ALLOW_ACCESS_STATE_NOT_GRANTED "$script" "$mock_dir/jev.env" 2>&1)"; mock_status=$?; set -e
+[[ "$mock_status" == 1 && "$mock_output" == *'lacks secretmanager.versions.access'* ]] || fail "Jev deploy accepted runtime identity without secret access: $mock_output"
 if rg -n '^  gjd_(git_sha|revision_suffix|image_tag)$' "$script"; then fail 'bare derived-variable command remains'; fi
 rm -rf "$mock_dir"
 
@@ -400,6 +419,20 @@ for stale_env in '{}' '{"API_MODE": "fixtures", "BRAND_NAME": "Shed \"test\""}';
   if python3 -c "$validator" "$validator_dir/service.json" "$validator_dir/revision-env.json" "$validator_dir/iam.json" \
     "${validator_args[@]}" "$stale_env" false '{}' >/dev/null 2>&1; then fail "validator accepted mismatched app env: $stale_env"; fi
 done
+python3 - "$validator_dir/revision.json" "$validator_dir/revision-secret.json" <<'PYSECRET'
+import json,sys
+revision=json.load(open(sys.argv[1])); revision["spec"]["containers"][0]["env"]=[
+ {"name":"DECISION_BACKEND","value":"jev"}, {"name":"SERVICE_AUTH_MODE","value":"cloud-run-iam"}, {"name":"JEV_MODEL","value":"jev-1.2.3"},
+ {"name":"TYPESAFE_API_KEY","valueFrom":{"secretKeyRef":{"name":"typesafe-api-key","key":"7"}}}]
+json.dump(revision,open(sys.argv[2],"w"))
+PYSECRET
+python3 -c "$validator" "$validator_dir/service.json" "$validator_dir/revision-secret.json" "$validator_dir/iam.json" \
+  "${validator_args[@]}" '{"DECISION_BACKEND":"jev","JEV_MODEL":"jev-1.2.3","SERVICE_AUTH_MODE":"cloud-run-iam"}' false '{}' typesafe-api-key 7
+for wrong in 'wrong 7' 'typesafe-api-key 8'; do
+  read -r secret version <<<"$wrong"
+  if python3 -c "$validator" "$validator_dir/service.json" "$validator_dir/revision-secret.json" "$validator_dir/iam.json" \
+    "${validator_args[@]}" '{"DECISION_BACKEND":"jev","JEV_MODEL":"jev-1.2.3","SERVICE_AUTH_MODE":"cloud-run-iam"}' false '{}' "$secret" "$version" >/dev/null 2>&1; then fail "validator accepted wrong secret reference: $wrong"; fi
+done
 # Existing public service: the candidate deploy must leave allUsers access and live traffic exactly as they were.
 cat >"$validator_dir/service-live.json" <<'JSON'
 {"metadata":{"name":"graphs-and-jev"},"status":{"url":"https://graphs-and-jev.example.run.app","traffic":[{"revisionName":"graphs-and-jev-old","percent":100},{"tag":"candidate-abc123","revisionName":"graphs-and-jev-abc123","percent":0,"url":"https://candidate-abc123---graphs-and-jev.example.run.app"}]}}
@@ -516,6 +549,46 @@ for unsafe in (
     assert run.returncode != 0 and "expected HTTP 308 to same-origin /environmental-agency/" in run.stderr, (unsafe,run.stderr)
 server.shutdown(); server.server_close()
 PYRETIRED
+python3 - "$root/deploy/verify.py" <<'PYJEVVERIFY'
+import http.server,json,os,subprocess,sys,threading
+verify=sys.argv[1]; mode="valid"
+def pipeline():
+ response={"outcome":"answer","backend":"jev","backend_label":"TypeSafe hosted Jev","model":"jev-1.2.3","residency":"hosted","policy":{"backend":"jev","model":"jev-1.2.3","residency":"hosted"},"stages":[{"stage":"gate","title":"Gate","answer":{"type":"choice","probabilities":{"answer":0.9,"clarify":0.05,"reject":0.05},"top":"answer","choice":"answer","confidence":0.9}}],"totals":{"decisions":1,"calls":1,"latency_ms":3.0,"input_tokens":None,"cost_usd":None,"usage_complete":False},"interpretation":{"by":"gemini","model":"gemini-3.8-flash","request":"PM2.5 by country and year from 2019 to 2024","note":None}}
+ if mode=="catalogue": response.update(backend="catalogue",model="catalogue-rules-v1",residency="local")
+ if mode=="bad-contract": response["stages"][0].pop("answer")
+ return response
+class App(http.server.BaseHTTPRequestHandler):
+ def send(self,code,body=b"",location=None,content="application/json"):
+  self.send_response(code)
+  if location:self.send_header("Location",location)
+  self.send_header("Content-Type",content);self.end_headers();self.wfile.write(body)
+ def do_GET(self):
+  if self.path=="/api/health":return self.send(200,b'{"ok":true}')
+  if self.path=="/api/ready":return self.send(200,b'{"ok":true}')
+  if self.path=="/api/catalogue":return self.send(200,b'{"sources":[1]}')
+  if self.path in ("/","/technical-guide/","/environmental-agency/","/lineage-migration/","/little-bunnies/"):return self.send(200,b'<html data-brand="name">',content="text/html")
+  if self.path=="/dcceew/":return self.send(308,location="/environmental-agency/")
+  if self.path=="/parkinsons/":return self.send(308,location="/lineage-migration/")
+  if self.path=="/config.js":return self.send(200,b'window.SITE_CONFIG = {};\n',content="text/javascript")
+  return self.send(404)
+ def do_POST(self):
+  size=int(self.headers.get("Content-Length","0")); body=json.loads(self.rfile.read(size))
+  if body.get("domain")=="lineage":return self.send(501,b'{}')
+  if body["request"]=="could I see fine particles for each nation, yearly, 2019 through 2024?": response=pipeline()
+  else:
+   outcomes={"annual CO2 for Australia in 2024":"answer","emissions":"clarify","hi":"clarify","write me a poem about the sea":"reject"};response={"outcome":outcomes[body["request"]]}
+   if body["request"]=="hi":response["message"]="Hello!"
+  return self.send(200,json.dumps(response).encode())
+ def log_message(self,*_):pass
+server=http.server.ThreadingHTTPServer(("127.0.0.1",0),App);threading.Thread(target=server.serve_forever,daemon=True).start();base=f"http://127.0.0.1:{server.server_port}"
+env={**os.environ,"VERIFY_ATTEMPTS":"1","JEV_VERIFY":"1","JEV_VERIFY_EXPECTED_MODEL":"jev-1.2.3"}
+run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True);assert run.returncode==0,run.stderr
+for mode in ("catalogue","bad-contract"):
+ run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True);assert run.returncode!=0,(mode,run.stdout,run.stderr)
+mode="valid";env.update(GEMINI_VERIFY="1",VERIFY_EXPECTED_MODEL="gemini-3.8-flash")
+run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True);assert run.returncode==0,run.stderr
+server.shutdown();server.server_close()
+PYJEVVERIFY
 promote_dir="$(mktemp -d)"
 mkdir -p "$promote_dir/deploy" "$promote_dir/bin"
 cp "$promote" "$promote_dir/deploy/promote.sh"
@@ -537,7 +610,7 @@ case "$*" in
       printf '%s\n' '{"status":{"url":"https://live.example.run.app","traffic":[{"revisionName":"graphs-and-jev-old","percent":100},{"revisionName":"graphs-and-jev-new","percent":0,"tag":"candidate-new","url":"https://candidate-new---live.example.run.app"}]}}'
     fi ;;
   "run services get-iam-policy"*) printf '%s\n' '{"bindings":[{"role":"roles/run.invoker","members":["allUsers"]}],"etag":"BwX"}' ;;
-  "run revisions describe"*"--format=json"*) printf '{"spec":{"containers":[{"env":[{"name":"CATALOGUE_INTERPRETER","value":"%s"}]}]}}\n' "${MOCK_INTERPRETER:-rules}" ;;
+  "run revisions describe"*"--format=json"*) printf '{"spec":{"containers":[{"env":[{"name":"CATALOGUE_INTERPRETER","value":"%s"},{"name":"DECISION_BACKEND","value":"%s"},{"name":"SERVICE_AUTH_MODE","value":"%s"}]}]}}\n' "${MOCK_INTERPRETER:-rules}" "${MOCK_BACKEND:-rules}" "${MOCK_AUTH:-public}" ;;
   "run revisions describe"*) printf '%s\n' True ;;
   "run services update-traffic"*"graphs-and-jev-new=100"*) : >"$MOCK_STATE/promoted" ;;
   "run services update-traffic"*|"run services add-iam-policy-binding"*|"run services set-iam-policy"*) ;;
@@ -569,6 +642,10 @@ if MOCK_INTERPRETER=gemini run_promote ''; then fail 'promotion made a Gemini pr
 log="$(cat "$promote_dir/log")"
 [[ "$log" != *update-traffic* && "$log" != *iam-policy-binding* && "$log" != *set-iam-policy* && "$log" != *'verify '* ]] || fail "Gemini revision still changed the service: $log"
 [[ "$(cat "$promote_dir/out")" == *'presenter-only and is never made public'* ]] || fail 'Gemini refusal was not reported'
+if MOCK_BACKEND=jev run_promote ''; then fail 'promotion made a Jev revision public'; fi
+[[ "$(cat "$promote_dir/out")" == *'private-only and is never made public'* ]] || fail 'Jev refusal was not reported'
+if MOCK_AUTH=cloud-run-iam run_promote ''; then fail 'promotion made a Cloud Run IAM revision public'; fi
+[[ "$(cat "$promote_dir/out")" == *'private-only and is never made public'* ]] || fail 'private auth refusal was not reported'
 rm -rf "$promote_dir"
 
 private_dir="$(mktemp -d)"
@@ -576,7 +653,7 @@ mkdir -p "$private_dir/deploy" "$private_dir/bin" "$private_dir/state"
 cp "$private_promote" "$private_dir/deploy/promote-private.sh"
 cat >"$private_dir/deploy/verify.py" <<'FAKE'
 import os, sys
-open(os.environ["MOCK_LOG"], "a").write(f"verify {sys.argv[1]} bearer={'yes' if os.environ.get('VERIFY_BEARER') else 'no'} gemini={os.environ.get('GEMINI_VERIFY')} model={os.environ.get('VERIFY_EXPECTED_MODEL')}\n")
+open(os.environ["MOCK_LOG"], "a").write(f"verify {sys.argv[1]} bearer={'yes' if os.environ.get('VERIFY_BEARER') else 'no'} gemini={os.environ.get('GEMINI_VERIFY')} model={os.environ.get('VERIFY_EXPECTED_MODEL')} jev={os.environ.get('JEV_VERIFY')} jev_model={os.environ.get('JEV_VERIFY_EXPECTED_MODEL')}\n")
 raise SystemExit(1 if sys.argv[1] == os.environ.get("FAIL_VERIFY_URL") else 0)
 FAKE
 cat >"$private_dir/bin/gcloud" <<'MOCK'
@@ -587,7 +664,14 @@ case "$*" in
   "auth print-identity-token"*) printf '%s\n' private-token ;;
   "config get-value project"*) printf '%s\n' ninth-airship-386815 ;;
   "run services get-iam-policy"*) printf '%s\n' '{"bindings":[{"role":"roles/run.invoker","members":["user:presenter@example.com"]}]}' ;;
-  "run revisions describe"*) printf '%s\n' '{"spec":{"containers":[{"env":[{"name":"CATALOGUE_INTERPRETER","value":"gemini"},{"name":"GEMINI_MODEL","value":"gemini-3.8-flash"}]}]}}' ;;
+  "run revisions describe"*)
+    case "${MOCK_PRIVATE_MODE:-combined}" in
+      gemini) printf '%s\n' '{"spec":{"containers":[{"env":[{"name":"CATALOGUE_INTERPRETER","value":"gemini"},{"name":"GEMINI_MODEL","value":"gemini-3.8-flash"},{"name":"DECISION_BACKEND","value":"catalogue"},{"name":"SERVICE_AUTH_MODE","value":"cloud-run-iam"}]}]}}' ;;
+      jev) printf '%s\n' '{"spec":{"containers":[{"env":[{"name":"CATALOGUE_INTERPRETER","value":"rules"},{"name":"DECISION_BACKEND","value":"jev"},{"name":"SERVICE_AUTH_MODE","value":"cloud-run-iam"},{"name":"JEV_MODEL","value":"jev-1.2.3"},{"name":"TYPESAFE_API_KEY","valueFrom":{"secretKeyRef":{"name":"typesafe-api-key","key":"1"}}}]}]}}' ;;
+      wrong-name) printf '%s\n' '{"spec":{"containers":[{"env":[{"name":"DECISION_BACKEND","value":"jev"},{"name":"SERVICE_AUTH_MODE","value":"cloud-run-iam"},{"name":"JEV_MODEL","value":"jev-1.2.3"},{"name":"TYPESAFE_API_KEY","valueFrom":{"secretKeyRef":{"name":"wrong","key":"1"}}}]}]}}' ;;
+      wrong-version) printf '%s\n' '{"spec":{"containers":[{"env":[{"name":"DECISION_BACKEND","value":"jev"},{"name":"SERVICE_AUTH_MODE","value":"cloud-run-iam"},{"name":"JEV_MODEL","value":"jev-1.2.3"},{"name":"TYPESAFE_API_KEY","valueFrom":{"secretKeyRef":{"name":"typesafe-api-key","key":"2"}}}]}]}}' ;;
+      combined) printf '%s\n' '{"spec":{"containers":[{"env":[{"name":"CATALOGUE_INTERPRETER","value":"gemini"},{"name":"GEMINI_MODEL","value":"gemini-3.8-flash"},{"name":"DECISION_BACKEND","value":"jev"},{"name":"SERVICE_AUTH_MODE","value":"cloud-run-iam"},{"name":"JEV_MODEL","value":"jev-1.2.3"},{"name":"TYPESAFE_API_KEY","valueFrom":{"secretKeyRef":{"name":"typesafe-api-key","key":"1"}}}]}]}}' ;;
+    esac ;;
   "run services describe"*)
     if [[ -e "$MOCK_STATE/promoted" ]]; then
       printf '%s\n' '{"metadata":{"annotations":{}},"status":{"url":"https://private.example.run.app","traffic":[{"revisionName":"graphs-and-jev-presenter-new","percent":100}]}}'
@@ -600,16 +684,29 @@ case "$*" in
 esac
 MOCK
 chmod +x "$private_dir/bin/gcloud" "$private_dir/deploy/promote-private.sh"
+cat >"$private_dir/private.env" <<'ENV'
+GEMINI_MODEL=gemini-3.8-flash
+JEV_MODEL=jev-1.2.3
+TYPESAFE_SECRET_RESOURCE=projects/ninth-airship-386815/secrets/typesafe-api-key/versions/1
+ENV
 run_private_promote() {
   rm -f "$private_dir/state/promoted"; : >"$private_dir/log"
-  PATH="$private_dir/bin:$PATH" MOCK_LOG="$private_dir/log" MOCK_STATE="$private_dir/state" FAIL_VERIFY_URL="$1" \
-    "$private_dir/deploy/promote-private.sh" graphs-and-jev-presenter-new >"$private_dir/out" 2>&1
+  PATH="$private_dir/bin:$PATH" MOCK_LOG="$private_dir/log" MOCK_STATE="$private_dir/state" MOCK_PRIVATE_MODE="${2:-combined}" FAIL_VERIFY_URL="$1" \
+    "$private_dir/deploy/promote-private.sh" graphs-and-jev-presenter-new "$private_dir/private.env" >"$private_dir/out" 2>&1
 }
 run_private_promote '' || fail "private promotion failed: $(cat "$private_dir/out")"
 log="$(cat "$private_dir/log")"
-[[ "$log" == *'auth print-identity-token --audiences=https://private.example.run.app'* && "$log" == *'verify https://candidate-new---private.example.run.app bearer=yes gemini=1 model=gemini-3.8-flash'* ]] || fail "private candidate was not Gemini-verified with auth: $log"
-[[ "$(rg -c -F 'auth print-identity-token --audiences=https://private.example.run.app' <<<"$log")" == 2 && "$log" == *'verify https://private.example.run.app bearer=yes gemini=1 model=gemini-3.8-flash'* ]] || fail "private canonical URL was not Gemini-verified with auth: $log"
+[[ "$log" == *'auth print-identity-token --audiences=https://private.example.run.app'* && "$log" == *'verify https://candidate-new---private.example.run.app bearer=yes gemini=1 model=gemini-3.8-flash jev=1 jev_model=jev-1.2.3'* ]] || fail "private candidate was not Gemini-verified with auth: $log"
+[[ "$(rg -c -F 'auth print-identity-token --audiences=https://private.example.run.app' <<<"$log")" == 2 && "$log" == *'verify https://private.example.run.app bearer=yes gemini=1 model=gemini-3.8-flash jev=1 jev_model=jev-1.2.3'* ]] || fail "private canonical URL was not Gemini-verified with auth: $log"
 [[ "$log" != *'add-iam-policy-binding'* && "$log" != *'set-iam-policy'* ]] || fail "private promotion changed IAM: $log"
+run_private_promote '' gemini || fail "Gemini-only private promotion failed: $(cat "$private_dir/out")"
+log="$(cat "$private_dir/log")"; [[ "$log" == *'gemini=1 model=gemini-3.8-flash jev=None jev_model=None'* ]] || fail "Gemini-only verification modes wrong: $log"
+run_private_promote '' jev || fail "Jev-only private promotion failed: $(cat "$private_dir/out")"
+log="$(cat "$private_dir/log")"; [[ "$log" == *'gemini=None model=None jev=1 jev_model=jev-1.2.3'* ]] || fail "Jev-only verification modes wrong: $log"
+for wrong in wrong-name wrong-version; do
+  if run_private_promote '' "$wrong"; then fail "private promotion accepted $wrong secret reference"; fi
+  [[ "$(cat "$private_dir/out")" == *'secret reference does not match'* ]] || fail "$wrong refusal missing: $(cat "$private_dir/out")"
+done
 if run_private_promote 'https://private.example.run.app'; then fail 'private promotion passed failed canonical verification'; fi
 log="$(cat "$private_dir/log")"
 [[ "$log" == *'--to-revisions=graphs-and-jev-presenter-old=100'* ]] || fail "private promotion did not roll back traffic: $log"

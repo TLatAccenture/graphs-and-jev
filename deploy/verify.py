@@ -7,6 +7,7 @@ Exits non-zero with a one-line reason on the first failed check.
 """
 
 import json
+import math
 import os
 import sys
 import time
@@ -133,23 +134,34 @@ status, _, _ = request(
     },
 )
 check(status == 501, "lineage should return 501")
-if os.environ.get("GEMINI_VERIFY") == "1":
-    expected_model = os.environ.get("VERIFY_EXPECTED_MODEL", "")
+if os.environ.get("GEMINI_VERIFY") == "1" or os.environ.get("JEV_VERIFY") == "1":
     status, body, _ = request(
         "/api/pipeline",
-        {
-            "domain": "catalogue",
-            "request": "could I see fine particles for each nation, yearly, 2019 through 2024?",
-            "preference": None,
-        },
+        {"domain": "catalogue", "request": "could I see fine particles for each nation, yearly, 2019 through 2024?", "preference": None},
     )
     result = json.loads(body) if status == 200 else {}
+if os.environ.get("GEMINI_VERIFY") == "1":
+    expected_model = os.environ.get("VERIFY_EXPECTED_MODEL", "")
     interpretation = result.get("interpretation", {})
     check(interpretation.get("by") == "gemini", "Gemini smoke did not use Gemini")
     check(interpretation.get("model") == expected_model, "Gemini smoke model")
-    check(
-        interpretation.get("request") == "PM2.5 by country and year from 2019 to 2024",
-        "Gemini smoke canonical request",
-    )
+    check(interpretation.get("request") == "PM2.5 by country and year from 2019 to 2024", "Gemini smoke canonical request")
+if os.environ.get("JEV_VERIFY") == "1":
+    expected_jev_model = os.environ.get("JEV_VERIFY_EXPECTED_MODEL", "")
+    check(result.get("backend") == "jev", "Jev smoke did not use hosted Jev")
+    check(result.get("model") == expected_jev_model, "Jev smoke model")
+    check(result.get("residency") == "hosted", "Jev smoke residency")
+    policy = result.get("policy", {})
+    for field in ("backend", "model", "residency"):
+        if field in policy:
+            check(policy[field] == result.get(field), f"Jev policy {field} disagrees with provenance")
+    gate = next((stage.get("answer") for stage in result.get("stages", []) if stage.get("stage") == "gate"), None)
+    check(isinstance(gate, dict), "Jev smoke gate answer")
+    confidence = gate.get("confidence")
+    probabilities = gate.get("probabilities")
+    check(isinstance(confidence, (int, float)) and math.isfinite(confidence), "Jev smoke gate confidence")
+    check(isinstance(probabilities, dict) and probabilities, "Jev smoke gate probabilities")
+    check(all(isinstance(value, (int, float)) and math.isfinite(value) for value in probabilities.values()), "Jev smoke gate probabilities")
+    check("usage_complete" in result.get("totals", {}), "Jev smoke usage completeness")
 
 print(f"verify passed at {base_url}")
