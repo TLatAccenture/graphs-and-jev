@@ -73,6 +73,19 @@ if "GEMINI_TIMEOUT_MS" in settings and not (re.fullmatch(r"[1-9][0-9]{0,4}", set
     raise SystemExit("GEMINI_TIMEOUT_MS must be an integer from 1 to 60000")
 if settings.get("GEMINI_THINKING_LEVEL", "low") not in ("minimal", "low", "medium", "high", "model-default"):
     raise SystemExit("GEMINI_THINKING_LEVEL must be minimal, low, medium, high or model-default")
+if settings.get("DECISION_BACKEND", "catalogue") not in ("catalogue", "jev"):
+    raise SystemExit("DECISION_BACKEND must be catalogue or jev")
+if settings.get("SERVICE_AUTH_MODE", "public") not in ("public", "cloud-run-iam"):
+    raise SystemExit("SERVICE_AUTH_MODE must be public or cloud-run-iam")
+for key in ("JEV_TIMEOUT_MS", "JEV_MAX_CONCURRENCY", "JEV_PIPELINE_MAX_CALLS", "JEV_PIPELINE_TIMEOUT_MS"):
+    if key in settings and not re.fullmatch(r"[1-9][0-9]{0,8}", settings[key]):
+        raise SystemExit(f"{key} must be a positive integer")
+if "JEV_PRICE_PER_MTOK" in settings:
+    try: price = float(settings["JEV_PRICE_PER_MTOK"])
+    except ValueError: raise SystemExit("JEV_PRICE_PER_MTOK must be a non-negative number")
+    if price < 0: raise SystemExit("JEV_PRICE_PER_MTOK must be a non-negative number")
+if "JEV_MODEL" in settings and not re.fullmatch(r"[a-z0-9][a-z0-9._-]*", settings["JEV_MODEL"]):
+    raise SystemExit("JEV_MODEL must be an exact lower-case model id")
 print(json.dumps(settings, sort_keys=True))
 PY
 }
@@ -141,6 +154,7 @@ main() (
     API_ROUTE_HEALTH API_ROUTE_CATALOGUE API_ROUTE_PIPELINE
     API_MODE_CATALOGUE API_MODE_LINEAGE
     CATALOGUE_INTERPRETER GEMINI_MODEL GEMINI_LOCATION GEMINI_TIMEOUT_MS GEMINI_THINKING_LEVEL GOOGLE_CLOUD_PROJECT
+    DECISION_BACKEND SERVICE_AUTH_MODE JEV_MODEL JEV_TIMEOUT_MS JEV_PRICE_PER_MTOK JEV_MAX_CONCURRENCY JEV_PIPELINE_MAX_CALLS JEV_PIPELINE_TIMEOUT_MS
   )
   gjd_app_env=()
   for gjd_app_key in "${gjd_app_env_keys[@]}"; do
@@ -149,10 +163,25 @@ main() (
     fi
   done
   gjd_app_env_json="$(app_env_json ${gjd_app_env[@]+"${gjd_app_env[@]}"})" || fail 'invalid app environment variables'
+  [[ -z "${TYPESAFE_API_KEY:-}" ]] || fail 'TYPESAFE_API_KEY plaintext is forbidden; configure TYPESAFE_SECRET_RESOURCE'
   # Cloud Run reaches Gemini as the runtime service account. Keys and tokens never go in a revision.
   [[ -z "${GEMINI_ACCESS_TOKEN:-}" ]] || fail 'GEMINI_ACCESS_TOKEN is for local runs only; Cloud Run uses the runtime service account'
   gjd_gemini=false
   [[ "${CATALOGUE_INTERPRETER:-rules}" == gemini ]] && gjd_gemini=true
+  local gjd_jev=false gjd_secret_name gjd_secret_version gjd_secret_resource gjd_secret_arg
+  local -a gjd_secret_args=()
+  if [[ "${DECISION_BACKEND:-catalogue}" == jev ]]; then
+    gjd_jev=true
+    [[ "${SERVICE_AUTH_MODE:-}" == cloud-run-iam ]] || fail 'DECISION_BACKEND=jev requires SERVICE_AUTH_MODE=cloud-run-iam'
+    [[ -n "${JEV_MODEL:-}" && "$JEV_MODEL" =~ ^[a-z0-9][a-z0-9._-]*$ ]] || fail 'DECISION_BACKEND=jev requires an exact pinned JEV_MODEL'
+    gjd_secret_resource="${TYPESAFE_SECRET_RESOURCE:-}"
+    if [[ ! "$gjd_secret_resource" =~ ^projects/([^/]+)/secrets/([^/]+)/versions/([^/]+)$ ]]; then fail 'TYPESAFE_SECRET_RESOURCE must be projects/PROJECT/secrets/SECRET/versions/VERSION'; fi
+    [[ "${BASH_REMATCH[1]}" == "$gjd_PROJECT_ID" ]] || fail 'TYPESAFE_SECRET_RESOURCE must be in the deployment project'
+    gjd_secret_name="${BASH_REMATCH[2]}"; gjd_secret_version="${BASH_REMATCH[3]}"
+    [[ "$gjd_secret_version" =~ ^[1-9][0-9]*$ ]] || fail 'TYPESAFE_SECRET_RESOURCE release version must be a positive integer; latest is forbidden'
+    gjd_secret_arg="TYPESAFE_API_KEY=${gjd_secret_name}:${gjd_secret_version}"
+    gjd_secret_args=(--set-secrets="$gjd_secret_arg")
+  elif [[ -n "${TYPESAFE_SECRET_RESOURCE:-}" ]]; then fail 'TYPESAFE_SECRET_RESOURCE is only valid with DECISION_BACKEND=jev'; fi
   require_permission() {
     local principal="$1" resource="$2" permission="$3" state
     state="$(gcloud policy-intelligence troubleshoot-policy iam "$resource" \
@@ -202,6 +231,7 @@ main() (
     storage.googleapis.com
   )
   [[ "$gjd_gemini" == true ]] && gjd_required_apis+=(aiplatform.googleapis.com)
+  [[ "$gjd_jev" == true ]] && gjd_required_apis+=(secretmanager.googleapis.com)
   gjd_enabled_apis="$(gcloud services list --enabled --project="$gjd_PROJECT_ID" --format='value(config.name)')"
   for gjd_api in "${gjd_required_apis[@]}"; do
     grep -Fxq "$gjd_api" <<<"$gjd_enabled_apis" || fail "required API is not enabled: $gjd_api"
@@ -254,6 +284,12 @@ if failed:
   require_permission "$gjd_active_account" "$gjd_PROJECT_RESOURCE" run.services.setIamPolicy
   require_permission "$gjd_active_account" "//iam.googleapis.com/projects/${gjd_PROJECT_ID}/serviceAccounts/${gjd_BUILD_SERVICE_ACCOUNT}" iam.serviceAccounts.actAs
   require_permission "$gjd_active_account" "$gjd_RUNTIME_SA_RESOURCE" iam.serviceAccounts.actAs
+  if [[ "$gjd_jev" == true ]]; then
+    gcloud secrets describe "$gjd_secret_name" --project="$gjd_PROJECT_ID" --format='value(name)' | grep -Fxq "projects/${gjd_PROJECT_ID}/secrets/${gjd_secret_name}" || fail 'Secret Manager secret metadata not found'
+    gcloud secrets versions describe "$gjd_secret_version" --secret="$gjd_secret_name" --project="$gjd_PROJECT_ID" --format='value(state)' | grep -Fxq ENABLED || fail 'Secret Manager version is not enabled'
+    require_permission "$gjd_RUNTIME_SERVICE_ACCOUNT" "//secretmanager.googleapis.com/projects/${gjd_PROJECT_ID}/secrets/${gjd_secret_name}/versions/${gjd_secret_version}" secretmanager.versions.access
+    [[ "${TYPESAFE_EGRESS_ACKNOWLEDGED:-}" == yes ]] || fail 'TypeSafe hosted-model egress must be explicitly acknowledged with TYPESAFE_EGRESS_ACKNOWLEDGED=yes'
+  fi
   # generateContent on a Gemini model needs this on the project (roles/aiplatform.user grants it).
   if [[ "$gjd_gemini" == true ]]; then
     require_permission "$gjd_RUNTIME_SERVICE_ACCOUNT" "$gjd_PROJECT_RESOURCE" aiplatform.endpoints.predict
@@ -336,6 +372,7 @@ print(str(public).lower())' <(gcloud run services describe "$gjd_SERVICE" --proj
   fi
   # Gemini reads typed requests on the presenter service only, never on a public one.
   [[ "$gjd_gemini" == true && "$gjd_prior_public" == true ]] && fail "CATALOGUE_INTERPRETER=gemini is presenter-only, but $gjd_SERVICE is public"
+  [[ "$gjd_jev" == true && "$gjd_prior_public" == true ]] && fail "DECISION_BACKEND=jev requires a provably private service with invoker IAM enabled"
 
   # The revision gets exactly the allowlisted settings; unset keys fall back to the Rust defaults.
   gjd_app_env_file="$(mktemp)"
@@ -364,6 +401,7 @@ print(str(public).lower())' <(gcloud run services describe "$gjd_SERVICE" --proj
     --liveness-probe="initialDelaySeconds=10,timeoutSeconds=2,periodSeconds=10,failureThreshold=3,httpGet.port=8080,httpGet.path=${gjd_LIVENESS_PATH}" \
     --service-account="$gjd_RUNTIME_SERVICE_ACCOUNT" \
     "${gjd_app_env_args[@]}" \
+    "${gjd_secret_args[@]}" \
     --quiet
   rm -f "$gjd_app_env_file"
 
@@ -380,7 +418,7 @@ print(str(public).lower())' <(gcloud run services describe "$gjd_SERVICE" --proj
   gcloud run revisions describe "$gjd_revision" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json >"$gjd_revision_json"
   gcloud run services get-iam-policy "$gjd_SERVICE" --project="$gjd_PROJECT_ID" --region="$gjd_REGION" --format=json >"$gjd_iam_json"
 
-  python3 - "$gjd_service_json" "$gjd_revision_json" "$gjd_iam_json" "$gjd_image_digest" "$gjd_RUNTIME_SERVICE_ACCOUNT" "$gjd_revision" "$gjd_MIN_INSTANCES" "$gjd_MAX_INSTANCES" "$gjd_CONCURRENCY" "$gjd_CPU" "$gjd_MEMORY" "$gjd_TIMEOUT_SECONDS" "$gjd_STARTUP_PATH" "$gjd_LIVENESS_PATH" "$gjd_candidate_tag" "$([[ "$gjd_service_exists" == false ]] && printf true || printf false)" "$gjd_tmp_output" "$gjd_app_env_json" "$gjd_prior_public" "$gjd_prior_serving" <<'PY'
+  python3 - "$gjd_service_json" "$gjd_revision_json" "$gjd_iam_json" "$gjd_image_digest" "$gjd_RUNTIME_SERVICE_ACCOUNT" "$gjd_revision" "$gjd_MIN_INSTANCES" "$gjd_MAX_INSTANCES" "$gjd_CONCURRENCY" "$gjd_CPU" "$gjd_MEMORY" "$gjd_TIMEOUT_SECONDS" "$gjd_STARTUP_PATH" "$gjd_LIVENESS_PATH" "$gjd_candidate_tag" "$([[ "$gjd_service_exists" == false ]] && printf true || printf false)" "$gjd_tmp_output" "$gjd_app_env_json" "$gjd_prior_public" "$gjd_prior_serving" "$gjd_secret_name" "$gjd_secret_version" <<'PY'
 import json
 import sys
 
@@ -395,6 +433,7 @@ expected_bootstrap = sys.argv[16].lower() == "true"
 expected_env = json.loads(sys.argv[18])
 expected_public = sys.argv[19] == "true"
 prior_serving = json.loads(sys.argv[20])
+expected_secret_name, expected_secret_version = (sys.argv[21:23] + ["", ""])[:2]
 metadata = revision["metadata"]
 spec = revision["spec"]
 container = spec["containers"][0]
@@ -424,7 +463,8 @@ actual = {
     "timeout_seconds": int(spec["timeoutSeconds"]),
     "startup_probe": container["startupProbe"],
     "liveness_probe": container["livenessProbe"],
-    "app_env": {item["name"]: item.get("value", "") for item in container.get("env", [])},
+    "app_env": {item["name"]: item.get("value", "") for item in container.get("env", []) if "value" in item},
+    "secret_env": {item["name"]: item.get("valueFrom") for item in container.get("env", []) if "valueFrom" in item},
     "traffic": traffic,
     "public_invocation": public,
     "invoker_iam_disabled": invoker_iam_disabled == "true",
@@ -450,6 +490,11 @@ assert_effective_deployment(actual["timeout_seconds"] == int(expected_timeout), 
 assert_effective_deployment(actual["startup_probe"].get("httpGet", {}).get("path") == expected_startup, "startup probe")
 assert_effective_deployment(actual["liveness_probe"].get("httpGet", {}).get("path") == expected_liveness, "liveness probe")
 assert_effective_deployment(actual["app_env"] == expected_env, "app environment variables")
+if expected_env.get("DECISION_BACKEND") == "jev":
+    ref = actual["secret_env"].get("TYPESAFE_API_KEY", {}).get("secretKeyRef", {})
+    assert_effective_deployment(ref.get("name") == expected_secret_name, "TYPESAFE_API_KEY secret name")
+    assert_effective_deployment(str(ref.get("key", "")) == expected_secret_version, "TYPESAFE_API_KEY secret version")
+    assert_effective_deployment("TYPESAFE_API_KEY" not in actual["app_env"], "TYPESAFE_API_KEY plaintext")
 assert_effective_deployment(actual["public_invocation"] == expected_public, "service IAM changed during candidate deploy")
 assert_effective_deployment(len(tagged) == 1 and actual["candidate_url"].startswith("https://"), "candidate tag target or URL")
 if expected_bootstrap:
@@ -491,7 +536,7 @@ PY
   else
     printf 'Validated revision %s at 0%% traffic; live traffic and access unchanged\n' "$gjd_revision"
   fi
-  if [[ "$gjd_gemini" == true ]]; then
+  if [[ "$gjd_gemini" == true || "$gjd_jev" == true ]]; then
     printf 'Promote with: deploy/promote-private.sh %s [environment-file]\n' "$gjd_revision"
   else
     printf 'Promote with: deploy/promote.sh %s\n' "$gjd_revision"

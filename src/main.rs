@@ -2,7 +2,7 @@ use std::net::SocketAddr;
 use std::path::PathBuf;
 use std::sync::Arc;
 
-use serve::{router, App, Interpreter, Site};
+use serve::{router, App, DecisionBackendConfig, Interpreter, Site};
 
 fn env_or(key: &str, default: &str) -> String {
     std::env::var(key)
@@ -24,16 +24,16 @@ async fn main() {
         )
         .and_then(|app| {
             let lookup = |key: &str| std::env::var(key).ok();
-            Ok(app
-                .with_site(Site::from_lookup(lookup)?)
-                .with_interpreter(Interpreter::from_lookup(lookup)?))
+            app.with_site(Site::from_lookup(lookup)?)
+                .with_interpreter(Interpreter::from_lookup(lookup)?)
+                .with_backend_config(DecisionBackendConfig::from_lookup(lookup)?)
         })
         .unwrap_or_else(|error| {
             eprintln!("{error}");
             std::process::exit(1);
         }),
     );
-    app.warm();
+    app.warm().await;
     let port: u16 = env_or("PORT", "8080").parse().unwrap_or(8080);
     let listener = tokio::net::TcpListener::bind(SocketAddr::from(([0, 0, 0, 0], port)))
         .await

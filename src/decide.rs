@@ -3,8 +3,46 @@ use serde_json::{json, Map, Value};
 use crate::catalogue::Catalogue;
 use crate::request::{preference_score, resolve};
 
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum DecisionErrorKind {
+    InvalidRequest,
+    BadGateway,
+    Unavailable,
+}
+
 #[derive(Debug)]
-pub struct DecisionError(pub String);
+pub struct DecisionError {
+    pub message: String,
+    pub kind: DecisionErrorKind,
+}
+
+impl DecisionError {
+    pub fn invalid(message: impl Into<String>) -> Self {
+        Self {
+            message: message.into(),
+            kind: DecisionErrorKind::InvalidRequest,
+        }
+    }
+    pub fn unavailable() -> Self {
+        Self {
+            message: "Decision service unavailable. Review is required.".into(),
+            kind: DecisionErrorKind::Unavailable,
+        }
+    }
+    pub fn malformed() -> Self {
+        Self {
+            message: "Decision service returned an invalid response. Review is required.".into(),
+            kind: DecisionErrorKind::BadGateway,
+        }
+    }
+    pub fn status(unavailable: bool) -> Self {
+        if unavailable {
+            Self::unavailable()
+        } else {
+            Self::invalid("Decision request was rejected.")
+        }
+    }
+}
 
 fn labels(q: &Value) -> Vec<String> {
     match q.get("type").and_then(|t| t.as_str()) {
@@ -101,7 +139,9 @@ pub fn decide(
     for (name, q) in questions {
         let labs = labels(q);
         if labs.is_empty() {
-            return Err(DecisionError(format!("Unsupported question {name}.")));
+            return Err(DecisionError::invalid(format!(
+                "Unsupported question {name}."
+            )));
         }
         let probs = if name == "gate" {
             one_hot(&labs, parsed["gate"].as_str().unwrap_or("clarify"))
@@ -144,8 +184,8 @@ pub fn decide(
                 Some(score) => one_hot(&labs, &score.to_string()),
             }
         } else {
-            return Err(DecisionError(
-                "Catalogue rules support pipeline extraction and explicit preferences only.".into(),
+            return Err(DecisionError::invalid(
+                "Catalogue rules support pipeline extraction and explicit preferences only.",
             ));
         };
         answers.insert(name.clone(), answer_value(q, probs));

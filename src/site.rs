@@ -69,6 +69,18 @@ impl Site {
             "gemini" => json!({"by": "gemini", "model": var("GEMINI_MODEL", DEFAULT_MODEL)}),
             _ => return Err("CATALOGUE_INTERPRETER must be \"rules\" or \"gemini\".".into()),
         };
+        let decision_backend = match var("DECISION_BACKEND", "catalogue").as_str() {
+            "catalogue" => {
+                json!({"by": "catalogue", "label": "Catalogue rules", "model": "catalogue-rules-v1", "residency": "local"})
+            }
+            "jev" => {
+                let model = lookup("JEV_MODEL")
+                    .filter(|value| !value.is_empty())
+                    .ok_or("JEV_MODEL is required when DECISION_BACKEND=jev.")?;
+                json!({"by": "jev", "label": "TypeSafe hosted Jev", "model": model, "residency": "hosted"})
+            }
+            _ => return Err("DECISION_BACKEND must be \"catalogue\" or \"jev\".".into()),
+        };
         let config = json!({
             "brand": {
                 "org": var("BRAND_ORG", "Accenture"),
@@ -91,6 +103,7 @@ impl Site {
                     "lineage": var("API_MODE_LINEAGE", "fixtures"),
                 },
                 "interpreter": interpreter,
+                "decisionBackend": decision_backend,
             },
         });
         // '<' only occurs inside JSON strings, so escaping it keeps `</script>` and `<!--` inert.

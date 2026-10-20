@@ -43,6 +43,7 @@ export const DEFAULT_CONFIG = {
     routes: { health: "/api/health", catalogue: "/api/catalogue", pipeline: "/api/pipeline" },
     domains: { catalogue: "fixtures", lineage: "fixtures" } as Record<string, string>,
     interpreter: { by: "rules", model: null } as { by: string; model: string | null },
+    decisionBackend: { by: "catalogue", label: "Catalogue rules", model: "catalogue-rules-v1", residency: "local" },
   },
 };
 

@@ -8,9 +8,9 @@ An Accenture thought piece on accelerating stack migration and modernisation wit
 
 ## Runtime
 
-One Rust (Axum) process on Cloud Run serves the static pages, `/config.js` and the API from the same origin. It runs from a non-root scratch image with a static musl binary, makes no outbound calls and needs no cloud SDK. The same files also run on any static host in fixtures mode.
+The public Rust (Axum) Cloud Run service serves the static pages, `/config.js` and the API from the same origin. Its non-root scratch image contains a static musl binary, makes no outbound calls and needs no cloud SDK. The same files also run on any static host in fixtures mode. The separate private presenter uses the same application with explicitly configured Vertex AI and/or hosted-Jev egress.
 
-The live demonstrations use deterministic Rust rules or browser fixtures. They do not run MCP servers and do not call AlloyDB AI, Google Cloud RAG Engine, ADK, Gemini or DiffusionGemma.
+The public demonstrations use deterministic Rust catalogue rules or browser fixtures. They do not run MCP servers or call AlloyDB AI, Google Cloud RAG Engine, ADK, Gemini, hosted Jev or DiffusionGemma. A separate private Archegon presenter is model-backed: Gemini may interpret typed requests and TypeSafe hosted Jev may make bounded decisions, independently or together, using a dedicated Cloud Run identity and Secret Manager binding. It does not alter the public service.
 
 ## Planned Google Cloud reference architecture
 

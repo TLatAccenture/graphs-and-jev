@@ -233,7 +233,7 @@
     <div class="section-head">
       <p class="eyebrow">06 · Try it</p>
       <h2 id="demo-title">Ask the catalogue.</h2>
-      <p class="lede">Deterministic rules over illustrative data, in your browser or on the Rust service. Pick an example or write your own.</p>
+      <p class="lede">The configured decision backend evaluates illustrative catalogue data. Public builds use deterministic rules; a private presenter may use hosted Jev. Pick an example or write your own.</p>
     </div>
 
     <div class="demo-grid">
@@ -411,14 +411,20 @@ function fact(dl, term, value) {
 
 /* On a build where Gemini reads typed requests, the page says so before anyone asks. */
 const reader = siteApi.interpreter("catalogue");
+const configuredBackend = window.SITE_CONFIG && window.SITE_CONFIG.api && window.SITE_CONFIG.api.decisionBackend;
+const decisionBackend = configuredBackend || {by: "catalogue", label: "Catalogue rules", model: "catalogue-rules-v1", residency: "local"};
 const geminiName = "Gemini" + (reader.model ? " (" + reader.model + ")" : "");
 if (reader.by === "gemini") {
-  $("#request-hint").textContent = "Write it in your own words. " + geminiName + " maps it to catalogue terms, then the rules decide.";
-  const scope = $("#scope-note");
-  scope.replaceChildren(el("strong", "Scope"), document.createTextNode(
-    "Illustrative sources. On this presenter build, " + geminiName + " on Vertex AI reads each typed request and maps it to catalogue terms. " +
-    "Jev's decision stages are still answered by deterministic rules on the Rust service, so Gemini never picks an outcome or a dataset. " +
-    "If Gemini fails, the rules read your words and the result says so. Request text is sent to Vertex AI; this service does not log it."));
+  $("#request-hint").textContent = "Write it in your own words. " + geminiName + " maps it to catalogue terms; the selected decision backend decides.";
+}
+if (reader.by === "gemini" || decisionBackend.by === "jev") {
+  const parts = ["Illustrative sources."];
+  if (reader.by === "gemini") parts.push(geminiName + " on Vertex AI reads each typed request and maps it to catalogue terms; it does not choose the outcome or dataset. Request text is sent to Vertex AI.");
+  else parts.push("Catalogue rules read the request; Gemini is not enabled.");
+  if (decisionBackend.by === "jev") parts.push(decisionBackend.label + " (" + decisionBackend.model + ") makes the bounded decisions through its hosted API; decision inputs leave Google Cloud.");
+  else parts.push("Deterministic catalogue rules make the bounded decisions locally; no hosted Jev call is made.");
+  parts.push("This service does not log request text.");
+  $("#scope-note").replaceChildren(el("strong", "Scope"), document.createTextNode(parts.join(" ")));
 }
 
 /* Who read the request, in one line above the answer. Returns a sentence for the status line. */
@@ -505,8 +511,19 @@ function render(body) {
   }
   if (body.stages) fact(tech, "Stages run", body.stages.map(s => s.title).join(" → "));
   if (body.interpretation) fact(tech, "Read by", body.interpretation.by === "gemini" ? "Gemini on Vertex AI (" + body.interpretation.model + ")" : "Catalogue rules, after Gemini was unavailable");
-  fact(tech, "Decided by", siteApi.source("catalogue") + (body.model ? ": " + body.backend_label + " (" + body.model + "), " + body.residency : ""));
-  if (body.totals) fact(tech, "Decisions", body.totals.decisions + " in " + body.totals.calls + " calls, " + body.totals.wall_ms + " ms");
+  fact(tech, "Source", siteApi.source("catalogue"));
+  if (body.backend_label || body.backend) fact(tech, "Decision backend", body.backend_label ? body.backend_label + (body.backend ? " (" + body.backend + ")" : "") : body.backend);
+  if (body.model) fact(tech, "Model", body.model);
+  if (body.residency) fact(tech, "Residency", body.residency);
+  if (body.totals) {
+    const count = body.totals.decisions != null && body.totals.calls != null ? body.totals.decisions + " in " + body.totals.calls + " calls" : null;
+    const timing = body.totals.wall_ms != null ? body.totals.wall_ms + " ms" : null;
+    if (count || timing) fact(tech, "Decisions", [count, timing].filter(Boolean).join(", "));
+    if ("usage_complete" in body.totals) {
+      const usage = body.totals.usage_complete ? "Usage complete" : "Usage incomplete";
+      fact(tech, usage, "Input tokens: " + (body.totals.input_tokens == null ? "not reported" : body.totals.input_tokens) + "; cost: " + (body.totals.cost_usd == null ? "not reported" : "$" + body.totals.cost_usd));
+    }
+  }
   $("#raw").textContent = JSON.stringify(body, null, 2);
   const read = readBy(outcome === "error" ? null : body.interpretation);
   result.hidden = false;

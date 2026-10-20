@@ -40,10 +40,11 @@ const MOCK_ANSWER = {
   stages: [{ stage: "gate", title: "Answer, clarify or reject" }, { stage: "discover", title: "Coverage" }],
   query: { pollutants: ["PM2_5"], levels: { GEO: "country", TIME: "year" } },
   solutions: [{ id: 1, cells: 6, sources: [{ name: MOCK_DATASET, publisher: "official", updated: 2026 }], fit: null, notes: [] }],
+  backend: "catalogue",
   backend_label: "Mock live service",
   model: "mock-v1",
   residency: "test",
-  totals: { decisions: 2, calls: 2, wall_ms: 1 },
+  totals: { decisions: 2, calls: 2, wall_ms: 1, input_tokens: null, cost_usd: null, usage_complete: false },
 };
 
 test("live mode renders a valid API response and names the live API", async ({ page }) => {
@@ -120,6 +121,54 @@ const geminiBuild = (c: Parameters<typeof liveCatalogue>[0]) => {
   liveCatalogue(c);
   c.api.interpreter = { by: "gemini", model: "gemini-3.8-flash" };
 };
+
+const combinedBuild = (c: Parameters<typeof liveCatalogue>[0]) => {
+  geminiBuild(c);
+  c.api.decisionBackend = { by: "jev", label: "TypeSafe hosted Jev", model: "jev-1.2.3", residency: "hosted" };
+};
+
+test("combined private config tells the complete provenance story", async ({ page }) => {
+  await useConfig(page, combinedBuild);
+  await page.route("**/api/catalogue", r => r.fulfill({ json: { summary: "Mock live catalogue.", sources: [{ id: 1 }] } }));
+  await page.route("**/api/pipeline", r => r.fulfill({ json: { ...MOCK_ANSWER, backend: "jev", backend_label: "TypeSafe hosted Jev", model: "jev-1.2.3", residency: "hosted", interpretation: { by: "gemini", model: "gemini-3.8-flash", request: "PM2.5 by country and year from 2019 to 2024", note: null } } }));
+  await page.goto(PAGE);
+  await expect(page.locator("#scope-note")).toContainText("Gemini (gemini-3.8-flash) on Vertex AI reads each typed request");
+  await expect(page.locator("#scope-note")).toContainText("TypeSafe hosted Jev (jev-1.2.3) makes the bounded decisions");
+  await expectOutcome(page, CATALOGUE_LABELS, "Answer", () => examples(page).first().click());
+  await expect(page.locator("#tech")).toContainText("TypeSafe hosted Jev (jev)");
+  await expect(page.locator("#tech")).toContainText("Usage incomplete");
+});
+
+test("legacy config and response omit new provenance without inventing values", async ({ page }) => {
+  await useConfig(page, c => {
+    liveCatalogue(c);
+    delete (c.api as any).decisionBackend;
+  });
+  const legacy = { ...MOCK_ANSWER, totals: { decisions: 2, calls: 2, wall_ms: 1 } } as any;
+  delete legacy.backend;
+  delete legacy.backend_label;
+  delete legacy.model;
+  delete legacy.residency;
+  await page.route("**/api/catalogue", r => r.fulfill({ json: { summary: "Legacy catalogue.", sources: [{ id: 1 }] } }));
+  await page.route("**/api/pipeline", r => r.fulfill({ json: legacy }));
+  await page.goto(PAGE);
+  await expectOutcome(page, CATALOGUE_LABELS, "Answer", () => examples(page).first().click());
+  await expect(page.locator("#tech dt").filter({ hasText: "Source" })).toHaveCount(1);
+  await expect(page.locator("#tech dd").filter({ hasText: "live API at" })).toHaveCount(1);
+  await expect(page.locator("#tech")).not.toContainText("Decision backend");
+  await expect(page.locator("#tech")).not.toContainText("Input tokens");
+  await expect(page.locator("#tech")).not.toContainText("Usage incomplete");
+});
+
+test("complete usage shows measured token and cost values", async ({ page }) => {
+  await useConfig(page, liveCatalogue);
+  await page.route("**/api/catalogue", r => r.fulfill({ json: { summary: "Measured catalogue.", sources: [{ id: 1 }] } }));
+  await page.route("**/api/pipeline", r => r.fulfill({ json: { ...MOCK_ANSWER, totals: { decisions: 2, calls: 2, wall_ms: 1, input_tokens: 321, cost_usd: 0.0042, usage_complete: true } } }));
+  await page.goto(PAGE);
+  await expectOutcome(page, CATALOGUE_LABELS, "Answer", () => examples(page).first().click());
+  await expect(page.locator("#tech")).toContainText("Usage complete");
+  await expect(page.locator("#tech")).toContainText("Input tokens: 321; cost: $0.0042");
+});
 
 test("a Gemini build says who reads the request and shows Gemini's reading", async ({ page }) => {
   await useConfig(page, geminiBuild);

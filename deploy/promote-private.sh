@@ -1,8 +1,10 @@
 #!/usr/bin/env bash
-# Promote a private Gemini candidate without changing service IAM or IAP settings.
+# Promote a private Gemini and/or hosted-Jev candidate without changing service IAM or IAP settings.
 main() (
   set -euo pipefail
-  local root project region service account revision state candidate_url service_url token rollback_args model
+  local root project region service account revision state candidate_url service_url token rollback_args
+  local gemini_model jev_model secret_name secret_version expected_secret_name expected_secret_version verify_error
+  local -a verify_env
   root="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
   [[ $# -ge 1 && $# -le 2 ]] || { printf 'usage: %s REVISION [environment-file]\n' "$0" >&2; exit 64; }
   revision="$1"; [[ $# == 1 ]] || source "$2"
@@ -23,10 +25,36 @@ PY
   rollback_args="$(python3 -c 'import json,sys; t=[x for x in json.load(open(sys.argv[1]))["status"]["traffic"] if x.get("percent")]; print("--to-revisions="+",".join("%s=%s" % (x["revisionName"], x["percent"]) for x in t))' "$state/before.json")" || fail 'cannot record traffic'
   candidate_url="$(python3 -c 'import json,sys; x=[t for t in json.load(open(sys.argv[1]))["status"]["traffic"] if t.get("revisionName")==sys.argv[2] and t.get("tag")]; print(x[0].get("url","") if len(x)==1 else "")' "$state/before.json" "$revision")"
   service_url="$(python3 -c 'import json,sys; print(json.load(open(sys.argv[1]))["status"]["url"])' "$state/before.json")"
-  model="$(gcloud run revisions describe "$revision" --project="$project" --region="$region" --format=json | python3 -c 'import json,sys; e={x["name"]:x.get("value","") for x in json.load(sys.stdin)["spec"]["containers"][0].get("env",[])}; assert e.get("CATALOGUE_INTERPRETER")=="gemini"; print(e.get("GEMINI_MODEL") or "gemini-3.8-flash")')" || fail 'candidate is not a Gemini revision'
+  gcloud run revisions describe "$revision" --project="$project" --region="$region" --format=json >"$state/revision.json"
+  read -r gemini_model jev_model secret_name secret_version < <(python3 - "$state/revision.json" <<'PY'
+import json,sys
+c=json.load(open(sys.argv[1]))["spec"]["containers"][0]; env=c.get("env",[])
+values={x["name"]:x["value"] for x in env if "value" in x}; refs={x["name"]:x["valueFrom"] for x in env if "valueFrom" in x}
+gemini=values.get("CATALOGUE_INTERPRETER")=="gemini"; jev=values.get("DECISION_BACKEND")=="jev"
+assert gemini or jev
+assert values.get("SERVICE_AUTH_MODE")=="cloud-run-iam"
+if gemini: assert values.get("GEMINI_MODEL")
+ref=refs.get("TYPESAFE_API_KEY",{}).get("secretKeyRef",{}) if jev else {}
+if jev: assert values.get("JEV_MODEL") and ref.get("name") and str(ref.get("key","")).isdigit() and "TYPESAFE_API_KEY" not in values
+print(values.get("GEMINI_MODEL","-"), values.get("JEV_MODEL","-"), ref.get("name","-"), ref.get("key","-"))
+PY
+  ) || fail 'candidate is not a valid private Gemini and/or Jev revision'
+  verify_env=()
+  if [[ "$gemini_model" != - ]]; then
+    [[ -z "${GEMINI_MODEL:-}" || "$gemini_model" == "$GEMINI_MODEL" ]] || fail 'candidate Gemini model does not match expected model'
+    verify_env+=(GEMINI_VERIFY=1 VERIFY_EXPECTED_MODEL="$gemini_model")
+  fi
+  if [[ "$jev_model" != - ]]; then
+    [[ -n "${TYPESAFE_SECRET_RESOURCE:-}" && "$TYPESAFE_SECRET_RESOURCE" =~ ^projects/([^/]+)/secrets/([^/]+)/versions/([1-9][0-9]*)$ ]] || fail 'Jev promotion requires a numeric TYPESAFE_SECRET_RESOURCE'
+    [[ "${BASH_REMATCH[1]}" == "$project" ]] || fail 'TYPESAFE_SECRET_RESOURCE must be in the deployment project'
+    expected_secret_name="${BASH_REMATCH[2]}"; expected_secret_version="${BASH_REMATCH[3]}"
+    [[ "$secret_name" == "$expected_secret_name" && "$secret_version" == "$expected_secret_version" ]] || fail 'candidate TypeSafe secret reference does not match the environment file'
+    [[ -z "${JEV_MODEL:-}" || "$jev_model" == "$JEV_MODEL" ]] || fail 'candidate Jev model does not match expected model'
+    verify_env+=(JEV_VERIFY=1 JEV_VERIFY_EXPECTED_MODEL="$jev_model")
+  fi
   [[ "$candidate_url" == https://* ]] || fail 'candidate tag URL missing'
   token="$(gcloud auth print-identity-token --audiences="$service_url")"
-  VERIFY_BEARER="$token" GEMINI_VERIFY=1 VERIFY_EXPECTED_MODEL="$model" python3 "$root/deploy/verify.py" "$candidate_url" || fail 'candidate Gemini checks failed'
+  env VERIFY_BEARER="$token" "${verify_env[@]}" python3 "$root/deploy/verify.py" "$candidate_url" || fail 'candidate private-model checks failed'
   rollback() { printf 'private promote: rolling back traffic\n' >&2; gcloud run services update-traffic "$service" --project="$project" --region="$region" "$rollback_args" --quiet || printf 'private promote: TRAFFIC ROLLBACK FAILED\n' >&2; }
   trap 'rc=$?; [[ $rc == 0 ]] || rollback; rm -rf "$state"; exit $rc' EXIT
   gcloud run services update-traffic "$service" --project="$project" --region="$region" --to-revisions="${revision}=100" --quiet
@@ -40,7 +68,7 @@ t={x["revisionName"]:x["percent"] for x in s["status"]["traffic"] if x.get("perc
 if a not in (None,"false") or t != {sys.argv[2]:100}: raise SystemExit("privacy or traffic mismatch")
 PY
   token="$(gcloud auth print-identity-token --audiences="$service_url")"
-  VERIFY_BEARER="$token" GEMINI_VERIFY=1 VERIFY_EXPECTED_MODEL="$model" python3 "$root/deploy/verify.py" "$service_url" || fail 'canonical Gemini checks failed'
+  env VERIFY_BEARER="$token" "${verify_env[@]}" python3 "$root/deploy/verify.py" "$service_url" || fail 'canonical private-model checks failed'
   printf 'Privately promoted %s; IAM unchanged; authenticated canonical checks passed\n' "$revision"
 )
 [[ "${BASH_SOURCE[0]}" != "$0" ]] || main "$@"

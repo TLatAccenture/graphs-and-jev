@@ -2,8 +2,9 @@ use std::time::Instant;
 
 use serde_json::{json, Map, Value};
 
+use crate::backend::DecisionBackend;
 use crate::catalogue::Catalogue;
-use crate::decide::{decide, DecisionError};
+use crate::decide::DecisionError;
 use crate::graph::{discover, subgraph};
 use crate::request::{re, requested_groups, resolve, CLARIFY_MESSAGE, REJECT_MESSAGE};
 
@@ -285,10 +286,9 @@ fn finish(
     totals: &mut Map<String, Value>,
     started: Instant,
 ) -> Value {
-    totals.insert(
-        "latency_ms".into(),
-        json!((totals["latency_ms"].as_f64().unwrap_or(0.0) * 10.0).round() / 10.0),
-    );
+    if let Some(latency) = totals["latency_ms"].as_f64() {
+        totals.insert("latency_ms".into(), json!((latency * 10.0).round() / 10.0));
+    }
     totals.insert(
         "wall_ms".into(),
         json!((started.elapsed().as_secs_f64() * 1000.0 * 10.0).round() / 10.0),
@@ -299,54 +299,134 @@ fn finish(
     out
 }
 
-pub fn run(
+pub async fn run(
     cat: &Catalogue,
+    backend: &dyn DecisionBackend,
     request: &str,
     preference: Option<&str>,
     min_confidence: f64,
 ) -> Result<Value, DecisionError> {
     let started = Instant::now();
     let mut stages = Vec::new();
-    let mut totals = json!({"decisions": 0, "calls": 0, "latency_ms": 0.0, "cost_usd": 0.0})
-        .as_object()
-        .unwrap()
-        .clone();
+    let mut totals =
+        json!({"decisions": 0, "calls": 0, "latency_ms": 0.0, "input_tokens": 0, "cost_usd": 0.0, "usage_complete": true})
+            .as_object()
+            .unwrap()
+            .clone();
     let preference = preference.unwrap_or("");
     let parsed = resolve(cat, request);
     let mut out = json!({
         "request": request,
         "preference": preference,
-        "backend": "catalogue",
-        "backend_label": "Catalogue rules",
-        "model": "catalogue-rules-v1",
-        "residency": "local",
+        "backend": backend.name(),
+        "backend_label": backend.label(),
+        "model": backend.model(),
+        "residency": backend.residency(),
         "stages": [],
         "policy": {
             "min_confidence": min_confidence,
             "validated_risk_guarantee": false,
             "calibration_loaded": false,
+            "backend": backend.name(),
+            "model": backend.model(),
+            "residency": backend.residency(),
             "time_anchor": parsed["time_anchor"],
         },
     });
 
-    let mut ask = |_name: &str,
-                   state: Value,
-                   questions: Map<String, Value>|
-     -> Result<Value, DecisionError> {
-        let res = decide(cat, &state, &questions)?;
+    async fn ask(
+        backend: &dyn DecisionBackend,
+        totals: &mut Map<String, Value>,
+        state: Value,
+        questions: Map<String, Value>,
+        started: Instant,
+    ) -> Result<Value, DecisionError> {
+        if totals["calls"].as_u64().unwrap_or(0) >= backend.pipeline_max_calls() as u64 {
+            return Err(DecisionError::unavailable());
+        }
+        let remaining = backend
+            .pipeline_timeout()
+            .checked_sub(started.elapsed())
+            .ok_or_else(DecisionError::unavailable)?;
+        let count = questions.len() as i64;
+        let res = tokio::time::timeout(remaining, backend.decide(&state, &questions))
+            .await
+            .map_err(|_| DecisionError::unavailable())??;
         *totals.get_mut("calls").unwrap() = json!(totals["calls"].as_i64().unwrap_or(0) + 1);
         *totals.get_mut("decisions").unwrap() =
-            json!(totals["decisions"].as_i64().unwrap_or(0) + questions.len() as i64);
+            json!(totals["decisions"].as_i64().unwrap_or(0) + count);
+        for (field, numeric) in [
+            ("latency_ms", res["latency_ms"].as_f64()),
+            ("cost_usd", res["cost_usd"].as_f64()),
+        ] {
+            if let (Some(total), Some(value)) = (totals[field].as_f64(), numeric) {
+                totals.insert(field.into(), json!(total + value));
+            } else {
+                totals.insert(field.into(), Value::Null);
+                totals.insert("usage_complete".into(), json!(false));
+            }
+        }
+        if totals["input_tokens"].is_null() || res["input_tokens"].as_u64().is_none() {
+            totals.insert("input_tokens".into(), Value::Null);
+            totals.insert("usage_complete".into(), json!(false));
+        } else {
+            totals.insert(
+                "input_tokens".into(),
+                json!(
+                    totals["input_tokens"].as_u64().unwrap()
+                        + res["input_tokens"].as_u64().unwrap()
+                ),
+            );
+        }
         Ok(res)
-    };
+    }
+
+    macro_rules! ask_or_review {
+        ($state:expr, $questions:expr) => {
+            match ask(backend, &mut totals, $state, $questions, started).await {
+                Ok(response) => response,
+                Err(error) => {
+                    out["stages"] = json!(stages);
+                    return Ok(finish(
+                        out,
+                        "review",
+                        Some(&error.message),
+                        &mut totals,
+                        started,
+                    ));
+                }
+            }
+        };
+    }
 
     let mut qs = Map::new();
     qs.insert("gate".into(), gate_q());
-    let r = ask("gate", json!({"request": request}), qs)?;
+    let r = ask_or_review!(json!({"request": request}), qs);
     let gate = &r["answers"]["gate"];
     stages.push(json!({"stage": "gate", "title": "Answer, clarify or reject", "answer": gate}));
+    if uncertain(min_confidence, gate) {
+        out["stages"] = json!(stages);
+        return Ok(finish(
+            out,
+            "review",
+            Some(
+                "Gate confidence is below the acceptance threshold. Review or clarify the request.",
+            ),
+            &mut totals,
+            started,
+        ));
+    }
     if parsed["gate"] == "reject" {
         out["stages"] = json!(stages);
+        if backend.name() == "jev" && gate["top"] != "reject" {
+            return Ok(finish(
+                out,
+                "review",
+                Some("Hosted decision conflicts with deterministic catalogue scope."),
+                &mut totals,
+                started,
+            ));
+        }
         return Ok(finish(
             out,
             "reject",
@@ -358,22 +438,19 @@ pub fn run(
     let issues = strs(&parsed["issues"]);
     if !issues.is_empty() {
         out["stages"] = json!(stages);
+        if backend.name() == "jev" && gate["top"] != "clarify" {
+            return Ok(finish(
+                out,
+                "review",
+                Some("Hosted decision conflicts with deterministic request validation."),
+                &mut totals,
+                started,
+            ));
+        }
         return Ok(finish(
             out,
             "clarify",
             Some(&issues.join(" ")),
-            &mut totals,
-            started,
-        ));
-    }
-    if uncertain(min_confidence, gate) {
-        out["stages"] = json!(stages);
-        return Ok(finish(
-            out,
-            "review",
-            Some(
-                "Gate confidence is below the acceptance threshold. Review or clarify the request.",
-            ),
             &mut totals,
             started,
         ));
@@ -410,8 +487,39 @@ pub fn run(
     for (name, text) in &cands {
         qs.insert(name.clone(), noul_q(text));
     }
-    let r = ask("relevance", json!({"request": request}), qs)?;
+    let r = ask_or_review!(json!({"request": request}), qs);
+    if r["answers"].as_object().is_some_and(|answers| {
+        answers
+            .values()
+            .any(|answer| uncertain(min_confidence, answer))
+    }) {
+        stages.push(json!({"stage":"enrich","title":"Pollutants","answers":r["answers"]}));
+        out["stages"] = json!(stages);
+        return Ok(finish(
+            out,
+            "review",
+            Some("A relevance decision is below the acceptance threshold."),
+            &mut totals,
+            started,
+        ));
+    }
     let explicit = requested_groups(cat, request);
+    if explicit.iter().any(|id| {
+        r["answers"][format!("group:{id}")]["probabilities"]["yes"]
+            .as_f64()
+            .unwrap_or(0.0)
+            < RELEVANCE_THRESHOLD
+    }) {
+        stages.push(json!({"stage":"enrich","title":"Pollutants","answers":r["answers"]}));
+        out["stages"] = json!(stages);
+        return Ok(finish(
+            out,
+            "review",
+            Some("Hosted relevance disagrees with an explicit catalogue group."),
+            &mut totals,
+            started,
+        ));
+    }
     let mut rel = Vec::new();
     let mut groups = Vec::new();
     let mut singles = Vec::new();
@@ -420,11 +528,7 @@ pub fn run(
             .as_f64()
             .unwrap_or(0.0);
         let (kind, id) = name.split_once(':').unwrap_or(("", ""));
-        let selected = if kind == "group" {
-            explicit.iter().any(|g| g == id)
-        } else {
-            yes >= RELEVANCE_THRESHOLD
-        };
+        let selected = yes >= RELEVANCE_THRESHOLD;
         let label = if kind == "group" {
             cat.groups[id].label.clone()
         } else {
@@ -474,7 +578,7 @@ pub fn run(
     for dim in ["GEO", "TIME", "SECTOR"] {
         qs.insert(dim.into(), level_q(dim));
     }
-    let r = ask("levels", json!({"request": request}), qs)?;
+    let r = ask_or_review!(json!({"request": request}), qs);
     let mut levels = Map::new();
     if let Some(answers) = r["answers"].as_object() {
         for (dim, a) in answers {
@@ -550,7 +654,6 @@ pub fn run(
     }
 
     let mut ranked = Vec::new();
-    let mut rank_uncertain = false;
     for (i, mut sol) in sols.into_iter().enumerate() {
         sol["id"] = json!(((b'A' + i as u8) as char).to_string());
         sol["summary"] = json!(summarise(cat, &sol, &pollutants));
@@ -558,9 +661,14 @@ pub fn run(
             let mut qs = Map::new();
             qs.insert("fit".into(), fit_q());
             let state = json!({"request": request, "preference": preference, "solution": {"sources": sol["sources"], "profiles": sol["profiles"], "cells": sol["cells"]}});
-            let r = ask("fit", state, qs)?;
+            let r = ask_or_review!(state, qs);
             sol["fit"] = r["answers"]["fit"].clone();
-            rank_uncertain |= uncertain(min_confidence, &sol["fit"]);
+            if uncertain(min_confidence, &sol["fit"]) {
+                ranked.push(sol);
+                out["solutions"] = json!(ranked);
+                out["stages"] = json!(stages);
+                return Ok(finish(out, "review", Some("Preference scores are uncertain. Candidate datasets are returned for review, not approved automatically."), &mut totals, started));
+            }
         }
         ranked.push(sol);
     }
@@ -604,10 +712,6 @@ pub fn run(
     source_ids.sort();
     out["solutions"] = json!(ranked);
     out["subgraph"] = subgraph(cat, &pollutants, &levels, &source_ids);
-    if rank_uncertain {
-        out["stages"] = json!(stages);
-        return Ok(finish(out, "review", Some("Preference scores are uncertain. Candidate datasets are returned for review, not approved automatically."), &mut totals, started));
-    }
     out["explanation"] = explain(cat, &pollutants, &levels, &ranked);
     stages.push(json!({"stage": "explain", "title": "Explanation", "by": "template"}));
     out["stages"] = json!(stages);
@@ -617,8 +721,10 @@ pub fn run(
 #[cfg(test)]
 mod tests {
     use super::run;
+    use crate::backend::CatalogueBackend;
     use crate::catalogue::Catalogue;
     use std::path::Path;
+    use std::sync::Arc;
 
     fn cat() -> Catalogue {
         Catalogue::load(Path::new(concat!(
@@ -628,17 +734,31 @@ mod tests {
         .unwrap()
     }
 
-    #[test]
-    fn annual_co2_for_australia() {
-        let out = run(&cat(), "Annual CO2 for Australia in 2024", None, 0.8).unwrap();
+    #[tokio::test]
+    async fn annual_co2_for_australia() {
+        let cat = Arc::new(cat());
+        let backend = CatalogueBackend::new(Arc::clone(&cat));
+        let out = run(
+            &cat,
+            &backend,
+            "Annual CO2 for Australia in 2024",
+            None,
+            0.8,
+        )
+        .await
+        .unwrap();
         assert_eq!(out["outcome"], "answer");
         let pollutants = out["query"]["pollutants"].as_array().unwrap();
         assert!(pollutants.iter().any(|p| p == "CO2"));
     }
 
-    #[test]
-    fn particulate_matter_by_region() {
-        let out = run(&cat(), "Particulate matter by region", None, 0.8).unwrap();
+    #[tokio::test]
+    async fn particulate_matter_by_region() {
+        let cat = Arc::new(cat());
+        let backend = CatalogueBackend::new(Arc::clone(&cat));
+        let out = run(&cat, &backend, "Particulate matter by region", None, 0.8)
+            .await
+            .unwrap();
         assert_eq!(out["outcome"], "answer");
         assert_eq!(
             out["query"]["pollutants"],
