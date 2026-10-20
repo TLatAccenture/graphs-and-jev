@@ -108,6 +108,8 @@ check(
     "/config.js shape",
 )
 json.loads(text[len(prefix) : -len(suffix)])
+jev_verify = os.environ.get("JEV_VERIFY") == "1"
+bounded_outcomes = {"answer", "clarify", "reject", "review"}
 for text_request, outcome in (
     ("annual CO2 for Australia in 2024", "answer"),
     ("emissions", "clarify"),
@@ -119,8 +121,9 @@ for text_request, outcome in (
         {"domain": "catalogue", "request": text_request, "preference": None},
     )
     result = json.loads(body) if status == 200 else {}
-    check(status == 200 and result.get("outcome") == outcome, f"catalogue {outcome}")
-    if text_request == "hi":
+    valid_outcome = result.get("outcome") in bounded_outcomes if jev_verify else result.get("outcome") == outcome
+    check(status == 200 and valid_outcome, f"catalogue {outcome}")
+    if text_request == "hi" and not jev_verify:
         check(
             "Hello!" in result.get("message", ""),
             "catalogue hi clarify missing friendly Hello marker",
@@ -151,17 +154,35 @@ if os.environ.get("JEV_VERIFY") == "1":
     check(result.get("backend") == "jev", "Jev smoke did not use hosted Jev")
     check(result.get("model") == expected_jev_model, "Jev smoke model")
     check(result.get("residency") == "hosted", "Jev smoke residency")
-    policy = result.get("policy", {})
+    policy = result.get("policy")
+    check(isinstance(policy, dict), "Jev smoke policy provenance")
     for field in ("backend", "model", "residency"):
-        if field in policy:
-            check(policy[field] == result.get(field), f"Jev policy {field} disagrees with provenance")
+        check(policy.get(field) == result.get(field), f"Jev policy {field} disagrees with provenance")
     gate = next((stage.get("answer") for stage in result.get("stages", []) if stage.get("stage") == "gate"), None)
     check(isinstance(gate, dict), "Jev smoke gate answer")
+    check(gate.get("type") == "choice", "Jev smoke typed gate")
     confidence = gate.get("confidence")
     probabilities = gate.get("probabilities")
     check(isinstance(confidence, (int, float)) and math.isfinite(confidence), "Jev smoke gate confidence")
-    check(isinstance(probabilities, dict) and probabilities, "Jev smoke gate probabilities")
-    check(all(isinstance(value, (int, float)) and math.isfinite(value) for value in probabilities.values()), "Jev smoke gate probabilities")
-    check("usage_complete" in result.get("totals", {}), "Jev smoke usage completeness")
+    check(isinstance(probabilities, dict) and len(probabilities) > 1, "Jev smoke gate probabilities")
+    check(all(isinstance(value, (int, float)) and math.isfinite(value) and 0 <= value <= 1 for value in probabilities.values()), "Jev smoke gate probabilities")
+    check(abs(sum(probabilities.values()) - 1) <= 0.001, "Jev smoke gate probability sum")
+    high = max(probabilities.values())
+    expected_tops = {label for label, value in probabilities.items() if value == high}
+    check(gate.get("top") in expected_tops and gate.get("choice") == gate.get("top"), "Jev smoke gate choice")
+    top = gate["top"]
+    uniform = 1 / len(probabilities)
+    expected_confidence = (probabilities[top] - uniform) / (1 - uniform)
+    check(abs(confidence - expected_confidence) <= 0.001, "Jev smoke gate concentration confidence")
+    check(result.get("outcome") in bounded_outcomes, "Jev smoke bounded outcome")
+    stages = result.get("stages")
+    check(isinstance(stages, list) and stages, "Jev smoke completed stage")
+    totals = result.get("totals", {})
+    check(isinstance(totals.get("calls"), int) and totals["calls"] > 0, "Jev smoke completed call")
+    check(totals.get("backend_errors") == 0, "Jev smoke backend error")
+    check(totals.get("usage_complete") is True, "Jev smoke usage completeness")
+    check(isinstance(totals.get("input_tokens"), int), "Jev smoke input token usage")
+    if os.environ.get("GEMINI_VERIFY") == "1":
+        check(result.get("interpretation", {}).get("by") == "gemini", "Combined smoke did not use Gemini interpretation")
 
 print(f"verify passed at {base_url}")

@@ -88,7 +88,7 @@ Do not send production traffic to a candidate until all gates pass:
 1. `cargo test` and `cargo build --release` succeed from the committed tree.
 2. The local scratch image builds and `scripts/smoke-container.sh` passes.
 3. The image is addressed by digest and its revision reports the expected account, probes, limits, and zero candidate traffic, with live traffic and service IAM unchanged.
-4. Candidate checks (`deploy/verify.py`) pass for health, readiness, `/config.js`, all static routes, the `/dcceew/` and `/parkinsons/` redirects, catalogue answer/clarify/reject, and the lineage 501.
+4. Candidate checks (`deploy/verify.py`) pass for health, readiness, `/config.js`, all static routes, the `/dcceew/` and `/parkinsons/` redirects, catalogue answer/clarify/reject, and the lineage 501. With `JEV_VERIFY=1`, those catalogue probes accept HTTP 200 bounded outcomes, then a dedicated real-model probe requires hosted Jev provenance, the pinned model, a typed gate with concentration confidence and probabilities, at least one completed stage and call, zero backend errors, and complete usage; catalogue fallback or an empty-stage error review fails. Combined Gemini plus Jev verification also requires Gemini interpretation. Default public verification retains exact deterministic outcomes.
 5. Boundary checks return the expected 413/422 and 429 responses; logs contain request IDs and no submitted request text.
 6. Desktop and 390 px browser checks have no console errors or horizontal overflow.
 7. Canonical-URL checks pass anonymously after the traffic update (`deploy/promote.sh`).

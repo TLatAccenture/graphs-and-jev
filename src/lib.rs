@@ -212,6 +212,23 @@ impl DecideIn {
         }
         for value in self.questions.values() {
             validate_text_values(value)?;
+            let labels = match value.get("type").and_then(Value::as_str) {
+                Some("choice") => value
+                    .get("criteria")
+                    .and_then(Value::as_object)
+                    .map(|criteria| criteria.len()),
+                Some("score") => value
+                    .get("criteria")
+                    .and_then(Value::as_array)
+                    .map(|criteria| criteria.len()),
+                _ => None,
+            };
+            if labels.is_some_and(|count| count < 2) {
+                return Err(ValidationError::new(
+                    StatusCode::UNPROCESSABLE_ENTITY,
+                    "Choice and score questions require at least two labels.",
+                ));
+            }
         }
         Ok(())
     }

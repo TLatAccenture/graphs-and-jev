@@ -560,9 +560,12 @@ python3 - "$root/deploy/verify.py" <<'PYJEVVERIFY'
 import http.server,json,os,subprocess,sys,threading
 verify=sys.argv[1]; mode="valid"
 def pipeline():
- response={"outcome":"answer","backend":"jev","backend_label":"TypeSafe hosted Jev","model":"jev-1.2.3","residency":"hosted","policy":{"backend":"jev","model":"jev-1.2.3","residency":"hosted"},"stages":[{"stage":"gate","title":"Gate","answer":{"type":"choice","probabilities":{"answer":0.9,"clarify":0.05,"reject":0.05},"top":"answer","choice":"answer","confidence":0.9}}],"totals":{"decisions":1,"calls":1,"latency_ms":3.0,"input_tokens":None,"cost_usd":None,"usage_complete":False},"interpretation":{"by":"gemini","model":"gemini-3.8-flash","request":"PM2.5 by country and year from 2019 to 2024","note":None}}
+ response={"outcome":"review","backend":"jev","backend_label":"TypeSafe hosted Jev","model":"jev-1.2.3","residency":"hosted","policy":{"backend":"jev","model":"jev-1.2.3","residency":"hosted"},"stages":[{"stage":"gate","title":"Gate","answer":{"type":"choice","probabilities":{"answer":0.46,"clarify":0.27,"reject":0.27},"top":"answer","choice":"answer","confidence":0.19}}],"totals":{"decisions":1,"calls":1,"latency_ms":3.0,"input_tokens":12,"cost_usd":0.01,"usage_complete":True,"backend_errors":0},"interpretation":{"by":"gemini","model":"gemini-3.8-flash","request":"PM2.5 by country and year from 2019 to 2024","note":None}}
  if mode=="catalogue": response.update(backend="catalogue",model="catalogue-rules-v1",residency="local")
- if mode=="bad-contract": response["stages"][0].pop("answer")
+ if mode=="bad-contract": response["stages"]=[]; response["totals"]["calls"]=0
+ if mode=="backend-error": response["totals"]["backend_errors"]=1
+ if mode=="no-policy": response.pop("policy")
+ if mode=="tie": response["stages"][0]["answer"].update(probabilities={"answer":0.5,"clarify":0.5},top="clarify",choice="clarify",confidence=0.0)
  return response
 class App(http.server.BaseHTTPRequestHandler):
  def send(self,code,body=b"",location=None,content="application/json"):
@@ -583,17 +586,23 @@ class App(http.server.BaseHTTPRequestHandler):
   if body.get("domain")=="lineage":return self.send(501,b'{}')
   if body["request"]=="could I see fine particles for each nation, yearly, 2019 through 2024?": response=pipeline()
   else:
-   outcomes={"annual CO2 for Australia in 2024":"answer","emissions":"clarify","hi":"clarify","write me a poem about the sea":"reject"};response={"outcome":outcomes[body["request"]]}
-   if body["request"]=="hi":response["message"]="Hello!"
+   response=pipeline()
+   if mode=="public":
+    outcomes={"annual CO2 for Australia in 2024":"answer","emissions":"clarify","hi":"clarify","write me a poem about the sea":"reject"};response={"outcome":outcomes[body["request"]]}
+    if body["request"]=="hi":response["message"]="Hello!"
   return self.send(200,json.dumps(response).encode())
  def log_message(self,*_):pass
 server=http.server.ThreadingHTTPServer(("127.0.0.1",0),App);threading.Thread(target=server.serve_forever,daemon=True).start();base=f"http://127.0.0.1:{server.server_port}"
 env={**os.environ,"VERIFY_ATTEMPTS":"1","JEV_VERIFY":"1","JEV_VERIFY_EXPECTED_MODEL":"jev-1.2.3"}
 run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True);assert run.returncode==0,run.stderr
-for mode in ("catalogue","bad-contract"):
+for mode in ("catalogue","bad-contract","backend-error","no-policy"):
  run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True);assert run.returncode!=0,(mode,run.stdout,run.stderr)
+mode="tie"
+run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True);assert run.returncode==0,run.stderr
 mode="valid";env.update(GEMINI_VERIFY="1",VERIFY_EXPECTED_MODEL="gemini-3.8-flash")
 run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True);assert run.returncode==0,run.stderr
+mode="public"; public_env={**os.environ,"VERIFY_ATTEMPTS":"1"}
+run=subprocess.run([sys.executable,verify,base],env=public_env,text=True,capture_output=True);assert run.returncode==0,run.stderr
 server.shutdown();server.server_close()
 PYJEVVERIFY
 promote_dir="$(mktemp -d)"
