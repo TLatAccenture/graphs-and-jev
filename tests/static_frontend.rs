@@ -256,7 +256,7 @@ fn publication_brand_defaults_match_the_google_cloud_acceleration_story() {
     );
     let plane = between(&hero, "<figure class=\"hero-plane\"", "</figure>");
     for text in [
-        "Reference design",
+        "Blueprint",
         "Gemini Migration Agent",
         "Built with ADK",
         "Assess",
@@ -293,8 +293,8 @@ fn landing_distinguishes_live_today_from_the_reference_architecture() {
         assert!(html.contains(label), "status label: {label}");
     }
     for text in [
-        "On Cloud Run now: the decision layer that gates each migration step, shown in three working demonstrations.",
-        "The blueprint for a Gemini Migration Agent that runs Assess, Plan, Deploy and Optimise end to end, built on that same decision layer. The full agent is not part of this public demo.",
+        "On Cloud Run now: three working demonstrations, from catalogue discovery to lineage-guarded migration steps. Deterministic rules make every decision, with no model calls.",
+        "The blueprint for a Gemini Migration Agent that orchestrates Assess, Plan, Deploy and Optimise on the same gate pattern, with Jev deciding at each gate and a person approving the plan. The agent itself is not part of this public demo.",
     ] {
         assert!(html.contains(text), "exact live/reference wording: {text}");
     }
@@ -1128,7 +1128,7 @@ fn landing_control_plane_has_one_orchestrator_four_gated_phases_and_an_approval(
             "<dt>Agent action</dt>",
             "<dt>Jev gate</dt>",
             "<dt>Output</dt>",
-            "<dt>State</dt><dd>Reference design</dd>",
+            "<dt>State</dt><dd>Blueprint</dd>",
         ] {
             assert!(card.contains(field), "{phase}: {field}");
         }
@@ -1138,7 +1138,7 @@ fn landing_control_plane_has_one_orchestrator_four_gated_phases_and_an_approval(
         "Code and SQL count rows and validate schemas.",
         "Validate before cutover.",
         "Roll back if validation fails.",
-        "The full agent is a blueprint and is not part of this public demo.",
+        "The agent and the Google Cloud services in this section are a blueprint and are not part of this public demo.",
         "href=\"https://docs.cloud.google.com/architecture/migration-to-gcp-getting-started\"",
         "href=\"https://docs.cloud.google.com/docs/migration\"",
         "href=\"https://cloud.google.com/migration-center/docs/migration-center-overview\"",
@@ -1164,7 +1164,7 @@ fn landing_lanes_name_source_payload_service_destination_and_evidence() {
     for lane in lanes {
         let row = between(section, &format!("data-lane=\"{lane}\""), "</li>");
         assert!(
-            row.contains("Representative reference path"),
+            row.contains("Representative blueprint path"),
             "{lane}: label"
         );
         for field in [

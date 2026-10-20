@@ -5,7 +5,7 @@
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>Accelerating stack migration and modernisation with Google Cloud</title>
-<meta name="description" content="An Accenture thought piece on accelerating stack migration and modernisation: in a Google Cloud reference architecture, a Gemini Migration Agent built with ADK orchestrates Assess, Plan, Deploy and Optimise. The live demonstrations run the decision layer it builds on.">
+<meta name="description" content="An Accenture thought piece on accelerating stack migration and modernisation: in a blueprint for Google Cloud, a Gemini Migration Agent built with ADK orchestrates Assess, Plan, Deploy and Optimise. The live demonstrations show its gate pattern with deterministic rules.">
 <link rel="stylesheet" href="guide.css">
 <link rel="stylesheet" href="styles/landing.css">
 <script src="config.js"></script>
@@ -30,7 +30,7 @@
     <div class="hero-copy">
       <span class="eyebrow">Stack migration and modernisation</span>
       <h1 id="hero-title">Accelerate stack migration and modernisation <em>with a Gemini Migration Agent</em></h1>
-      <p class="lede">In the Google Cloud reference architecture, one Gemini agent built with Agent Development Kit (ADK) orchestrates the migration through Assess, Plan, Deploy and Optimise. Deterministic services move and check the data, Jev gates routine decisions and people approve the plan.</p>
+      <p class="lede">In the blueprint set out here, one Gemini agent built with Agent Development Kit (ADK) orchestrates the migration on Google Cloud through Assess, Plan, Deploy and Optimise. Deterministic services move and check the data, Jev gates routine decisions and people approve the plan.</p>
       <div class="actions">
         <a class="btn" href="#google-cloud-architecture">See how it works</a>
         <a class="btn btn--ghost" href="#example">Watch one decision</a>
@@ -40,16 +40,16 @@
     <aside id="implementation-status" class="status-ribbon" aria-label="Implementation status">
       <div class="status-state status-state--live" data-state="live" data-product="cloud-run">
         <img data-product-mark="cloud-run" src="assets/gcp-icons/cloud-run.svg" width="28" height="28" alt="">
-        <p><strong>Live today</strong> <span>On Cloud Run now: the decision layer that gates each migration step, shown in three working demonstrations.</span></p>
+        <p><strong>Live today</strong> <span>On Cloud Run now: three working demonstrations, from catalogue discovery to lineage-guarded migration steps. Deterministic rules make every decision, with no model calls.</span></p>
       </div>
       <div class="status-state status-state--reference" data-state="reference">
         <span class="status-mark" aria-hidden="true"></span>
-        <p><strong>Google Cloud reference architecture</strong> <span>The blueprint for a Gemini Migration Agent that runs Assess, Plan, Deploy and Optimise end to end, built on that same decision layer. The full agent is not part of this public demo.</span></p>
+        <p><strong>Google Cloud reference architecture</strong> <span>The blueprint for a Gemini Migration Agent that orchestrates Assess, Plan, Deploy and Optimise on the same gate pattern, with Jev deciding at each gate and a person approving the plan. The agent itself is not part of this public demo.</span></p>
       </div>
     </aside>
 
     <figure class="hero-plane" aria-labelledby="hero-plane-title">
-      <p class="plane-tag">Reference design</p>
+      <p class="plane-tag">Blueprint</p>
       <div class="plane-agent" data-product="gemini">
         <img data-product-mark="gemini" src="assets/gcp-icons/gemini.png" width="32" height="32" alt="">
         <p id="hero-plane-title"><strong>Gemini Migration Agent</strong> <span>Built with ADK. Orchestrates every phase.</span></p>
@@ -103,7 +103,7 @@
     <div class="section-head">
       <span class="eyebrow">Google Cloud reference architecture</span>
       <h2 id="architecture-title">One agent orchestrates every phase.</h2>
-      <p>The Gemini Migration Agent coordinates the work, reasons over evidence, proposes plans and calls governed tools. It does not copy bytes, parse exact formats, count rows or bypass approvals: deterministic services, code and SQL do that. The phases follow Google's <a href="https://docs.cloud.google.com/architecture/migration-to-gcp-getting-started">migration framework</a> and its <a href="https://docs.cloud.google.com/docs/migration">migration documentation</a>. The demonstrations below run its decision layer today. The full agent is a blueprint and is not part of this public demo.</p>
+      <p>The Gemini Migration Agent coordinates the work, reasons over evidence, proposes plans and calls governed tools. It does not copy bytes, parse exact formats, count rows or bypass approvals: deterministic services, code and SQL do that. The phases follow Google's <a href="https://docs.cloud.google.com/architecture/migration-to-gcp-getting-started">migration framework</a> and its <a href="https://docs.cloud.google.com/docs/migration">migration documentation</a>. The demonstrations below show its gate pattern today, with deterministic rules making each decision. The agent and the Google Cloud services in this section are a blueprint and are not part of this public demo.</p>
     </div>
 
     <div class="control-plane">
@@ -119,7 +119,7 @@
           </a>
         </div>
         <p>Spans all four phases. Sends governed tool calls down, gets evidence and status back.</p>
-        <span class="state-label">Reference design</span>
+        <span class="state-label">Blueprint</span>
       </div>
 
       <ol class="phases" aria-label="Google's four migration phases, in order">
@@ -130,7 +130,7 @@
             <div data-role="agent"><dt>Agent action</dt><dd>Summarises the evidence and the gaps. MCP tools inspect authorised sources; <a href="https://cloud.google.com/migration-center/docs/migration-center-overview">Migration Center</a> discovers infrastructure.</dd></div>
             <div data-role="gate"><dt>Jev gate</dt><dd>Routes findings. Unclear ownership or sensitivity goes to a person.</dd></div>
             <div><dt>Output</dt><dd>Assessed inventory, dependency map, baseline and gap list.</dd></div>
-            <div class="phase-state"><dt>State</dt><dd>Reference design</dd></div>
+            <div class="phase-state"><dt>State</dt><dd>Blueprint</dd></div>
           </dl>
           <a class="product product--uses" data-product="spanner-graph" href="https://cloud.google.com/spanner/docs/graph/overview">
             <img data-product-mark="spanner" src="assets/engine-logos/google-cloud-spanner.svg" width="24" height="24" alt="">
@@ -144,7 +144,7 @@
             <div data-role="agent"><dt>Agent action</dt><dd>Proposes the target, sequence, access, cutover, rollback and acceptance tests.</dd></div>
             <div data-role="gate"><dt>Jev gate</dt><dd>Stops low-confidence recommendations becoming actions.</dd></div>
             <div><dt>Output</dt><dd>A source-to-destination plan with run order, rollback and tests.</dd></div>
-            <div class="phase-state"><dt>State</dt><dd>Reference design</dd></div>
+            <div class="phase-state"><dt>State</dt><dd>Blueprint</dd></div>
           </dl>
         </li>
         <li class="checkpoint" data-checkpoint="human-approval">
@@ -161,7 +161,7 @@
             <div><dt>Execution</dt><dd>Migration services move the data. Code and SQL count rows and validate schemas.</dd></div>
             <div data-role="gate"><dt>Jev gate</dt><dd>Gates routine steps. Escalates policy failures and evidence gaps.</dd></div>
             <div><dt>Output</dt><dd><b>Validate before cutover.</b> <b>Roll back if validation fails.</b></dd></div>
-            <div class="phase-state"><dt>State</dt><dd>Reference design</dd></div>
+            <div class="phase-state"><dt>State</dt><dd>Blueprint</dd></div>
           </dl>
         </li>
         <li class="phase" data-phase="optimise">
@@ -171,7 +171,7 @@
             <div data-role="agent"><dt>Agent action</dt><dd>Interprets the evidence and proposes the next improvement.</dd></div>
             <div data-role="gate"><dt>Jev gate</dt><dd>Routes anomalies. Escalates uncertain recommendations.</dd></div>
             <div><dt>Output</dt><dd>An outcome comparison and the next backlog.</dd></div>
-            <div class="phase-state"><dt>State</dt><dd>Reference design</dd></div>
+            <div class="phase-state"><dt>State</dt><dd>Blueprint</dd></div>
           </dl>
           <a class="product product--uses" data-product="looker" href="https://cloud.google.com/looker/docs">
             <img data-product-mark="looker" src="assets/gcp-icons/looker.svg" width="24" height="24" alt="">
@@ -194,7 +194,7 @@
     </div>
     <ol class="lanes" aria-labelledby="lanes-title">
       <li class="lane" data-lane="documents">
-        <h4>Unstructured documents <span class="lane-tag">Representative reference path</span></h4>
+        <h4>Unstructured documents <span class="lane-tag">Representative blueprint path</span></h4>
         <dl class="lane-fields">
           <div data-field="source"><dt>Source</dt><dd>Microsoft 365, Amazon S3 and Azure Blob Storage.</dd></div>
           <div data-field="moves"><dt>What moves</dt><dd>PDFs, Office files and images.</dd></div>
@@ -208,7 +208,7 @@
         </dl>
       </li>
       <li class="lane" data-lane="tabular">
-        <h4>Spreadsheets and tabular files <span class="lane-tag">Representative reference path</span></h4>
+        <h4>Spreadsheets and tabular files <span class="lane-tag">Representative blueprint path</span></h4>
         <dl class="lane-fields">
           <div data-field="source"><dt>Source</dt><dd>Excel and CSV files in Microsoft 365, Amazon S3 and Azure Blob Storage.</dd></div>
           <div data-field="moves"><dt>What moves</dt><dd>Sheets, tables, schemas and metadata.</dd></div>
@@ -221,7 +221,7 @@
         </dl>
       </li>
       <li class="lane" data-lane="relational">
-        <h4>Operational relational data <span class="lane-tag">Representative reference path</span></h4>
+        <h4>Operational relational data <span class="lane-tag">Representative blueprint path</span></h4>
         <dl class="lane-fields">
           <div data-field="source"><dt>Source</dt><dd>PostgreSQL, Oracle, SQL Server and SAP-backed data.</dd></div>
           <div data-field="moves"><dt>What moves</dt><dd>Tables, change streams, schema and state.</dd></div>
@@ -232,10 +232,10 @@
           </dd></div>
           <div data-field="validation"><dt>Validation or evidence</dt><dd>Schema, row, change-lag and integrity checks.</dd></div>
         </dl>
-        <p class="lane-boundary"><a data-product="alloydb-ai" href="https://codelabs.developers.google.com/alloydb-ai-jev?hl=en#0">AlloyDB AI</a> can call <span data-product="hosted-jev-api">TypeSafe's hosted Jev API</span> through AI functions and Model Endpoint Management in the reference architecture. Jev is not stored or hosted in AlloyDB.</p>
+        <p class="lane-boundary"><a data-product="alloydb-ai" href="https://codelabs.developers.google.com/alloydb-ai-jev?hl=en#0">AlloyDB AI</a> can call <span data-product="hosted-jev-api">TypeSafe's hosted Jev API</span> through AI functions and Model Endpoint Management in the blueprint. Jev is not stored or hosted in AlloyDB.</p>
       </li>
       <li class="lane" data-lane="applications">
-        <h4>Applications and jobs <span class="lane-tag">Representative reference path</span></h4>
+        <h4>Applications and jobs <span class="lane-tag">Representative blueprint path</span></h4>
         <dl class="lane-fields">
           <div data-field="source"><dt>Source</dt><dd>Virtual machines, Spark and Hadoop jobs, containerisable apps.</dd></div>
           <div data-field="moves"><dt>What moves</dt><dd>Workloads, binaries and configuration. Not data.</dd></div>
@@ -258,20 +258,20 @@
     <div class="section-head">
       <span class="eyebrow">The approach</span>
       <h2 id="pillars-title">Five capabilities the agent uses.</h2>
-      <p>The Gemini Migration Agent starts from the stack you already run. It reaches systems through the MCP Tool Shed, lets Jev filter routine decisions so Gemini can reason about the hard ones, and measures every outcome. These roles make up the reference architecture.</p>
+      <p>The Gemini Migration Agent starts from the stack you already run. It reaches systems through the MCP Tool Shed, lets Jev filter routine decisions so Gemini can reason about the hard ones, and measures every outcome. These roles make up the blueprint.</p>
       <p class="annotation">Select a capability to open it.</p>
     </div>
     <ol class="stack" aria-label="The five layers, starting from the existing stack">
       <li data-pillar="estate">
         <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-estate"><b>00&nbsp;·&nbsp;Today</b><strong>Existing Stack</strong><span>Decades of systems, all still running.</span></button>
         <div class="stack-detail" id="pillar-estate" hidden>
-          <p>Storage in AWS and Azure, SAP, Salesforce, Databricks, ServiceNow, Atlassian and years of Word, Excel and PowerPoint files in Microsoft 365. Nothing is ripped out on day one. In the reference architecture, <a href="https://cloud.google.com/storage/docs/introduction">Cloud Storage</a> provides a landing zone for raw documents and source objects.</p>
+          <p>Storage in AWS and Azure, SAP, Salesforce, Databricks, ServiceNow, Atlassian and years of Word, Excel and PowerPoint files in Microsoft 365. Nothing is ripped out on day one. In the blueprint, <a href="https://cloud.google.com/storage/docs/introduction">Cloud Storage</a> provides a landing zone for raw documents and source objects.</p>
         </div>
       </li>
       <li data-pillar="connect">
         <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-connect"><b>01&nbsp;·&nbsp;Connectivity</b><strong>MCP Tool Shed</strong><span>One governed door to every system.</span></button>
         <div class="stack-detail" id="pillar-connect" hidden>
-          <p>In the reference architecture, systems sit behind <a href="https://modelcontextprotocol.io/specification/2026-07-28/server">governed MCP servers</a> with scoped, short-lived credentials and an audit trail. <a href="https://cloud.google.com/compute/docs/overview">Compute Engine</a> is one possible host where persistent processes, specialised runtimes or network placement require it. MCP is the protocol and tool boundary, not a parser. The current demo does not run MCP servers.</p>
+          <p>In the blueprint, systems sit behind <a href="https://modelcontextprotocol.io/specification/2026-07-28/server">governed MCP servers</a> with scoped, short-lived credentials and an audit trail. <a href="https://cloud.google.com/compute/docs/overview">Compute Engine</a> is one possible host where persistent processes, specialised runtimes or network placement require it. MCP is the protocol and tool boundary, not a parser. The current demo does not run MCP servers.</p>
           <p><a class="go-deeper" href="technical-guide/#connectivity">Go deeper: MCP Tool Shed</a></p>
         </div>
       </li>
@@ -279,15 +279,15 @@
         <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-reflex"><b>02&nbsp;·&nbsp;Reflexes</b><strong>System 1 (Jev)</strong><span>A decision in milliseconds, before every action.</span></button>
         <div class="stack-detail" id="pillar-reflex" hidden>
           <p>Jev, TypeSafe's System 1 decision model, returns a typed decision with a calibrated confidence in 70 to 500 ms (<a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">TypeSafe, vendor-reported</a>). It routes requests, classifies data and gates bounded actions. It filters routine noise so Gemini can reason about higher-level migration decisions. It does not stop a model hallucinating; it stops an unsure output becoming an action.</p>
-          <p>In the reference architecture, <a href="https://codelabs.developers.google.com/alloydb-ai-jev?hl=en#0">AlloyDB AI can call TypeSafe's hosted Jev API through AI functions and Model Endpoint Management</a>. Jev remains a hosted TypeSafe service and is not embedded in AlloyDB. <a href="https://codelabs.developers.google.com/codelabs/discriminative-models#0">DiffusionGemma can implement the same discriminative-model API separately on Compute Engine or Cloud Run</a>.</p>
+          <p>In the blueprint, <a href="https://codelabs.developers.google.com/alloydb-ai-jev?hl=en#0">AlloyDB AI can call TypeSafe's hosted Jev API through AI functions and Model Endpoint Management</a>. Jev remains a hosted TypeSafe service and is not embedded in AlloyDB. <a href="https://codelabs.developers.google.com/codelabs/discriminative-models#0">DiffusionGemma can implement the same discriminative-model API separately on Compute Engine or Cloud Run</a>.</p>
           <p><a class="go-deeper" href="technical-guide/#reflexes">Go deeper: System 1</a></p>
         </div>
       </li>
       <li data-pillar="logic">
         <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-logic"><b>03&nbsp;·&nbsp;Logic and context</b><strong>ADK with Gemini</strong><span>System 2 reasoning with the context a change needs.</span></button>
         <div class="stack-detail" id="pillar-logic" hidden>
-          <p><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/adk">Agent Development Kit (ADK) with Gemini</a> is the System 2 orchestration layer in the reference architecture. Skills provide tested playbooks and ADK coordinates agents and tool use. Deterministic hooks validate schemas, block unsafe actions and request approval. The agents can be built and deployed through Gemini Enterprise Agent Platform. None of these services decides the current demonstrations.</p>
-          <p><strong>Managed retrieval: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/rag-engine/layout-parser-integration">Google Cloud RAG Engine</a>.</strong> It is the managed retrieval layer in the reference architecture, for document parsing and retrieval where suitable. It is not connected to this demo.</p>
+          <p><a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/adk">Agent Development Kit (ADK) with Gemini</a> is the System 2 orchestration layer in the blueprint. Skills provide tested playbooks and ADK coordinates agents and tool use. Deterministic hooks validate schemas, block unsafe actions and request approval. The agents can be built and deployed through Gemini Enterprise Agent Platform. In the current demonstrations, deterministic rules make every decision.</p>
+          <p><strong>Managed retrieval: <a href="https://docs.cloud.google.com/gemini-enterprise-agent-platform/build/rag-engine/layout-parser-integration">Google Cloud RAG Engine</a>.</strong> It is the managed retrieval layer in the blueprint, for document parsing and retrieval where suitable. It is not connected to this demo.</p>
           <p><strong>Context fabric: <a href="https://cloud.google.com/spanner/docs/graph/overview">Spanner Graph</a>.</strong> It records what feeds what and what each business term means. Agents check upstream and downstream before they change anything, so a fix in one place does not break a report in another.</p>
           <p><a class="go-deeper" href="technical-guide/#logic">Go deeper: skills and hooks</a> · <a class="go-deeper" href="technical-guide/#relational-context">Go deeper: context fabric</a></p>
         </div>
@@ -295,7 +295,7 @@
       <li data-pillar="visibility">
         <button type="button" class="stack-layer" aria-expanded="false" aria-controls="pillar-visibility"><b>04&nbsp;·&nbsp;Visibility and cost</b><strong>Modernisation Springboard</strong><span>Where the estate lands, and the proof of how it got there.</span></button>
         <div class="stack-detail" id="pillar-visibility" hidden>
-          <p>In the reference architecture, <a href="https://cloud.google.com/bigquery/docs">BigQuery</a> stores normalised and analytical data, eval records and telemetry. <a href="https://cloud.google.com/looker/docs">Looker</a> reports outcomes, quality and cost, including cost per migrated object. The current demonstrations do not write these records to Google Cloud.</p>
+          <p>In the blueprint, <a href="https://cloud.google.com/bigquery/docs">BigQuery</a> stores normalised and analytical data, eval records and telemetry. <a href="https://cloud.google.com/looker/docs">Looker</a> reports outcomes, quality and cost, including cost per migrated object. Today the service logs one structured line per API request; BigQuery eval records and Looker reports are part of the blueprint.</p>
           <p><a class="go-deeper" href="technical-guide/#visibility-and-cost">Go deeper: Modernisation Springboard</a></p>
         </div>
       </li>
@@ -309,7 +309,7 @@
       <div><dt>Skill</dt><dd>A playbook an agent loads for one task, such as migrating a table.</dd></div>
       <div><dt>Hook</dt><dd>A check before or after a tool call that can block it.</dd></div>
       <div><dt>System 1 model</dt><dd>A small, fast model that returns a typed decision with a confidence, not free text (<a href="https://typesafe.ai/blog/introducing-system-one-models-and-jev">TypeSafe</a>). Jev is an example.</dd></div>
-      <div><dt>Context fabric</dt><dd>The shared graph, here Spanner Graph, that agents query for lineage and meaning.</dd></div>
+      <div><dt>Context fabric</dt><dd>The shared graph that agents query for lineage and meaning: Spanner Graph in the blueprint, a small sample graph in the demos.</dd></div>
       <div><dt>Modernisation Springboard</dt><dd>The BigQuery destination: migrated data, telemetry, audit logs and eval records.</dd></div>
       <div><dt>Lineage graph</dt><dd>A graph of what feeds what: tables, jobs, files and reports.</dd></div>
       <div><dt>Eval record</dt><dd>A log of one agent step: decision, confidence, tools, tokens, latency, outcome.</dd></div>
@@ -335,7 +335,7 @@
         </fieldset>
         <p class="demo-status" id="exampleStatus" aria-live="polite" data-state="ready">Choose a request to see its lineage path.</p>
         <section class="orch-view" id="orchView" aria-labelledby="orch-view-title">
-          <p class="orch-view-title"><span id="orch-view-title">Orchestrator view</span> <span class="state-label">Reference design</span></p>
+          <p class="orch-view-title"><span id="orch-view-title">Orchestrator view</span> <span class="state-label">Blueprint</span></p>
           <dl>
             <div data-field="phase"><dt>Phase</dt><dd id="orchPhase">Plan</dd></div>
             <div data-field="source"><dt>Source</dt><dd id="orchSource">SAP column KNA1.REGION</dd></div>
@@ -344,7 +344,7 @@
             <div data-field="gate"><dt>Jev gate</dt><dd id="orchGate">Proceed</dd></div>
             <div data-field="person"><dt>Person</dt><dd id="orchPerson">Finance is told. The plan still needs approval</dd></div>
           </dl>
-          <p class="annotation">In this demo a few in-browser rules decide. No model or Google Cloud service is called.</p>
+          <p class="annotation">Here, deterministic rules in your browser make each decision, so any outcome can be replayed. No model or Google Cloud service is called.</p>
         </section>
         <div class="result" id="exampleResult" hidden>
           <p class="outcome" id="exampleOutcome"></p>
@@ -381,7 +381,7 @@
     <div class="section-head">
       <span class="eyebrow">Use cases</span>
       <h2 id="uses-title">One pattern, three demos.</h2>
-      <p>Each demo asks a question, reads a graph and lets the gate decide. The systems change; the pattern does not. The demos run deterministic rules today; the Gemini Agent role on each one shows where the agent fits in the reference architecture.</p>
+      <p>Each demo asks a question and reads a graph; in two of them a gate then decides. The systems change; the pattern does not. The demos are deterministic, with no model calls; each Gemini Agent role shows where the agent fits in the blueprint.</p>
     </div>
 
     <article class="feature" aria-labelledby="uc-ea">
@@ -396,8 +396,8 @@
         </ul>
         <dl class="facts">
           <div><dt>Business question</dt><dd>Which datasets answer this air-quality request?</dd></div>
-          <div><dt class="role">Gemini Agent role</dt><dd>Reference design: reads the request and summarises which datasets fit.</dd></div>
-          <div><dt class="gate">Jev gate</dt><dd>Answers only when a dataset fits; otherwise asks, refuses or reports no data.</dd></div>
+          <div><dt class="role">Gemini Agent role</dt><dd>In the blueprint: reads the request and summarises which datasets fit.</dd></div>
+          <div><dt class="gate">Gate</dt><dd>Answers only when a dataset fits; otherwise asks, refuses or reports no data.</dd></div>
         </dl>
         <p class="annotation">The Environmental Agency and its catalogue are fictional.</p>
         <a class="btn" href="environmental-agency/">Open the Environmental Agency demo</a>
@@ -432,8 +432,8 @@
         </ul>
         <dl class="facts">
           <div><dt>Business question</dt><dd>Can this step run without breaking anything downstream?</dd></div>
-          <div><dt class="role">Gemini Agent role</dt><dd>Reference design: proposes the step, its blast radius and its rollback.</dd></div>
-          <div><dt class="gate">Jev gate</dt><dd>Proceeds, asks, refuses or escalates at each step.</dd></div>
+          <div><dt class="role">Gemini Agent role</dt><dd>In the blueprint: proposes the step, its blast radius and its rollback.</dd></div>
+          <div><dt class="gate">Gate</dt><dd>Proceeds, asks, refuses or escalates at each step.</dd></div>
         </dl>
         <a class="btn" href="lineage-migration/">Open the lineage demo</a>
       </div>
@@ -451,8 +451,8 @@
         </ul>
         <dl class="facts">
           <div><dt>Business question</dt><dd>How much of the graph must an agent load to act safely? In a small-world sample, two hops hold most of it.</dd></div>
-          <div><dt class="role">Gemini Agent role</dt><dd>Reference design: loads only the neighbourhood its task needs.</dd></div>
-          <div><dt class="gate">Jev gate</dt><dd>Works within a fixed context budget.</dd></div>
+          <div><dt class="role">Gemini Agent role</dt><dd>In the blueprint: loads only the neighbourhood its task needs.</dd></div>
+          <div><dt>Context budget</dt><dd>Shows how much of the graph fits a fixed context budget.</dd></div>
         </dl>
         <a class="btn" href="little-bunnies/">Open Little Bunnies</a>
       </div>
@@ -485,7 +485,7 @@
       <li>
         <h3>Optimise</h3>
         <p class="q">What worked, and what did it cost?</p>
-        <p>In the reference architecture, <a href="https://cloud.google.com/bigquery/docs">eval records in BigQuery</a> show what proceeded, what was escalated and the cost per object.</p>
+        <p>In the blueprint, <a href="https://cloud.google.com/bigquery/docs">eval records in BigQuery</a> show what proceeded, what was escalated and the cost per object.</p>
       </li>
     </ol>
   </div>
@@ -496,6 +496,7 @@
     <div>
       <span class="eyebrow">Governance</span>
       <h2 id="governance-title">Built to show its working, and to say no.</h2>
+      <p>The agent's design rules. The demos already show refusal, bounded outcomes, traceability and portability.</p>
     </div>
     <div>
       <ul class="proof">
@@ -507,7 +508,7 @@
         <li><strong>Measured</strong>Every step writes an eval record.</li>
         <li><strong>Portable</strong>The same pages run on in-browser sample data or a live service on Cloud Run. Switching is configuration, not code.</li>
       </ul>
-      <p class="annotation scope-note">The demos use a small in-memory graph and fixed rules. They are illustrative, not a production tool.</p>
+      <p class="annotation scope-note">The demos run fixed rules over a small in-memory graph, so every result is repeatable. They illustrate the pattern and are not a production tool.</p>
     </div>
   </div>
 </section>

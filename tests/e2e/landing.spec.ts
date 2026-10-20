@@ -42,7 +42,7 @@ const PILLARS = [
   { name: "Existing Stack", detail: "Nothing is ripped out on day one" },
   { name: "MCP Tool Shed", detail: "scoped, short-lived credentials" },
   { name: "System 1 (Jev)", detail: "it stops an unsure output becoming an action" },
-  { name: "ADK with Gemini", detail: "System 2 orchestration layer in the reference architecture" },
+  { name: "ADK with Gemini", detail: "System 2 orchestration layer in the blueprint" },
   { name: "Modernisation Springboard", detail: "cost per migrated object" },
 ];
 
@@ -91,8 +91,8 @@ test("status ribbon separates the live service from the reference architecture",
   await expect(status).toBeVisible();
   await expect(status.locator('[data-state="live"]')).toContainText("Live today");
   await expect(status.locator('[data-state="reference"]')).toContainText("Google Cloud reference architecture");
-  await expect(status.locator('[data-state="live"]')).toContainText("On Cloud Run now: the decision layer that gates each migration step");
-  await expect(status.locator('[data-state="reference"]')).toContainText("The full agent is not part of this public demo.");
+  await expect(status.locator('[data-state="live"]')).toContainText("On Cloud Run now: three working demonstrations");
+  await expect(status.locator('[data-state="reference"]')).toContainText("The agent itself is not part of this public demo.");
 });
 
 test("there are exactly five accessible pillar controls in the published order", async ({ page }) => {
@@ -145,7 +145,7 @@ test("one Gemini Migration Agent orchestrates four gated phases, with approval b
     for (const field of ["Inputs", "Agent action", "Jev gate", "Output", "State"]) {
       await expect(card.locator("dt", { hasText: field }).first()).toBeVisible();
     }
-    await expect(card).toContainText("Reference design");
+    await expect(card).toContainText("Blueprint");
   }
   await expect(plane.locator("[data-checkpoint='human-approval']")).toContainText("Person approves the plan");
   await expect(plane.locator("[data-phase='deploy']")).toContainText("It does not move bytes.");
@@ -160,7 +160,7 @@ test("four representative lanes show source, payload, service, destination and e
   expect(await lanes.evaluateAll(items => items.map(item => item.getAttribute("data-lane")))).toEqual(LANES.map(l => l.id));
   for (const [index, lane] of LANES.entries()) {
     const row = lanes.nth(index);
-    await expect(row).toContainText("Representative reference path");
+    await expect(row).toContainText("Representative blueprint path");
     const fields = await row.locator(".lane-fields > div > dt").allTextContents();
     expect(fields).toEqual(["Source", "What moves", "Movement or service", "Destination", "Validation or evidence"]);
     for (const text of lane.text) await expect(row).toContainText(text);
