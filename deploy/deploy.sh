@@ -94,7 +94,7 @@ main() (
   set -euo pipefail
   local gjd_REPO_ROOT gjd_PROJECT_ID gjd_REGION gjd_SERVICE gjd_ARTIFACT_REPOSITORY gjd_IMAGE
   local gjd_SOURCE_BUCKET gjd_LOG_BUCKET gjd_BUILD_SERVICE_ACCOUNT gjd_RUNTIME_SERVICE_ACCOUNT gjd_EXPECTED_ACCOUNT
-  local gjd_DEPLOY_OUTPUT gjd_PROJECT_RESOURCE gjd_REPOSITORY_RESOURCE gjd_RUNTIME_SA_RESOURCE
+  local gjd_DEPLOY_OUTPUT gjd_PROJECT_NUMBER gjd_PROJECT_RESOURCE gjd_REPOSITORY_RESOURCE gjd_RUNTIME_SA_RESOURCE
   local gjd_MIN_INSTANCES gjd_MAX_INSTANCES gjd_CONCURRENCY gjd_CPU
   local gjd_MEMORY gjd_TIMEOUT_SECONDS gjd_STARTUP_PATH gjd_LIVENESS_PATH gjd_command_name
   local gjd_permission gjd_active_account gjd_active_project gjd_billing_enabled gjd_enabled_apis gjd_api
@@ -168,7 +168,7 @@ main() (
   [[ -z "${GEMINI_ACCESS_TOKEN:-}" ]] || fail 'GEMINI_ACCESS_TOKEN is for local runs only; Cloud Run uses the runtime service account'
   gjd_gemini=false
   [[ "${CATALOGUE_INTERPRETER:-rules}" == gemini ]] && gjd_gemini=true
-  local gjd_jev=false gjd_secret_name gjd_secret_version gjd_secret_resource gjd_secret_arg
+  local gjd_jev=false gjd_secret_project gjd_secret_name gjd_secret_version gjd_secret_resource gjd_secret_arg
   local -a gjd_secret_args=()
   if [[ "${DECISION_BACKEND:-catalogue}" == jev ]]; then
     gjd_jev=true
@@ -176,7 +176,7 @@ main() (
     [[ -n "${JEV_MODEL:-}" && "$JEV_MODEL" =~ ^[a-z0-9][a-z0-9._-]*$ ]] || fail 'DECISION_BACKEND=jev requires an exact pinned JEV_MODEL'
     gjd_secret_resource="${TYPESAFE_SECRET_RESOURCE:-}"
     if [[ ! "$gjd_secret_resource" =~ ^projects/([^/]+)/secrets/([^/]+)/versions/([^/]+)$ ]]; then fail 'TYPESAFE_SECRET_RESOURCE must be projects/PROJECT/secrets/SECRET/versions/VERSION'; fi
-    [[ "${BASH_REMATCH[1]}" == "$gjd_PROJECT_ID" ]] || fail 'TYPESAFE_SECRET_RESOURCE must be in the deployment project'
+    gjd_secret_project="${BASH_REMATCH[1]}"
     gjd_secret_name="${BASH_REMATCH[2]}"; gjd_secret_version="${BASH_REMATCH[3]}"
     [[ "$gjd_secret_version" =~ ^[1-9][0-9]*$ ]] || fail 'TYPESAFE_SECRET_RESOURCE release version must be a positive integer; latest is forbidden'
     gjd_secret_arg="TYPESAFE_API_KEY=${gjd_secret_name}:${gjd_secret_version}"
@@ -216,6 +216,12 @@ main() (
   [[ "$gjd_active_account" == "$gjd_EXPECTED_ACCOUNT" ]] || fail "active account must be $gjd_EXPECTED_ACCOUNT (found ${gjd_active_account:-none})"
   gjd_active_project="$(gcloud config get-value project 2>/dev/null)"
   [[ "$gjd_active_project" == "$gjd_PROJECT_ID" ]] || fail "active project must be $gjd_PROJECT_ID (found ${gjd_active_project:-none})"
+
+  gjd_PROJECT_NUMBER="$(gcloud projects describe "$gjd_PROJECT_ID" --format='value(projectNumber)')"
+  [[ "$gjd_PROJECT_NUMBER" =~ ^[1-9][0-9]*$ ]] || fail "could not resolve project number for $gjd_PROJECT_ID"
+  if [[ "$gjd_jev" == true && "$gjd_secret_project" != "$gjd_PROJECT_ID" && "$gjd_secret_project" != "$gjd_PROJECT_NUMBER" ]]; then
+    fail 'TYPESAFE_SECRET_RESOURCE must be in the deployment project'
+  fi
 
   gjd_billing_enabled="$(gcloud beta billing projects describe "$gjd_PROJECT_ID" --format='value(billingEnabled)')"
   [[ "$gjd_billing_enabled" == "True" ]] || fail "billing is not enabled for $gjd_PROJECT_ID"
@@ -285,9 +291,9 @@ if failed:
   require_permission "$gjd_active_account" "//iam.googleapis.com/projects/${gjd_PROJECT_ID}/serviceAccounts/${gjd_BUILD_SERVICE_ACCOUNT}" iam.serviceAccounts.actAs
   require_permission "$gjd_active_account" "$gjd_RUNTIME_SA_RESOURCE" iam.serviceAccounts.actAs
   if [[ "$gjd_jev" == true ]]; then
-    gcloud secrets describe "$gjd_secret_name" --project="$gjd_PROJECT_ID" --format='value(name)' | grep -Fxq "projects/${gjd_PROJECT_ID}/secrets/${gjd_secret_name}" || fail 'Secret Manager secret metadata not found'
+    gcloud secrets describe "$gjd_secret_name" --project="$gjd_PROJECT_ID" --format='value(name)' | grep -Fxq "projects/${gjd_PROJECT_NUMBER}/secrets/${gjd_secret_name}" || fail 'Secret Manager secret metadata not found'
     gcloud secrets versions describe "$gjd_secret_version" --secret="$gjd_secret_name" --project="$gjd_PROJECT_ID" --format='value(state)' | grep -Fxq ENABLED || fail 'Secret Manager version is not enabled'
-    require_permission "$gjd_RUNTIME_SERVICE_ACCOUNT" "//secretmanager.googleapis.com/projects/${gjd_PROJECT_ID}/secrets/${gjd_secret_name}/versions/${gjd_secret_version}" secretmanager.versions.access
+    require_permission "$gjd_RUNTIME_SERVICE_ACCOUNT" "//secretmanager.googleapis.com/projects/${gjd_PROJECT_NUMBER}/secrets/${gjd_secret_name}/versions/${gjd_secret_version}" secretmanager.versions.access
     [[ "${TYPESAFE_EGRESS_ACKNOWLEDGED:-}" == yes ]] || fail 'TypeSafe hosted-model egress must be explicitly acknowledged with TYPESAFE_EGRESS_ACKNOWLEDGED=yes'
   fi
   # generateContent on a Gemini model needs this on the project (roles/aiplatform.user grants it).

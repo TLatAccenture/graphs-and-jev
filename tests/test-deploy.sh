@@ -56,9 +56,10 @@ cat >"$mock_dir/bin/gcloud" <<'MOCK'
 case "$*" in
   "auth list"*) printf '%s\n' anthony.lui@archegon.com ;;
   "config get-value project"*) printf '%s\n' ninth-airship-386815 ;;
+  "projects describe"*) printf '%s\n' 956922431929 ;;
   "beta billing projects describe"*) printf '%s\n' True ;;
   "services list"*) printf '%s\n' artifactregistry.googleapis.com cloudbuild.googleapis.com iam.googleapis.com logging.googleapis.com policytroubleshooter.googleapis.com run.googleapis.com serviceusage.googleapis.com storage.googleapis.com ${MOCK_EXTRA_APIS:-} ;;
-  "secrets describe"*) printf '%s\n' projects/ninth-airship-386815/secrets/typesafe-api-key ;;
+  "secrets describe"*) printf '%s\n' projects/956922431929/secrets/typesafe-api-key ;;
   "secrets versions describe"*) printf '%s\n' ENABLED ;;
   "policy-intelligence troubleshoot-policy iam"*"--permission=secretmanager.versions.access"*) printf '%s\n' "${MOCK_SECRET_ACCESS_STATE:-ALLOW_ACCESS_STATE_GRANTED}" ;;
   "policy-intelligence troubleshoot-policy iam"*"--permission=aiplatform.endpoints.predict"*) printf '%s\n' "${MOCK_PREDICT_STATE:-ALLOW_ACCESS_STATE_GRANTED}" ;;
@@ -158,7 +159,13 @@ set +e; mock_output="$(PATH="$mock_dir/bin:$PATH" MOCK_BUILD_LOG="$mock_log" "$s
 sed -i.bak 's#TYPESAFE_SECRET_RESOURCE=bad#TYPESAFE_SECRET_RESOURCE=projects/other-project/secrets/typesafe-api-key/versions/1#' "$mock_dir/jev.env"
 set +e; mock_output="$(PATH="$mock_dir/bin:$PATH" MOCK_BUILD_LOG="$mock_log" "$script" "$mock_dir/jev.env" 2>&1)"; mock_status=$?; set -e
 [[ "$mock_status" == 1 && "$mock_output" == *'must be in the deployment project'* ]] || fail "cross-project secret accepted: $mock_output"
-sed -i.bak 's#projects/other-project/secrets/typesafe-api-key/versions/1#projects/ninth-airship-386815/secrets/typesafe-api-key/versions/latest#' "$mock_dir/jev.env"
+sed -i.bak 's#projects/other-project/secrets/typesafe-api-key/versions/1#projects/123456789012/secrets/typesafe-api-key/versions/1#' "$mock_dir/jev.env"
+set +e; mock_output="$(PATH="$mock_dir/bin:$PATH" MOCK_BUILD_LOG="$mock_log" "$script" "$mock_dir/jev.env" 2>&1)"; mock_status=$?; set -e
+[[ "$mock_status" == 1 && "$mock_output" == *'must be in the deployment project'* ]] || fail "cross-project number accepted: $mock_output"
+sed -i.bak 's#projects/123456789012/secrets/typesafe-api-key/versions/1#projects/956922431929/secrets/typesafe-api-key/versions/1#' "$mock_dir/jev.env"
+set +e; mock_output="$(PATH="$mock_dir/bin:$PATH" MOCK_BUILD_LOG="$mock_log" MOCK_EXTRA_APIS=secretmanager.googleapis.com "$script" "$mock_dir/jev.env" 2>&1)"; mock_status=$?; set -e
+[[ "$mock_status" == 73 ]] || fail "canonical project-number secret did not reach build: $mock_status $mock_output"
+sed -i.bak 's#projects/956922431929/secrets/typesafe-api-key/versions/1#projects/ninth-airship-386815/secrets/typesafe-api-key/versions/latest#' "$mock_dir/jev.env"
 set +e; mock_output="$(PATH="$mock_dir/bin:$PATH" MOCK_BUILD_LOG="$mock_log" "$script" "$mock_dir/jev.env" 2>&1)"; mock_status=$?; set -e
 [[ "$mock_status" == 1 && "$mock_output" == *'latest is forbidden'* ]] || fail "latest secret version accepted: $mock_output"
 sed -i.bak 's#versions/latest#versions/1#' "$mock_dir/jev.env"
