@@ -98,6 +98,22 @@ async fn decide_rejects_overlong_request_preference_and_question_fields() {
 }
 
 #[tokio::test]
+async fn decide_rejects_single_label_choice_and_score() {
+    for question in [
+        json!({"type":"choice","criteria":{"answer":"only"}}),
+        json!({"type":"score","criteria":["only"]}),
+    ] {
+        let response = post(
+            app(10).0,
+            "/api/decide",
+            json!({"backend":"catalogue","state":{},"questions":{"gate":question}}),
+        )
+        .await;
+        assert_eq!(response.status(), StatusCode::UNPROCESSABLE_ENTITY);
+    }
+}
+
+#[tokio::test]
 async fn expensive_routes_share_a_global_rate_bucket() {
     let (app, _) = app(1);
     let first = post(
@@ -273,6 +289,7 @@ async fn pipeline_accepts_the_site_api_body_and_air_alias() {
         assert_eq!(response.status(), StatusCode::OK, "{body}");
         let value = json_body(response).await;
         assert_eq!(value["outcome"], "answer", "{body}");
+        assert_eq!(value["totals"]["backend_errors"], 0, "{body}");
         answers.push(json!([value["explanation"], value["solutions"]]));
     }
     assert!(answers.windows(2).all(|pair| pair[0] == pair[1]));
