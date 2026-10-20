@@ -173,7 +173,7 @@ if os.environ.get("JEV_VERIFY") == "1":
     top = gate["top"]
     uniform = 1 / len(probabilities)
     expected_confidence = (probabilities[top] - uniform) / (1 - uniform)
-    check(abs(confidence - expected_confidence) <= 0.001, "Jev smoke gate concentration confidence")
+    check(abs(confidence - expected_confidence) <= 0.005 + math.ulp(expected_confidence), "Jev smoke gate concentration confidence")
     check(result.get("outcome") in bounded_outcomes, "Jev smoke bounded outcome")
     stages = result.get("stages")
     check(isinstance(stages, list) and stages, "Jev smoke completed stage")

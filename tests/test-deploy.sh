@@ -566,6 +566,7 @@ def pipeline():
  if mode=="backend-error": response["totals"]["backend_errors"]=1
  if mode=="no-policy": response.pop("policy")
  if mode=="tie": response["stages"][0]["answer"].update(probabilities={"answer":0.5,"clarify":0.5},top="clarify",choice="clarify",confidence=0.0)
+ if mode=="rounded": response["stages"][0]["answer"].update(probabilities={"answer":0.07,"clarify":0.75,"reject":0.18},top="clarify",choice="clarify",confidence=0.62)
  return response
 class App(http.server.BaseHTTPRequestHandler):
  def send(self,code,body=b"",location=None,content="application/json"):
@@ -598,6 +599,8 @@ run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output
 for mode in ("catalogue","bad-contract","backend-error","no-policy"):
  run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True);assert run.returncode!=0,(mode,run.stdout,run.stderr)
 mode="tie"
+run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True);assert run.returncode==0,run.stderr
+mode="rounded"
 run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True);assert run.returncode==0,run.stderr
 mode="valid";env.update(GEMINI_VERIFY="1",VERIFY_EXPECTED_MODEL="gemini-3.8-flash")
 run=subprocess.run([sys.executable,verify,base],env=env,text=True,capture_output=True);assert run.returncode==0,run.stderr
