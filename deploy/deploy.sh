@@ -168,7 +168,8 @@ main() (
   [[ -z "${GEMINI_ACCESS_TOKEN:-}" ]] || fail 'GEMINI_ACCESS_TOKEN is for local runs only; Cloud Run uses the runtime service account'
   gjd_gemini=false
   [[ "${CATALOGUE_INTERPRETER:-rules}" == gemini ]] && gjd_gemini=true
-  local gjd_jev=false gjd_secret_project gjd_secret_name gjd_secret_version gjd_secret_resource gjd_secret_arg
+  local gjd_jev=false gjd_secret_project gjd_secret_resource gjd_secret_arg
+  local gjd_secret_name='' gjd_secret_version=''
   local -a gjd_secret_args=()
   if [[ "${DECISION_BACKEND:-catalogue}" == jev ]]; then
     gjd_jev=true
