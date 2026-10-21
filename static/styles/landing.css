@@ -307,9 +307,6 @@
   .stack-layer:hover{transform:translateY(-3px)}
 }
 
-@media (max-width:820px){
-  .brand{max-width:calc(100% - 128px);white-space:normal;font-size:.9rem;line-height:1.2}
-}
 @media (max-width:700px){
   .hero{padding:24px 0 20px}
   .hero .lede{margin:16px 0 22px}

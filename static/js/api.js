@@ -81,6 +81,9 @@
       const value = brand[node.dataset.brand];
       if (typeof value === "string") node.textContent = value;
     });
+    // A long or wrapped brand makes the sticky header taller; anchored jumps must still clear it.
+    const header = document.querySelector(".site-header");
+    if (header && window.ResizeObserver) new ResizeObserver(() => document.documentElement.style.setProperty("--header-h", header.offsetHeight + "px")).observe(header);
     const page = document.body.dataset.pageTitle;
     if (page === undefined || !brand.name) return;
     document.title = page ? page + " · " + brand.name : brand.name + (brand.tagline ? ": " + brand.tagline : "");
