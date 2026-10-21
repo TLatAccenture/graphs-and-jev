@@ -616,3 +616,15 @@ async fn oversized_metadata_token_and_project_are_rejected() {
             .contains("no Google Cloud project"));
     }
 }
+
+#[tokio::test]
+async fn small_talk_never_spends_a_gemini_call() {
+    let (origin, seen) = fake_google(Reply::Status(500)).await;
+    let (router, _logs) = gemini_app(&origin, &[]);
+    let value = ask(router, "hi").await;
+    assert_eq!(value["outcome"], "clarify", "{value}");
+    assert!(value["message"].as_str().unwrap().contains("Hello!"));
+    assert!(value.get("interpretation").is_none(), "{value}");
+    let seen = seen.lock().unwrap();
+    assert!(seen.bodies.is_empty() && seen.metadata_flavour.is_empty());
+}

@@ -24,6 +24,7 @@ use serde_json::{json, Value};
 use tower_http::services::ServeDir;
 
 use crate::auth::{error, guard, Limiter};
+use crate::backend::CatalogueBackend;
 pub use crate::backend::{
     DecisionBackend, DecisionBackendConfig, HostedJevBackend, HostedJevLimits, HostedJevSettings,
 };
@@ -385,33 +386,40 @@ async fn run_pipeline(State(app): State<Arc<App>>, Json(body): Json<PipelineIn>)
             )
         }
     }
+    // Small talk such as "hi" or "thanks" is answered by the local catalogue rules, so it spends
+    // no Gemini or hosted call and its provenance names the rules that answered it.
+    let small_talk = crate::request::is_small_talk(request);
+    let rules;
+    let backend: &dyn DecisionBackend = if small_talk {
+        rules = CatalogueBackend::new(Arc::clone(&app.cat));
+        &rules
+    } else {
+        app.backend.as_ref()
+    };
     // With Gemini on, the rules decide on Gemini's reading in catalogue terms, or on the
     // reader's own words when Gemini fails or finds something outside the catalogue.
-    let interpretation = app.interpreter.interpret(&app.cat, request).await;
+    let interpretation = if small_talk {
+        None
+    } else {
+        app.interpreter.interpret(&app.cat, request).await
+    };
     let decided = interpretation
         .as_ref()
         .map_or(request, |reading| reading.request.as_str());
-    let mut response = match pipeline::run(
-        &app.cat,
-        app.backend.as_ref(),
-        decided,
-        preference,
-        app.min_confidence,
-    )
-    .await
-    {
-        Ok(mut v) => {
-            if let Some(reading) = &interpretation {
-                v["request"] = json!(request);
-                v["interpretation"] = reading.to_json();
+    let mut response =
+        match pipeline::run(&app.cat, backend, decided, preference, app.min_confidence).await {
+            Ok(mut v) => {
+                if let Some(reading) = &interpretation {
+                    v["request"] = json!(request);
+                    v["interpretation"] = reading.to_json();
+                }
+                decision_response(v)
             }
-            decision_response(v)
-        }
-        Err(_) => error(
-            StatusCode::SERVICE_UNAVAILABLE,
-            "Decision pipeline unavailable. Review is required.",
-        ),
-    };
+            Err(_) => error(
+                StatusCode::SERVICE_UNAVAILABLE,
+                "Decision pipeline unavailable. Review is required.",
+            ),
+        };
     if let (Some(reading), Some(metadata)) = (
         &interpretation,
         response.extensions_mut().get_mut::<LogMetadata>(),

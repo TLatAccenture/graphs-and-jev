@@ -21,6 +21,8 @@
   const REJECT = "Sorry, I can't help with that one. This catalogue covers air pollutants and emissions for 2015-2025 at region, country or continent level, so hourly or city-level data, other years and other topics are out of scope. Try \"Annual PM2.5 by country, 2019 to 2024\".";
   const GREETING = "Hello! I can help you find air-pollution and emissions datasets. Name a pollutant (or ask for emissions in general) and a breakdown such as country and year, for example \"Annual PM2.5 by country, 2019 to 2024\".";
   const THANKS = "You're welcome! Ask about another pollutant or breakdown whenever you like.";
+  const GOODBYE = "Goodbye! Come back any time you need air-pollution or emissions data.";
+  const READY = "Ready when you are. Name a pollutant (or ask for emissions in general) and a breakdown such as country and year, for example \"Annual PM2.5 by country, 2019 to 2024\".";
   const UNCERTAIN = "Preference scores are uncertain. Candidate datasets are returned for review, not approved automatically.";
   const ALLOWED = new Set(("official sources source only the most recent latest newest data available updated prefer please " +
     "in for across from and with by per all each every last past one two three four five to through until between " +
@@ -33,8 +35,23 @@
   const word = (text, term, flags) => new RegExp("(?<![a-z0-9])" + escape(term) + "(?![a-z0-9])", flags).test(text);
   const choice = (labels, top) => ({type: "choice", probabilities: Object.fromEntries(labels.map(l => [l, l === top ? 1.0 : 0.0])), top, confidence: 1.0});
   const captured = Object.fromEntries(CAPTURED.map(body => [key(body.request), body]));
-  const greeting = /^(?:(?:hi|hello|hey|hiya|howdy|yo|greetings)|good (?:morning|afternoon|evening))(?:\s+(?:there|jev|all|everyone|team))?(?:[\s,!.:;-]+|$)/i;
+  const greeting = /^(?:(?:hi|hello|hey|hiya|howdy|yo|greetings)|good (?:morning|afternoon|evening|day))(?:\s+(?:there|jev|all|everyone|team))?(?:[\s,!.:;-]+|$)/i;
   const stripGreeting = text => text.replace(greeting, "").trim();
+  // Mirrors SMALL_TALK in src/request.rs: each pattern must cover the whole request.
+  const OPENERS = "(?:(?:hi|hello|hey|hiya|howdy|yo|greetings|good (?:morning|afternoon|evening|day)|ok|okay|oh|so|well|great|cool|nice|perfect|awesome|brilliant|lovely|excellent|alright|right|sure)(?: (?:there|jev|all|everyone|team))* )*";
+  const CLOSERS = "(?: (?:jev|please|then|again|mate|there|all|everyone|team))*";
+  const SMALL_TALK = [
+    ["(?:(?:thanks|thank you|cheers) )?(?:bye|bye bye|goodbye|good bye|see you|see ya|cya|see you later|thats all|that is all|thats it|im done|i am done|all done|bye for now|(?:thats all|thats it) for now|no thanks|no thank you|take care|have a (?:good|nice|great) (?:day|one|weekend)|good night|goodnight|see you soon|catch you later)(?: (?:thanks|thank you|cheers))?", GOODBYE],
+    ["thanks|thank you|thankyou|thx|ty|cheers|ta|many thanks|much appreciated|appreciate it|(?:thanks|thank you|cheers|ta) (?:very much|so much|a lot|heaps|again|for that|for your help)|nice one|(?:(?:thanks|thank you|cheers) )?(?:thats|that is) (?:great|perfect|helpful|brilliant|lovely)(?: (?:thanks|thank you|cheers))?", THANKS],
+    ["hi|hello|hey|hiya|howdy|yo|greetings|good (?:morning|afternoon|evening|day)|morning|afternoon|evening|test|testing|anyone there|is anyone there|anybody there|is anybody there|are you there", GREETING],
+    ["help|help me|help please|i need help|can you help|can you help me|could you help me|what can you do|what do you do|what are you|who are you|what is this|whats this|what is jev|who is jev|how does this work|how does it work|how do i use this|how do i use it|how do i start|where do i start|what can i ask|what should i ask|what do i type|what data do you have|what data is there|what data is available|what do you have|what is available|whats available|how are you|how are you doing|hows it going|how is it going|whats jev|whos jev|how can you help(?: me)?|what can you help(?: me)? with|what can i ask you|what does (?:this|it) do|(?:show|give) me an example|(?:what|which) pollutants (?:do you have|are there|are available)", GREETING],
+    ["ok|okay|cool|great|nice|perfect|awesome|alright|all right|sure|got it|sounds good|right|yes|yep|yeah|brilliant|lovely|excellent|no worries|all good", READY],
+  ].map(([talk, reply]) => [new RegExp("^" + OPENERS + "(?:" + talk + ")" + CLOSERS + "$"), reply]);
+  const smallTalk = text => {
+    const words = text.normalize("NFKD").replace(/\p{M}/gu, "").toLowerCase().replace(/['\u2019]/g, "").replace(/[^a-z0-9]+/g, " ").trim();
+    const hit = SMALL_TALK.find(([pattern]) => pattern.test(words));
+    return hit ? hit[1] : null;
+  };
 
   // ponytail: mirrors preference_score in src/request.rs without its catalogue-term masking or member
   // filters, so a preference naming places or years scores as unrecognised (review) here.
@@ -94,7 +111,8 @@
   function rules(request, preference) {
     const out = {request, preference, backend: "catalogue", ...BROWSER, model: "catalogue-fixture-v1", stages: [],
       policy: {min_confidence: MIN_CONFIDENCE, validated_risk_guarantee: false, calibration_loaded: false, time_anchor: null}};
-    const original = request.toLowerCase().replace(/pm\s*2[.,]?\s*5/g, "pm2.5").replace(/sulfur/g, "sulphur");
+    const chat = smallTalk(request);
+    if (chat) return stop(out, "clarify", chat);
     const stripped = stripGreeting(request);
     const text = stripped.toLowerCase().replace(/pm\s*2[.,]?\s*5/g, "pm2.5").replace(/sulfur/g, "sulphur");
     const years = (stripped.match(/\b(19|20)\d{2}\b/g) || []).map(Number);
@@ -115,11 +133,6 @@
     else if (/\b(year|years|yearly|annual)\b/.test(text)) levels.TIME = "year";
     if (/\bsubsector/.test(text)) levels.SECTOR = "subsector";
     else if (/\b(macro)?sector/.test(text)) levels.SECTOR = "macrosector";
-    if (!pollutants.length && !Object.keys(levels).length) {
-      const said = original.replace(/[^a-z0-9 ]+/g, "").split(/\s+/).filter(Boolean).join(" ");
-      if (/^(thanks|thank you|cheers|ta)( (very much|so much|a lot|jev))?$/.test(said)) return stop(out, "clarify", THANKS);
-      if (/^((hi|hello|hey|hiya|howdy|yo|greetings|good (morning|afternoon|evening))( (there|jev|all|everyone|team))?|help|help me|what can you do|what do you do|who are you|how does this work|how do i use this)$/.test(said)) return stop(out, "clarify", GREETING);
-    }
     const broadDomain = /\b(pollution|emissions?|data|everything)\b/.test(text);
     if (!pollutants.length && !Object.keys(levels).length && !broadDomain) return stop(out, "reject", REJECT);
     if (!pollutants.length || !Object.keys(levels).length) return stop(out, "clarify", CLARIFY);

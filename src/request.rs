@@ -237,10 +237,41 @@ pub const REJECT_MESSAGE: &str = "Sorry, I can't help with that one. This catalo
 const GREETING_REPLY: &str = "Hello! I can help you find air-pollution and emissions datasets. Name a pollutant (or ask for emissions in general) and a breakdown such as country and year, for example \"Annual PM2.5 by country, 2019 to 2024\".";
 const THANKS_REPLY: &str =
     "You're welcome! Ask about another pollutant or breakdown whenever you like.";
+const GOODBYE_REPLY: &str = "Goodbye! Come back any time you need air-pollution or emissions data.";
+const READY_REPLY: &str = "Ready when you are. Name a pollutant (or ask for emissions in general) and a breakdown such as country and year, for example \"Annual PM2.5 by country, 2019 to 2024\".";
+
+// Small talk may open with greetings or "ok"-style words and close with "Jev" or "please".
+const SMALL_TALK_OPENERS: &str = r"(?:(?:hi|hello|hey|hiya|howdy|yo|greetings|good (?:morning|afternoon|evening|day)|ok|okay|oh|so|well|great|cool|nice|perfect|awesome|brilliant|lovely|excellent|alright|right|sure)(?: (?:there|jev|all|everyone|team))* )*";
+const SMALL_TALK_CLOSERS: &str = r"(?: (?:jev|please|then|again|mate|there|all|everyone|team))*";
+
+/// Small talk and its reply, checked in order. Each pattern must cover the whole request, so a
+/// request with any real content is never small talk.
+const SMALL_TALK: [(&str, &str); 5] = [
+    (
+        r"(?:(?:thanks|thank you|cheers) )?(?:bye|bye bye|goodbye|good bye|see you|see ya|cya|see you later|thats all|that is all|thats it|im done|i am done|all done|bye for now|(?:thats all|thats it) for now|no thanks|no thank you|take care|have a (?:good|nice|great) (?:day|one|weekend)|good night|goodnight|see you soon|catch you later)(?: (?:thanks|thank you|cheers))?",
+        GOODBYE_REPLY,
+    ),
+    (
+        r"thanks|thank you|thankyou|thx|ty|cheers|ta|many thanks|much appreciated|appreciate it|(?:thanks|thank you|cheers|ta) (?:very much|so much|a lot|heaps|again|for that|for your help)|nice one|(?:(?:thanks|thank you|cheers) )?(?:thats|that is) (?:great|perfect|helpful|brilliant|lovely)(?: (?:thanks|thank you|cheers))?",
+        THANKS_REPLY,
+    ),
+    (
+        r"hi|hello|hey|hiya|howdy|yo|greetings|good (?:morning|afternoon|evening|day)|morning|afternoon|evening|test|testing|anyone there|is anyone there|anybody there|is anybody there|are you there",
+        GREETING_REPLY,
+    ),
+    (
+        r"help|help me|help please|i need help|can you help|can you help me|could you help me|what can you do|what do you do|what are you|who are you|what is this|whats this|what is jev|who is jev|how does this work|how does it work|how do i use this|how do i use it|how do i start|where do i start|what can i ask|what should i ask|what do i type|what data do you have|what data is there|what data is available|what do you have|what is available|whats available|how are you|how are you doing|hows it going|how is it going|whats jev|whos jev|how can you help(?: me)?|what can you help(?: me)? with|what can i ask you|what does (?:this|it) do|(?:show|give) me an example|(?:what|which) pollutants (?:do you have|are there|are available)",
+        GREETING_REPLY,
+    ),
+    (
+        r"ok|okay|cool|great|nice|perfect|awesome|alright|all right|sure|got it|sounds good|right|yes|yep|yeah|brilliant|lovely|excellent|no worries|all good",
+        READY_REPLY,
+    ),
+];
 
 fn strip_leading_greeting(text: &str) -> &str {
     let greeting = re(
-        r"^(?:(?:hi|hello|hey|hiya|howdy|yo|greetings)|good (?:morning|afternoon|evening))(?:\s+(?:there|jev|all|everyone|team))?(?:[\s,!.:;-]+|$)",
+        r"^(?:(?:hi|hello|hey|hiya|howdy|yo|greetings)|good (?:morning|afternoon|evening|day))(?:\s+(?:there|jev|all|everyone|team))?(?:[\s,!.:;-]+|$)",
     );
     greeting
         .find(text)
@@ -249,23 +280,27 @@ fn strip_leading_greeting(text: &str) -> &str {
         .map_or(text, |matched| text[matched.end()..].trim())
 }
 
-/// A friendly reply when the whole request is a greeting, thanks or a "what can you do" question.
+/// A friendly reply when the whole request is small talk: a greeting, thanks, a goodbye, a
+/// plain "ok", or a question about what the catalogue can do.
 fn small_talk(text: &str) -> Option<&'static str> {
-    let words = re(r"[^a-z0-9 ]+")
-        .replace_all(text, "")
-        .split_whitespace()
-        .collect::<Vec<_>>()
-        .join(" ");
-    let is = |pat: &str| re(pat).is_match(&words).unwrap_or(false);
-    if is(r"^(thanks|thank you|cheers|ta)( (very much|so much|a lot|jev))?$") {
-        Some(THANKS_REPLY)
-    } else if is(
-        r"^((hi|hello|hey|hiya|howdy|yo|greetings|good (morning|afternoon|evening))( (there|jev|all|everyone|team))?|help|help me|what can you do|what do you do|who are you|how does this work|how do i use this)$",
-    ) {
-        Some(GREETING_REPLY)
-    } else {
-        None
-    }
+    let unquoted = re(r"['’]").replace_all(text, "");
+    let words = re(r"[^a-z0-9]+")
+        .replace_all(&unquoted, " ")
+        .trim()
+        .to_string();
+    SMALL_TALK.iter().find_map(|(talk, reply)| {
+        re(&format!(
+            "^{SMALL_TALK_OPENERS}(?:{talk}){SMALL_TALK_CLOSERS}$"
+        ))
+        .is_match(&words)
+        .unwrap_or(false)
+        .then_some(*reply)
+    })
+}
+
+/// Whether the whole request is small talk, which the catalogue rules answer without a model.
+pub fn is_small_talk(request: &str) -> bool {
+    small_talk(&norm(request)).is_some()
 }
 
 fn unresolved_request_terms(cat: &Catalogue, text: &str) -> Vec<String> {
@@ -604,12 +639,9 @@ pub fn resolve(cat: &Catalogue, request: &str) -> Value {
             filters.insert("TIME".into(), json!({"level": "year", "members": members}));
         }
     }
-    // Greetings, thanks and "what can you do" get a friendly nudge, not a rejection.
-    let chat = if pollutants.is_empty() && levels.is_empty() {
-        small_talk(&original)
-    } else {
-        None
-    };
+    // Small talk gets a friendly reply, not a rejection. Its patterns cover the whole request, so
+    // "data" in "what data do you have?" or "day" in "good day" is never a data request.
+    let chat = small_talk(&original);
     for qualifier in unresolved_constraints(cat, request) {
         issues.push(format!(
             "Unrecognised constraint '{qualifier}'; use catalogue members or clarify the request."
@@ -639,7 +671,9 @@ pub fn resolve(cat: &Catalogue, request: &str) -> Value {
         && !re(r"\b(pollution|emissions?|data|everything)\b")
             .is_match(&text)
             .unwrap_or(false);
-    let gate = if unsupported || outside || off_topic {
+    let gate = if chat.is_some() {
+        "clarify"
+    } else if unsupported || outside || off_topic {
         "reject"
     } else if !issues.is_empty() || pollutants.is_empty() || levels.is_empty() {
         "clarify"

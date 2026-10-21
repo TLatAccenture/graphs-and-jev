@@ -6,7 +6,8 @@ This runbook is for the agent or person who deploys the presenter service. It tu
 
 - Gemini on Vertex AI reads each typed Environmental Agency request and maps it to catalogue terms through a response schema that lists only the catalogue's values. The service writes those terms back as a plain request, and the configured decision backend decides on it. Gemini never picks an outcome, a dataset or a number.
 - On a Gemini-only presenter, the default `DECISION_BACKEND=catalogue` means deterministic catalogue rules decide. On a combined presenter, `DECISION_BACKEND=jev` means hosted Jev decides. If Gemini fails or finds something outside the catalogue, deterministic interpretation passes the reader's own words to that configured backend and the result says Gemini was unavailable.
-- The page says on load that Gemini reads requests and that request text is sent to Vertex AI. The service does not log request text; each log line has an `interpreter` field instead.
+- Small talk (greetings, thanks, goodbyes, "ok", and questions about what the service can do) is answered by the local catalogue rules on every build, with no Gemini read and no hosted Jev call, and the page says so.
+- The page says on load that Gemini reads requests and that request text is sent to Vertex AI. The service does not log request text; each pipeline log line for a request Gemini read has an `interpreter` field instead, and small-talk lines have none.
 - Settings and response shape: [docs/api-contract.md](../api-contract.md), sections "Gemini interpreter settings" and "Domain `catalogue`".
 
 ## Rules for this deployment
