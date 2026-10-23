@@ -15,6 +15,7 @@ SERVICE="${SERVICE:-graphs-and-jev}"
 LB="${LB:-sdm-demo}"                                 # prefix of the existing load balancer's resources
 DEPLOY_AS="${DEPLOY_AS-dataandaidemoday@${PROJECT_ID}.iam.gserviceaccount.com}"
 API_LIMIT_PER_MINUTE="${API_LIMIT_PER_MINUTE:-120}"  # per client IP, enforced by Cloud Armor at the edge
+CATALOGUE_LIMIT_PER_MINUTE="${CATALOGUE_LIMIT_PER_MINUTE:-20}"  # /api/catalogue can call Gemini, so it gets less
 GCLOUD_ENV="${GCLOUD_ENV:-$HOME/Documents/GitHub/TestCode/sdm-demo/gcloud_env.sh}"
 N="$SERVICE"
 
@@ -39,6 +40,13 @@ exists compute security-policies rules describe 1000 --security-policy "$N-armor
   deployer compute security-policies rules create 1000 --security-policy "$N-armor" \
     --expression "request.path.startsWith('/api/')" --action throttle \
     --rate-limit-threshold-count "$API_LIMIT_PER_MINUTE" --rate-limit-threshold-interval-sec 60 \
+    --conform-action allow --exceed-action deny-429 --enforce-on-key IP
+
+say "Cloud Armor: at most $CATALOGUE_LIMIT_PER_MINUTE catalogue requests a minute per visitor"
+exists compute security-policies rules describe 900 --security-policy "$N-armor" ||
+  deployer compute security-policies rules create 900 --security-policy "$N-armor" \
+    --expression "request.path.startsWith('/api/catalogue')" --action throttle \
+    --rate-limit-threshold-count "$CATALOGUE_LIMIT_PER_MINUTE" --rate-limit-threshold-interval-sec 60 \
     --conform-action allow --exceed-action deny-429 --enforce-on-key IP
 
 say "Backend service, with request logging"
